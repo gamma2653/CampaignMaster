@@ -1,0 +1,110 @@
+# Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
+import sys
+import json
+
+if sys.version_info < (3, 12):
+    from typing_extensions import TypedDict, NotRequired, NewType, TypeVar
+else:
+    from typing import TypedDict, NotRequired, NewType, TypeVar
+
+
+from pydantic import TypeAdapter
+
+RuleID = NewType('RuleID', str)
+
+class Rule(TypedDict):
+    """
+    A class to represent a single rule in a tabletop RPG campaign.
+    """
+    id: NotRequired[RuleID]  # Auto-generated if not provided
+    description: str
+    effect: str
+    components: list[str]
+
+
+ObjectiveID = NewType('ObjectiveID', str)
+
+class Objective(TypedDict):
+    """
+    A class to represent a single objective in a campaign plan.
+    """
+    id: NotRequired[ObjectiveID]  # Auto-generated if not provided
+    description: str
+    components: list[str]
+    prerequisites: list[str]
+
+PointID = NewType('PointID', str)
+class Point(TypedDict):
+    id: NotRequired[PointID]  # Auto-generated if not provided
+    name: str
+    description: str
+    objective: NotRequired[ObjectiveID]
+
+SegmentID = NewType('SegmentID', str)
+class Segment(TypedDict):
+    id: NotRequired[SegmentID]  # Auto-generated if not provided
+    name: str
+    description: str
+    points: list[Point]
+
+ArcID = NewType('ArcID', str)
+class Arc(TypedDict):
+    id: NotRequired[ArcID]  # Auto-generated if not provided
+    name: str
+    description: str
+    segments: list[Segment]
+
+class Item(TypedDict):
+    name: str
+    type_: str
+    description: str
+    properties: dict[str, str]
+
+class Character(TypedDict):
+    name: str
+    role: str
+    backstory: str
+    attributes: dict[str, int]
+    skills: dict[str, int]
+    storylines: list[ArcID | SegmentID | PointID]
+
+    inventory: list[str]
+
+class CampaignPlan(TypedDict):
+    """
+    A class to represent a campaign plan, loaded from a JSON file.
+    """
+    title: str
+    version: str
+    setting: str
+    summary: str
+    objectives: list[Objective]
+    npcs: list[str]
+    locations: list[str]
+    items: list[str]
+    rules: list[Rule]
+
+ObjectType = Rule | Objective | CampaignPlan
+
+_Rule = TypeAdapter(Rule)
+_Objective = TypeAdapter(Objective)
+_CampaignPlan = TypeAdapter(CampaignPlan)
+
+
+Object = TypeVar('Object', bound=ObjectType)
+
+def load_obj(dict_type: TypeAdapter[Object], file_path: str) -> Object:
+    """
+    Load a TypedDict object from a JSON file and validate it using the provided TypeAdapter.
+
+    Parameters
+    ----------
+    dict_type : TypeAdapter
+        The TypeAdapter for the TypedDict to be loaded.
+    file_path : str
+        The path to the JSON file.
+    """
+    with open(file_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    return dict_type.validate_python(data)
+

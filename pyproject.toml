@@ -1,0 +1,27 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "campaign_master"
+version = "0.0.1"
+authors = [
+    "Chris De Jesus <christopher2653@gmail.com>"
+]
+description = "A campaign management tool for tabletop RPGs."
+
+[tool.poetry.dependencies]
+python = "^3.10,<3.14"
+tqdm = {version = "^4.67.1"}
+PySide6 = {version = "~=6.8.1.1"}
+PySide6-Essentials = {version = "~=6.8.1.1"}
+PySide6-Addons = {version = "~=6.8.1.1"}
+pydantic = {version = "^2.11.7"}
+
+
+[tool.poetry.group.formatting.dependencies]
+black="^24.10.0"
+isort="^5.13.2"
+
+[tool.isort]
+profile = "black"
