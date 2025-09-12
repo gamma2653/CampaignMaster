@@ -13,14 +13,9 @@ from pydantic import TypeAdapter
 
 from . import planning
 
-class Character(TypedDict):
-    name: str
-    role: str
-    backstory: str
-    attributes: dict[str, int]
-    skills: dict[str, int]
 
-    inventory: list[str]
 
 class Campaign(TypedDict):
     plan: planning.CampaignPlan
+
+_Campaign = TypeAdapter(Campaign)

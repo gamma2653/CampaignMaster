@@ -3,7 +3,7 @@ import argparse
 
 from PySide6 import QtCore, QtWidgets
 
-from campaign_master.gui.app import CampaignMasterApp
+from campaign_master.gui.app import CampaignMasterPlanApp
 
 
 if __name__ == "__main__":
@@ -15,6 +15,6 @@ if __name__ == "__main__":
         QtCore.qDebug("Debug mode is enabled")
 
     app = QtWidgets.QApplication(sys.argv)
-    window = CampaignMasterApp()
+    window = CampaignMasterPlanApp()
     window.show()
     app.exec()

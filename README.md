@@ -1,0 +1,3 @@
+# Campaign Master
+
+A (WIP) AI-enabled TTRPG Planner app. Inspired by previous projects of mine, such as StoryboardWorkshop (A graph creator for branching stories, laid out on a canvas sort of like those classic detective movies w/ the crazed red thread-on-cork style) and Sound-R (a non-linear sound-player for use during D&D sessions). This application combines both these concepts into a single interface, where the user can plan a campaign, save it to a file, and then run said plan saving relevant information as necessary. During the planning phase, content is able to be generated and saved to be played back later in a presentation setting with other players.
