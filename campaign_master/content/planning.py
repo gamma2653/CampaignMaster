@@ -15,7 +15,7 @@ ID = NewType("ID", str)
 class AbstractObject(TypedDict):
     id: NotRequired[ID]
 
-RuleID = Annotated[ID, StringConstraints(min_length=1, pattern=r"R-\d{3}")]
+RuleID = Annotated[ID, StringConstraints(min_length=3, pattern=r"R-\d+")]
 class Rule(AbstractObject):
     """
     A class to represent a single rule in a tabletop RPG campaign.
@@ -25,7 +25,7 @@ class Rule(AbstractObject):
     effect: str
     components: list[str]
 
-ObjectiveID = Annotated[ID, StringConstraints(min_length=1, pattern=r"O-\d{3}")]
+ObjectiveID = Annotated[ID, StringConstraints(min_length=3, pattern=r"O-\d+")]
 class Objective(TypedDict):
     """
     A class to represent a single objective in a campaign plan.
@@ -35,8 +35,7 @@ class Objective(TypedDict):
     components: list[str]
     prerequisites: list[str]
 
-
-PointID = Annotated[ID, StringConstraints(min_length=1, pattern=r"P-\d{3}")]
+PointID = Annotated[ID, StringConstraints(min_length=3, pattern=r"P-\d+")]
 class Point(TypedDict):
     id: NotRequired[PointID]  # Auto-generated if not provided
     name: str
@@ -44,7 +43,7 @@ class Point(TypedDict):
     objective: NotRequired[ObjectiveID]
 
 
-SegmentID = Annotated[ID, StringConstraints(min_length=1, pattern=r"S-\d{3}")]
+SegmentID = Annotated[ID, StringConstraints(min_length=3, pattern=r"S-\d+")]
 class Segment(TypedDict):
     id: NotRequired[SegmentID]  # Auto-generated if not provided
     name: str
@@ -52,7 +51,7 @@ class Segment(TypedDict):
     points: list[Point]
 
 
-ArcID = Annotated[ID, StringConstraints(min_length=1, pattern=r"A-\d{3}")]
+ArcID = Annotated[ID, StringConstraints(min_length=3, pattern=r"A-\d+")]
 class Arc(TypedDict):
     id: NotRequired[ArcID]  # Auto-generated if not provided
     name: str
@@ -60,7 +59,7 @@ class Arc(TypedDict):
     segments: list[Segment]
 
 
-ItemID = Annotated[ID, StringConstraints(min_length=1, pattern=r"I-\d{3}")]
+ItemID = Annotated[ID, StringConstraints(min_length=3, pattern=r"I-\d+")]
 class Item(TypedDict):
     id: NotRequired[ItemID]  # Auto-generated if not provided
     name: str
@@ -69,7 +68,7 @@ class Item(TypedDict):
     properties: dict[str, str]
 
 
-CharacterID = Annotated[ID, StringConstraints(min_length=1, pattern=r"C-\d{3}")]
+CharacterID = Annotated[ID, StringConstraints(min_length=3, pattern=r"C-\d+")]
 class Character(TypedDict):
     id: NotRequired[CharacterID]  # Auto-generated if not provided
     name: str
@@ -81,7 +80,7 @@ class Character(TypedDict):
     inventory: list[ItemID]
 
 
-LocationID = Annotated[ID, StringConstraints(min_length=1, pattern=r"L-\d{3}")]
+LocationID = Annotated[ID, StringConstraints(min_length=3, pattern=r"L-\d+")]
 class Location(TypedDict):
     id: NotRequired[LocationID]  # Auto-generated if not provided
     name: str

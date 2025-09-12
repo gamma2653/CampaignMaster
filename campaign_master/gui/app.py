@@ -11,7 +11,9 @@ class ModelListView(QtWidgets.QWidget):
     A list view to display and manage a list of Pydantic model instances.
     """
 
-    def __init__(self, model: TypeAdapter[Object], parent=None):
+    def __init__(
+        self, model: TypeAdapter[Object], parent: "Optional[PydanticForm]" = None
+    ):
         super().__init__(parent)
         self.model = model
         self.init_ui()
@@ -45,7 +47,7 @@ class ModelListView(QtWidgets.QWidget):
     def remove_item(self):
         # Logic to remove the selected item
         pass
-    
+
 
 class PydanticForm(QtWidgets.QWidget):
     """
@@ -61,13 +63,12 @@ class PydanticForm(QtWidgets.QWidget):
     @property
     def annotations(self):
         return self.model._type.__annotations__
-    
+
     @property
     def parent_form(self) -> Optional["PydanticForm"]:
         if self.is_subform:
             return cast("PydanticForm", self.parent())
         return None
-
 
     def init_ui(self):
         """
@@ -82,12 +83,11 @@ class PydanticForm(QtWidgets.QWidget):
             layout.addRow(label, input_field)
         self.setLayout(layout)
 
-
     def create_input_field(self, field_name, field_type):
         """
         Create an input field widget based on the field type.
 
-        If the field type is iterable, 
+        If the field type is iterable,
         """
         print(f"Creating input field for {field_name} of type {field_type}")
         try:
@@ -98,9 +98,9 @@ class PydanticForm(QtWidgets.QWidget):
         else:
             # Iterable
             return ModelListView(TypeAdapter(field_type.__args__[0]), self)
-            
+
         return QtWidgets.QLineEdit(self)
-    
+
     @classmethod
     def from_existing(cls, model_instance, parent=None):
         """
@@ -114,7 +114,7 @@ class PydanticForm(QtWidgets.QWidget):
             if input_field:
                 input_field.setText(str(value))
         return instance
-    
+
     def save(self):
         """
         Save the current form data back to the Pydantic model instance.
@@ -125,9 +125,8 @@ class PydanticForm(QtWidgets.QWidget):
             if input_field:
                 data[field] = input_field.text()
         return self.model.validate_python(data)
-    
 
-    
+
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -138,7 +137,7 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.setup_ui()
-    
+
     def setup_ui(self):
         """
         Setup the user interface for `CampaignMasterPlanApp`.
@@ -174,7 +173,9 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
     def load_existing_campaign(self):
         self.label.setText("Loading an existing campaign...")
         file_dialog = QtWidgets.QFileDialog(self)
-        file_path, _ = file_dialog.getOpenFileName(self, "Open Campaign Plan", "", "JSON Files (*.json);;All Files (*)")
+        file_path, _ = file_dialog.getOpenFileName(
+            self, "Open Campaign Plan", "", "JSON Files (*.json);;All Files (*)"
+        )
         if file_path:
             with open(file_path, "r", encoding="utf-8") as file:
                 data = file.read()
