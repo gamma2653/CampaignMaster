@@ -125,7 +125,7 @@ class PydanticForm(QtWidgets.QWidget):
 
     @classmethod
     def from_existing(
-        cls, dict_type: TypeAdapter[Object], dict_instance: ObjectType, parent=None
+        cls, dict_type: TypeAdapter[Object], dict_instance: Object, parent: Optional[QtWidgets.QWidget] = None
     ) -> "PydanticForm":
         """
         Create a PydanticForm from an existing Pydantic model instance.
