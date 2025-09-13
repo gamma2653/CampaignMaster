@@ -130,14 +130,14 @@ class PydanticForm(QtWidgets.QWidget):
         """
         Create a PydanticForm from an existing Pydantic model instance.
         """
-        instance = cls(dict_type, parent)
+        form_instance = cls(dict_type, parent)
         # Populate fields with existing data
-        for field in instance.annotations.keys():
+        for field in form_instance.annotations.keys():
             value = dict_instance.get(field, "")
-            input_field = instance.findChild(QtWidgets.QLineEdit, field)
+            input_field = form_instance.findChild(QtWidgets.QLineEdit, field)
             if input_field:
                 input_field.setText(str(value))
-        return instance
+        return form_instance
 
     def save(self):
         """
