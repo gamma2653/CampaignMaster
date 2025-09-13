@@ -1,12 +1,24 @@
 # GUI application for managing tabletop RPG campaigns
 
 from typing import Optional, cast
-from ..content.planning import TypeAdapter, ObjectType, Object, _CampaignPlan
+from ..content.planning import (
+    ID,
+    TypeAdapter,
+    AbstractObject,
+    Object,
+    ObjectType,
+    _CampaignPlan,
+    load_obj,
+)
+from ..content.factory import ID_FACTORY
 
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtCore
 
 
 class ModelListView(QtWidgets.QWidget):
+    item_added = QtCore.Signal(AbstractObject)
+    item_removed = QtCore.Signal(AbstractObject)
+
     """
     A list view to display and manage a list of Pydantic model instances.
     """
@@ -24,6 +36,8 @@ class ModelListView(QtWidgets.QWidget):
         self.list_widget = QtWidgets.QListWidget(self)
         layout.addWidget(self.list_widget)
 
+        self.forms: dict[ID, PydanticForm] = {}
+
         self.add_button = QtWidgets.QPushButton("Add", self)
         self.add_button.clicked.connect(self.add_item)
         layout.addWidget(self.add_button)
@@ -39,10 +53,7 @@ class ModelListView(QtWidgets.QWidget):
         form = PydanticForm(self.model, self.parent())
         form.setWindowTitle("Add New Item")
         form.show()
-        # form.connect(form.save, self.on_item_added)
-
-    def on_item_added(self, object: ObjectType):
-        self.list_widget.addItem(str(object))
+        self.forms[ID("new")] = form
 
     def remove_item(self):
         # Logic to remove the selected item
@@ -54,21 +65,29 @@ class PydanticForm(QtWidgets.QWidget):
     A form to display and edit Pydantic model fields.
     """
 
+    save_requested = QtCore.Signal(dict)
+
     def __init__(self, model: TypeAdapter[Object], parent=None):
         super().__init__(parent)
         self.is_subform = isinstance(parent, PydanticForm)
+        # After some internal debate, I've decided that subforms will act in a slightly funky way-
+        # To pop out, they will reset their parent, while keeping track of the original parent.
+        self.parent_form: Optional["PydanticForm"]
+        if self.is_subform:
+            self.parent_form = cast("PydanticForm", parent)
+            self.setParent(None)
+        else:
+            self.parent_form = None
         self.model = model
         self.init_ui()
 
     @property
     def annotations(self):
         return self.model._type.__annotations__
-
+    
     @property
-    def parent_form(self) -> Optional["PydanticForm"]:
-        if self.is_subform:
-            return cast("PydanticForm", self.parent())
-        return None
+    def type_name(self) -> str:
+        return self.model._type.__name__.lower()
 
     def init_ui(self):
         """
@@ -77,7 +96,6 @@ class PydanticForm(QtWidgets.QWidget):
         print(f"Initializing UI with fields: {self.annotations.keys()}")
         layout = QtWidgets.QFormLayout(self)
         for field in self.annotations.keys():
-
             label = QtWidgets.QLabel(field.title(), self)
             input_field = self.create_input_field(field, self.annotations[field])
             layout.addRow(label, input_field)
@@ -98,18 +116,24 @@ class PydanticForm(QtWidgets.QWidget):
         else:
             # Iterable
             return ModelListView(TypeAdapter(field_type.__args__[0]), self)
-
-        return QtWidgets.QLineEdit(self)
+        # Handle special "id" case
+        line_edit = QtWidgets.QLineEdit(self)
+        if field_name == "id":
+            line_edit.setText(str(ID_FACTORY.from_field_name(self.type_name)))
+            line_edit.setReadOnly(True)
+        return line_edit
 
     @classmethod
-    def from_existing(cls, model_instance, parent=None):
+    def from_existing(
+        cls, dict_type: TypeAdapter[Object], dict_instance: ObjectType, parent=None
+    ) -> "PydanticForm":
         """
         Create a PydanticForm from an existing Pydantic model instance.
         """
-        instance = cls(TypeAdapter(model_instance), parent)
+        instance = cls(dict_type, parent)
         # Populate fields with existing data
         for field in instance.annotations.keys():
-            value = getattr(model_instance, field, "")
+            value = dict_instance.get(field, "")
             input_field = instance.findChild(QtWidgets.QLineEdit, field)
             if input_field:
                 input_field.setText(str(value))
@@ -124,7 +148,7 @@ class PydanticForm(QtWidgets.QWidget):
             input_field = self.findChild(QtWidgets.QLineEdit, field)
             if input_field:
                 data[field] = input_field.text()
-        return self.model.validate_python(data)
+        self.save_requested.emit(self.model.validate_python(data))
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):
@@ -177,10 +201,10 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
             self, "Open Campaign Plan", "", "JSON Files (*.json);;All Files (*)"
         )
         if file_path:
-            with open(file_path, "r", encoding="utf-8") as file:
-                data = file.read()
-            campaign_plan = _CampaignPlan.validate_python(data)
-            self.form = PydanticForm.from_existing(campaign_plan, self)
+            # Load the campaign plan from the selected file
+            self.form = PydanticForm.from_existing(
+                _CampaignPlan, load_obj(_CampaignPlan, file_path), self
+            )
             self.central_widget.addWidget(self.form)
             self.central_widget.setCurrentWidget(self.form)
         else:

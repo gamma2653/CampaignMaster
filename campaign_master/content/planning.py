@@ -13,55 +13,55 @@ from pydantic import TypeAdapter, StringConstraints
 ID = NewType("ID", str)
 
 class AbstractObject(TypedDict):
-    id: NotRequired[ID]
+    id: ID
 
 RuleID = Annotated[ID, StringConstraints(min_length=3, pattern=r"R-\d+")]
 class Rule(AbstractObject):
     """
     A class to represent a single rule in a tabletop RPG campaign.
     """
-    id: NotRequired[RuleID]  # Auto-generated if not provided
+    id: RuleID
     description: str
     effect: str
     components: list[str]
 
 ObjectiveID = Annotated[ID, StringConstraints(min_length=3, pattern=r"O-\d+")]
-class Objective(TypedDict):
+class Objective(AbstractObject):
     """
     A class to represent a single objective in a campaign plan.
     """
-    id: NotRequired[ObjectiveID]  # Auto-generated if not provided
+    id: ObjectiveID
     description: str
     components: list[str]
     prerequisites: list[str]
 
 PointID = Annotated[ID, StringConstraints(min_length=3, pattern=r"P-\d+")]
-class Point(TypedDict):
-    id: NotRequired[PointID]  # Auto-generated if not provided
+class Point(AbstractObject):
+    id: PointID
     name: str
     description: str
     objective: NotRequired[ObjectiveID]
 
 
 SegmentID = Annotated[ID, StringConstraints(min_length=3, pattern=r"S-\d+")]
-class Segment(TypedDict):
-    id: NotRequired[SegmentID]  # Auto-generated if not provided
+class Segment(AbstractObject):
+    id: SegmentID
     name: str
     description: str
     points: list[Point]
 
 
 ArcID = Annotated[ID, StringConstraints(min_length=3, pattern=r"A-\d+")]
-class Arc(TypedDict):
-    id: NotRequired[ArcID]  # Auto-generated if not provided
+class Arc(AbstractObject):
+    id: ArcID
     name: str
     description: str
     segments: list[Segment]
 
 
 ItemID = Annotated[ID, StringConstraints(min_length=3, pattern=r"I-\d+")]
-class Item(TypedDict):
-    id: NotRequired[ItemID]  # Auto-generated if not provided
+class Item(AbstractObject):
+    id: ItemID
     name: str
     type_: str
     description: str
@@ -69,8 +69,8 @@ class Item(TypedDict):
 
 
 CharacterID = Annotated[ID, StringConstraints(min_length=3, pattern=r"C-\d+")]
-class Character(TypedDict):
-    id: NotRequired[CharacterID]  # Auto-generated if not provided
+class Character(AbstractObject):
+    id: CharacterID
     name: str
     role: str
     backstory: str
@@ -81,8 +81,8 @@ class Character(TypedDict):
 
 
 LocationID = Annotated[ID, StringConstraints(min_length=3, pattern=r"L-\d+")]
-class Location(TypedDict):
-    id: NotRequired[LocationID]  # Auto-generated if not provided
+class Location(AbstractObject):
+    id: LocationID
     name: str
     description: str
     neighboring_locations: list[LocationID]
@@ -91,10 +91,12 @@ class Location(TypedDict):
     ]  # (latitude, longitude, [altitude])
 
 
-class CampaignPlan(TypedDict):
+PlanID = Annotated[ID, StringConstraints(min_length=9, pattern=r"CamPlan-\d+")]
+class CampaignPlan(AbstractObject):
     """
     A class to represent a campaign plan, loaded from a JSON file.
     """
+    id: PlanID
     title: str
     version: str
     setting: str
@@ -116,7 +118,7 @@ ObjectType = AbstractObject | Rule | Objective | Point | Segment | Arc | Item | 
 # _Item = TypeAdapter(Item)
 # _Character = TypeAdapter(Character)
 # _Location = TypeAdapter(Location)
-_CampaignPlan = TypeAdapter(CampaignPlan)
+_CampaignPlan: TypeAdapter[CampaignPlan] = TypeAdapter(CampaignPlan) # type: ignore[arg-type]
 
 
 Object = TypeVar("Object", bound=ObjectType)
