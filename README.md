@@ -5,8 +5,13 @@ A (WIP) AI-enabled TTRPG Planner app. Inspired by previous projects of mine, suc
 
 Progress:
 
--[ ] 👷 (~75%, just need to implement the non-complex collection case, for eg Objectives, and ID linking.) Make complete skeleton app capable of collecting and associating useful information. This should be a highly flexible structure, able to adjust to many different TTRPG formats ranging from Dungeons & Dragons 5e, to Pathfinder 2e, to Cyberpunk RED. Should be done by 09/14 as I have some time this weekend to wrap that up, and feel excited to add the LLM suggestions.
+- [ ] 👷 (~75%, just need to implement the non-complex collection case, for eg Objectives, and ID linking.) Make complete skeleton app capable of collecting and associating useful information. This should be a highly flexible structure, able to adjust to many different TTRPG formats ranging from Dungeons & Dragons 5e, to Pathfinder 2e, to Cyberpunk RED. Should be done by 09/14 as I have some time this weekend to wrap that up, and feel excited to add the LLM suggestions.
 
--[ ] 📆 Integrate LLM suggestions for planning elements of the campaign. This could be for story segments where you are stuck on what should come next, or for NPCs backstories that need to fulfill a specific role. The idea is you should be able to prompt your use-case.
+- [ ] 📆 Integrate LLM suggestions for planning elements of the campaign. This could be for story segments where you are stuck on what should come next, or for NPCs backstories that need to fulfill a specific role. The idea is you should be able to prompt your use-case.
 
--[ ] 📅 I have no intentions to profit off this project anything past perhaps donations if people find themselves grateful enough to want to give money to someone for using something. If this ever becomes the case, I will need to update this with a donation link.
+- [ ] 📅 Further GUI enhancements
+
+  - [ ] Add a map feature for the locations, creating an icon in 2D space for visualization, able to open corresponding form data.
+  - [ ] Better navigation tools between widgets, perhaps use StackedWidget w/ clever naming? But then how to handle complex nested structures...
+
+- [ ] 📅 I have no intentions to profit off this project anything past perhaps donations if people find themselves grateful enough to want to give money to someone for using something. If this ever becomes the case, I will need to update this with a donation link.
