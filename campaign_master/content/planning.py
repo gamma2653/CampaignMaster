@@ -10,12 +10,12 @@ else:
 
 from pydantic import TypeAdapter, StringConstraints
 
-ID = NewType("ID", str)
+from .ids import ID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID
+
 
 class AbstractObject(TypedDict):
     id: ID
 
-RuleID = Annotated[ID, StringConstraints(min_length=3, pattern=r"R-\d+")]
 class Rule(AbstractObject):
     """
     A class to represent a single rule in a tabletop RPG campaign.
@@ -25,7 +25,6 @@ class Rule(AbstractObject):
     effect: str
     components: list[str]
 
-ObjectiveID = Annotated[ID, StringConstraints(min_length=3, pattern=r"O-\d+")]
 class Objective(AbstractObject):
     """
     A class to represent a single objective in a campaign plan.
@@ -35,7 +34,6 @@ class Objective(AbstractObject):
     components: list[str]
     prerequisites: list[str]
 
-PointID = Annotated[ID, StringConstraints(min_length=3, pattern=r"P-\d+")]
 class Point(AbstractObject):
     id: PointID
     name: str
@@ -43,7 +41,6 @@ class Point(AbstractObject):
     objective: NotRequired[ObjectiveID]
 
 
-SegmentID = Annotated[ID, StringConstraints(min_length=3, pattern=r"S-\d+")]
 class Segment(AbstractObject):
     id: SegmentID
     name: str
@@ -51,7 +48,6 @@ class Segment(AbstractObject):
     points: list[Point]
 
 
-ArcID = Annotated[ID, StringConstraints(min_length=3, pattern=r"A-\d+")]
 class Arc(AbstractObject):
     id: ArcID
     name: str
@@ -59,7 +55,6 @@ class Arc(AbstractObject):
     segments: list[Segment]
 
 
-ItemID = Annotated[ID, StringConstraints(min_length=3, pattern=r"I-\d+")]
 class Item(AbstractObject):
     id: ItemID
     name: str
@@ -68,7 +63,6 @@ class Item(AbstractObject):
     properties: dict[str, str]
 
 
-CharacterID = Annotated[ID, StringConstraints(min_length=3, pattern=r"C-\d+")]
 class Character(AbstractObject):
     id: CharacterID
     name: str
@@ -80,7 +74,6 @@ class Character(AbstractObject):
     inventory: list[ItemID]
 
 
-LocationID = Annotated[ID, StringConstraints(min_length=3, pattern=r"L-\d+")]
 class Location(AbstractObject):
     id: LocationID
     name: str
@@ -91,7 +84,6 @@ class Location(AbstractObject):
     ]  # (latitude, longitude, [altitude])
 
 
-PlanID = Annotated[ID, StringConstraints(min_length=9, pattern=r"CamPlan-\d+")]
 class CampaignPlan(AbstractObject):
     """
     A class to represent a campaign plan, loaded from a JSON file.
@@ -109,6 +101,19 @@ class CampaignPlan(AbstractObject):
 
 
 ObjectType = AbstractObject | Rule | Objective | Point | Segment | Arc | Item | Character | Location | CampaignPlan
+
+IDTypeToObjectTypeMap = {
+    ID: AbstractObject,  # Does this case make sense?
+    RuleID: Rule,
+    ObjectiveID: Objective,
+    PointID: Point,
+    SegmentID: Segment,
+    ArcID: Arc,
+    ItemID: Item,
+    CharacterID: Character,
+    LocationID: Location,
+    PlanID: CampaignPlan,
+}
 
 # _Rule = TypeAdapter(Rule)
 # _Objective = TypeAdapter(Objective)

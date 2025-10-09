@@ -10,7 +10,6 @@ from ..content.planning import (
     _CampaignPlan,
     load_obj,
 )
-from ..content.factory import ID_FACTORY
 
 from PySide6 import QtWidgets, QtCore
 
@@ -97,11 +96,11 @@ class PydanticForm(QtWidgets.QWidget):
         layout = QtWidgets.QFormLayout(self)
         for field in self.annotations.keys():
             label = QtWidgets.QLabel(field.title(), self)
-            input_field = self.create_input_field(field, self.annotations[field])
+            input_field = self.create_field_item(field, self.annotations[field])
             layout.addRow(label, input_field)
         self.setLayout(layout)
 
-    def create_input_field(self, field_name, field_type):
+    def create_field_item(self, field_name, field_type):
         """
         Create an input field widget based on the field type.
 
@@ -119,7 +118,7 @@ class PydanticForm(QtWidgets.QWidget):
         # Handle special "id" case
         line_edit = QtWidgets.QLineEdit(self)
         if field_name == "id":
-            line_edit.setText(str(ID_FACTORY.from_field_name(self.type_name)))
+            # line_edit.setText(str(ID_FACTORY.from_field_name(self.type_name)))
             line_edit.setReadOnly(True)
         return line_edit
 
