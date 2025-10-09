@@ -3,16 +3,12 @@ import re
 from collections import Counter
 from .locking import ReaderWriterSuite
 
-if sys.version_info < (3, 12):
-    from typing_extensions import Annotated, NewType, TypedDict, TypeVar, TypeAlias
-else:
-    from typing import Annotated, NewType, TypedDict, TypeVar, TypeAlias
+from typing import Annotated, NewType, TypeVar, TypeAlias, cast, Generic, Any
 
-from pydantic import StringConstraints
+from pydantic import StringConstraints, BaseModel
 
 ID = NewType("ID", str)
 
-GenericIDPattern = re.compile(r'([A-z]+)-(\d{4})')
 """
 Group 1: Prefix (e.g., "R", "O", etc.)
 Group 2: Numeric part (e.g., "0001", "0002", etc.)
@@ -27,8 +23,9 @@ ItemID = Annotated[ID, StringConstraints(min_length=3, pattern=r"I-\d+")]
 CharacterID = Annotated[ID, StringConstraints(min_length=3, pattern=r"C-\d+")]
 LocationID = Annotated[ID, StringConstraints(min_length=3, pattern=r"L-\d+")]
 PlanID = Annotated[ID, StringConstraints(min_length=9, pattern=r"CamPlan-\d+")]
+GenericID = Annotated[ID, StringConstraints(min_length=3, pattern=r"[A-z]+-\d+")]
 
-IDS_ANNOTATED = {type[ID], type[RuleID], type[ObjectiveID], type[PointID], type[SegmentID], type[ArcID], type[ItemID], type[CharacterID], type[LocationID], type[PlanID]}
+IDS_ANNOTATED: set[type[ID] | type[Annotated]] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
 
 
 _CURRENT_IDS: Counter = Counter()
@@ -47,17 +44,20 @@ A lock to manage concurrent access to _CURRENT_IDS and _RELEASED_IDS.
 """
 
 
+def pattern_from_annotated(id_type) -> re.Pattern:
+    try:
+        print(id_type.__metadata__[0].pattern)
+        return re.compile(id_type.__metadata__[0].pattern)
+    except (AttributeError, IndexError):
+        raise ValueError(f"Type {id_type} is not an Annotated ID type with StringConstraints")
+
 IDType = TypeVar("IDType", bound=ID)
 """
 Generic type variable for ID types.
 """
-IDTypeUnion: TypeAlias = type[ID] | type[RuleID] | type[ObjectiveID] | type[PointID] | type[SegmentID] | type[ArcID] | type[ItemID] | type[CharacterID] | type[LocationID] | type[PlanID]
-"""
-Union of all ID types.
-"""
-# FIXME: Due to IDTypeUnion being a union of types, while what will be passed are one of the above types, mypy is not happy.
+# FIXME: Due to how Annotated types work, mypy is not happy if we specify the argument type as type[IDType]
 # The reasons are complex, and outside the scope of this comment. Go study category theory.
-def _prefix_from_type(id_type: IDTypeUnion) -> str:
+def _prefix_from_type(id_type) -> str:
     """
     Get the prefix string for a given ID type.
 
@@ -68,7 +68,11 @@ def _prefix_from_type(id_type: IDTypeUnion) -> str:
     """
     if id_type not in IDS_ANNOTATED:
         raise ValueError(f"Unknown ID type: {id_type}")
-    return id_type.__metadata__[0]['pattern'].split('-')[0]
+    try:
+        return id_type.__metadata__[0].pattern.split('-')[0]
+    except (AttributeError, IndexError):
+        # Not an Annotated type, or StringConstraints is not the first element, assume it's the base ID type
+        return "MISC"  # Unknown prefix, aka category
 
 def generate_id_from_type(id_type: type[IDType]) -> IDType:
     """
@@ -80,6 +84,7 @@ def generate_id_from_type(id_type: type[IDType]) -> IDType:
     Returns:
         ID: A new unique ID of the specified type.
     """
+    # Retrieve prefix from type, then generate ID, then cast to type
     return id_type(generate_id(_prefix_from_type(id_type)))
 
 def generate_id(prefix: str) -> ID:
@@ -107,7 +112,7 @@ def release_id(id: ID):
     """
     Release an ID back to the factory for reuse.
     """
-    match = GenericIDPattern.match(id)
+    match = pattern_from_annotated(id).match(id)
     if not match:
         raise ValueError(f"Invalid ID format: {id}")
     prefix = match.group(1)

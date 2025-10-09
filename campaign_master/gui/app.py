@@ -3,16 +3,20 @@
 from typing import Optional, cast
 from ..content.planning import (
     ID,
-    TypeAdapter,
     AbstractObject,
     Object,
-    ObjectType,
-    _CampaignPlan,
-    load_obj,
+    CampaignPlan,
+    RuleID
+)
+from ..content.ids import (
+    IDS_ANNOTATED,
+    _prefix_from_type,
+    RuleID
 )
 
 from PySide6 import QtWidgets, QtCore
 
+_prefix_from_type(RuleID)  # Sanity check
 
 class ModelListView(QtWidgets.QWidget):
     item_added = QtCore.Signal(AbstractObject)
@@ -23,7 +27,7 @@ class ModelListView(QtWidgets.QWidget):
     """
 
     def __init__(
-        self, model: TypeAdapter[Object], parent: "Optional[PydanticForm]" = None
+        self, model: type[Object], parent: "Optional[PydanticForm]" = None
     ):
         super().__init__(parent)
         self.model = model
@@ -66,7 +70,7 @@ class PydanticForm(QtWidgets.QWidget):
 
     save_requested = QtCore.Signal(dict)
 
-    def __init__(self, model: TypeAdapter[Object], parent=None):
+    def __init__(self, model: type[Object], parent=None):
         super().__init__(parent)
         self.is_subform = isinstance(parent, PydanticForm)
         # After some internal debate, I've decided that subforms will act in a slightly funky way-
@@ -82,11 +86,11 @@ class PydanticForm(QtWidgets.QWidget):
 
     @property
     def annotations(self):
-        return self.model._type.__annotations__
+        return self.model.__annotations__
     
     @property
     def type_name(self) -> str:
-        return self.model._type.__name__.lower()
+        return self.model.__name__.lower()
 
     def init_ui(self):
         """
@@ -114,7 +118,7 @@ class PydanticForm(QtWidgets.QWidget):
             pass
         else:
             # Iterable
-            return ModelListView(TypeAdapter(field_type.__args__[0]), self)
+            return ModelListView(field_type.__args__[0], self)
         # Handle special "id" case
         line_edit = QtWidgets.QLineEdit(self)
         if field_name == "id":
@@ -124,15 +128,15 @@ class PydanticForm(QtWidgets.QWidget):
 
     @classmethod
     def from_existing(
-        cls, dict_type: TypeAdapter[Object], dict_instance: Object, parent: Optional[QtWidgets.QWidget] = None
+        cls, obj_type: type[Object], obj_instance: Object, parent: Optional[QtWidgets.QWidget] = None
     ) -> "PydanticForm":
         """
         Create a PydanticForm from an existing Pydantic model instance.
         """
-        form_instance = cls(dict_type, parent)
+        form_instance = cls(obj_type, parent)
         # Populate fields with existing data
         for field in form_instance.annotations.keys():
-            value = dict_instance.get(field, "")
+            value = getattr(obj_instance, field, "")
             input_field = form_instance.findChild(QtWidgets.QLineEdit, field)
             if input_field:
                 input_field.setText(str(value))
@@ -147,7 +151,7 @@ class PydanticForm(QtWidgets.QWidget):
             input_field = self.findChild(QtWidgets.QLineEdit, field)
             if input_field:
                 data[field] = input_field.text()
-        self.save_requested.emit(self.model.validate_python(data))
+        self.save_requested.emit(self.model.model_validate(data))
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):
@@ -189,7 +193,7 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         Spawn a Pydantic form to create a new campaign plan.
         """
         self.label.setText("Starting a new campaign...")
-        self.form = PydanticForm(_CampaignPlan, self)
+        self.form = PydanticForm(CampaignPlan, self)
         self.central_widget.addWidget(self.form)
         self.central_widget.setCurrentWidget(self.form)
 
@@ -201,9 +205,9 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         )
         if file_path:
             # Load the campaign plan from the selected file
-            self.form = PydanticForm.from_existing(
-                _CampaignPlan, load_obj(_CampaignPlan, file_path), self
-            )
+            # self.form = PydanticForm.from_existing(
+            #     _CampaignPlan, load_obj(_CampaignPlan, file_path), self
+            # )
             self.central_widget.addWidget(self.form)
             self.central_widget.setCurrentWidget(self.form)
         else:

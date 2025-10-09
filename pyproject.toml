@@ -17,6 +17,7 @@ PySide6 = {version = "~=6.8.1.1"}
 PySide6-Essentials = {version = "~=6.8.1.1"}
 PySide6-Addons = {version = "~=6.8.1.1"}
 pydantic = {version = "^2.11.7"}
+fastapi = {version = "^0.118.2", extras = ["standard"]}
 
 
 [tool.poetry.group.formatting.dependencies]

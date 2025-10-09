@@ -17,7 +17,6 @@ from .planning import (
     CharacterID,
     Location,
     LocationID,
-    load_obj,
 )
 
         
@@ -40,5 +39,4 @@ __all__ = [
     "CharacterID",
     "Location",
     "LocationID",
-    "load_obj",
 ]
