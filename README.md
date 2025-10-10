@@ -1,36 +1,21 @@
-# Rsbuild project
+# Install
 
-## Setup
+## Python
+<sub>This section is required.</sub>
 
-Install the dependencies:
+### Requirements
 
-```bash
-pnpm install
-```
+1. Ensure poetry is installed on your system as per their websites [instructions](https://python-poetry.org/docs/#installing-with-the-official-installer).
+    - Configure your preferred virtualenv defaults before proceeding.
 
-## Get started
+2. Run `poetry install`
 
-Start the dev server, and the app will be available at [http://localhost:3000](http://localhost:3000).
+3. Activate your poetry environment. [Poetry's instructions](https://python-poetry.org/docs/managing-environments#powershell)
 
-```bash
-pnpm dev
-```
 
-Build the app for production:
+## React
+<sub>Note: First complete the above [Python setup](#python)</sub>
+<sub>This section is optional; it is only required if you intend to use the `web` functionality.</sub>
 
-```bash
-pnpm build
-```
-
-Preview the production build locally:
-
-```bash
-pnpm preview
-```
-
-## Learn more
-
-To learn more about Rsbuild, check out the following resources:
-
-- [Rsbuild documentation](https://rsbuild.rs) - explore Rsbuild features and APIs.
-- [Rsbuild GitHub repository](https://github.com/web-infra-dev/rsbuild) - your feedback and contributions are welcome!
+1. Ensure NodeJS is installed on your system, giving access to the `npm` command.
+  - On Windows, you can use the `winget install --id OpenJS.NodeJS --source winget` command (assuming the ID has not changed as of 10/09/25) to install the appropriate build.
