@@ -1,7 +1,7 @@
 # Preperation
 
 ## Python
-<sub>This section is required.</sub>
+<sub>This installation section is required.</sub>
 
 ### Requirements
 
@@ -18,7 +18,7 @@
 <sub>This section is optional; it is only required if you intend to use the `web` functionality.</sub>
 
 1. Ensure NodeJS is installed on your system, giving access to the `npm` command.
-  - On Windows, you can use the `winget install --id OpenJS.NodeJS --source winget` command (assuming the ID has not changed as of 10/09/25) to install the appropriate build.
+    - On Windows, you can use the `winget install --id OpenJS.NodeJS --source winget` command (assuming the ID has not changed as of 10/09/25) to install the appropriate build.
 
 
 
@@ -26,7 +26,7 @@
 
 - Run `python -m campaign_master -h` to see more exhaustive usage information.
 
-The best way to conceptualize this module is that it can first and foremost be run in two different ways, as a local applet (as a Qt application), or as a web server.The switch from serving the index via FastAPI to being served via Qt is considered trivial thanks to the precompilation step, if a hybrid mode is desired. Just serve the static files via Qt.
+The best way to conceptualize this module is that it can first and foremost be run in two different ways, as a local applet (as a Qt application), or as a web server. The switch from serving via FastAPI to serving via Qt is considered trivial thanks to the build step. If a hybrid mode is desired, just serve the static files via Qt.
 
 ## App Mode
 <sub>For this mode of operation, NodeJS is not required.</sub>

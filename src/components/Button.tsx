@@ -2,6 +2,7 @@ import * as React from 'react';
 
 // Example of button component
 // In reality just use React-Bootstrap or similar
+//   but perfect for type-checker sanity check
 
 type ButtonProps = {
     title?: string;
