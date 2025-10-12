@@ -8,17 +8,26 @@ from ..content.planning import (
     CampaignPlan,
     RuleID
 )
-from ..content.ids import (
-    IDS_ANNOTATED,
-    _prefix_from_type,
-    RuleID
-)
 
 from PySide6 import QtWidgets, QtCore
 
-_prefix_from_type(RuleID)  # Sanity check
 
-class ModelListView(QtWidgets.QWidget):
+# Check if a widget is a model view, i.e., a subclass of BaseModelView
+def is_model_view(widget: QtWidgets.QWidget) -> bool:
+    return bool(getattr(widget, "is_model_view", False))
+
+class BaseModelView(QtWidgets.QGroupBox):
+    """
+    A base view for displaying and editing Pydantic models.
+    """
+    _is_model_view = True
+
+    @property
+    def is_model_view(self) -> bool:
+        return self._is_model_view
+
+
+class ModelListView(BaseModelView):
     item_added = QtCore.Signal(AbstractObject)
     item_removed = QtCore.Signal(AbstractObject)
 
@@ -29,7 +38,8 @@ class ModelListView(QtWidgets.QWidget):
     def __init__(
         self, model: type[Object], parent: "Optional[PydanticForm]" = None
     ):
-        super().__init__(parent)
+        # TODO: localize and pluralize the title
+        super().__init__(f"{model.__name__}s", parent)
         self.model = model
         self.init_ui()
 
@@ -68,8 +78,6 @@ class PydanticForm(QtWidgets.QWidget):
     A form to display and edit Pydantic model fields.
     """
 
-    save_requested = QtCore.Signal(dict)
-
     def __init__(self, model: type[Object], parent=None):
         super().__init__(parent)
         self.is_subform = isinstance(parent, PydanticForm)
@@ -97,11 +105,10 @@ class PydanticForm(QtWidgets.QWidget):
         Precondition: self.fields is a list of field names in the Pydantic model.
         """
         print(f"Initializing UI with fields: {self.annotations.keys()}")
-        layout = QtWidgets.QFormLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
         for field in self.annotations.keys():
-            label = QtWidgets.QLabel(field.title(), self)
             input_field = self.create_field_item(field, self.annotations[field])
-            layout.addRow(label, input_field)
+            layout.addWidget(input_field)
         self.setLayout(layout)
 
     def create_field_item(self, field_name, field_type):

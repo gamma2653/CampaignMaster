@@ -1,9 +1,13 @@
-# Preperation
+# Campaign Master
 
-## Python
+A campanion application for game masters of various TTRPG formats. This application allows a game master to plan, and then subseqeuently execute a game plan for player sessions. As development continues, support for additional game mechanics will be added, via a "Rules" framework, more to come later.
+
+## Preperation
+
+### Python
 <sub>This installation section is required.</sub>
 
-### Requirements
+#### Requirements
 
 1. Ensure poetry is installed on your system as per their websites [instructions](https://python-poetry.org/docs/#installing-with-the-official-installer).
     - Configure your preferred virtualenv defaults before proceeding.
@@ -13,7 +17,7 @@
 3. Activate your poetry environment. [Poetry's instructions](https://python-poetry.org/docs/managing-environments#powershell)
 
 
-## React/NodeJS
+### React/NodeJS
 <sub>Note: First complete the above [Python setup](#python)</sub>
 <sub>This section is optional; it is only required if you intend to use the `web` functionality.</sub>
 
@@ -22,13 +26,13 @@
 
 
 
-# Execution
+## Execution
 
 - Run `python -m campaign_master -h` to see more exhaustive usage information.
 
 The best way to conceptualize this module is that it can first and foremost be run in two different ways, as a local applet (as a Qt application), or as a web server. The switch from serving via FastAPI to serving via Qt is considered trivial thanks to the build step. If a hybrid mode is desired, just serve the static files via Qt.
 
-## App Mode
+### App Mode
 <sub>For this mode of operation, NodeJS is not required.</sub>
 
 Simply run `python -m campaign_master --gui [--debug]`
@@ -37,7 +41,7 @@ This will launch a Qt Application where you can interface with your local file s
 
 The debug flag can be used for more verbose logging.
 
-## Web Mode
+### Web Mode
 
 Simply run `python -m campaign_master --web [--debug]`
 
@@ -45,17 +49,17 @@ The debug flag can be used for more verbose logging.
 **NOTE:** in this use case, it also launches the development server using `uvicorn`. See the `host` (default: `127.0.0.1` aka `localhost`) and `port` (default: `8000`) arguments.
 
 
-## Technologies Used
-#### General
+### Technologies Used
+##### General
   - **[nginx](https://nginx.org/)** (production server, wip)
   - None more anticipated.
-#### Python
+##### Python
   - **[Pydantic](https://docs.pydantic.dev/latest/)** (Business logic)
   - **[FastAPI](https://fastapi.tiangolo.com/)** (Serving business logic)
   - **[uvicorn](https://uvicorn.dev/)** (local development server)
   - **[PySide6](https://doc.qt.io/qtforpython-6/)** (Qt framework for client-side interface app)
   - More to be added as developed.
-#### React
+##### React
   - **[RSBuild](https://rsbuild.rs/)** (Pre-compilation of app before serving)
   - **[TypeScript](https://www.typescriptlang.org/docs/handbook/react.html)** (TypeScript flavored React, see their [documentation](https://react.dev/learn/typescript))
   - More to be added as developed.
