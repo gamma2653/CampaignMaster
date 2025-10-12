@@ -12,19 +12,18 @@ from ..content.planning import (
 from PySide6 import QtWidgets, QtCore
 
 
-# Check if a widget is a model view, i.e., a subclass of BaseModelView
-def is_model_view(widget: QtWidgets.QWidget) -> bool:
-    return bool(getattr(widget, "is_model_view", False))
-
 class BaseModelView(QtWidgets.QGroupBox):
     """
     A base view for displaying and editing Pydantic models.
     """
-    _is_model_view = True
+    is_model_view = True
 
-    @property
-    def is_model_view(self) -> bool:
-        return self._is_model_view
+    @staticmethod
+    def is_model_view_widget(widget: QtWidgets.QWidget) -> bool:
+        """
+        Check if a given widget is a model view.
+        """
+        return bool(getattr(widget, "is_model_view", False))
 
 
 class ModelListView(BaseModelView):
