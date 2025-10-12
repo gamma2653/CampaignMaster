@@ -12,21 +12,7 @@ from ..content.planning import (
 from PySide6 import QtWidgets, QtCore
 
 
-class BaseModelView(QtWidgets.QGroupBox):
-    """
-    A base view for displaying and editing Pydantic models.
-    """
-    is_model_view = True
-
-    @staticmethod
-    def is_model_view_widget(widget: QtWidgets.QWidget) -> bool:
-        """
-        Check if a given widget is a model view.
-        """
-        return bool(getattr(widget, "is_model_view", False))
-
-
-class ModelListView(BaseModelView):
+class ModelListView(QtWidgets.QGroupBox):
     item_added = QtCore.Signal(AbstractObject)
     item_removed = QtCore.Signal(AbstractObject)
 
