@@ -4,9 +4,9 @@ from typing import Optional, cast
 from ..content.planning import (
     ID,
     AbstractObject,
-    Object,
     CampaignPlan,
-    RuleID
+    RuleID,
+    generate_id_from_type,
 )
 
 from PySide6 import QtWidgets, QtCore
@@ -18,10 +18,12 @@ class ModelListView(QtWidgets.QGroupBox):
 
     """
     A list view to display and manage a list of Pydantic model instances.
+
+    Spawns instances of PydanticForm to add/edit items.
     """
 
     def __init__(
-        self, model: type[Object], parent: "Optional[PydanticForm]" = None
+        self, model: type[AbstractObject], parent: "Optional[PydanticForm]" = None
     ):
         # TODO: localize and pluralize the title
         super().__init__(f"{model.__name__}s", parent)
@@ -49,9 +51,16 @@ class ModelListView(QtWidgets.QGroupBox):
     def add_item(self):
         # Create a form to add a new item
         form = PydanticForm(self.model, self.parent())
-        form.setWindowTitle("Add New Item")
         form.show()
-        self.forms[ID("new")] = form
+        # HACK: Sneak-peak the ID from the newly created form.
+        self.forms[form.export_data().obj_id] = form
+
+
+    def edit_item(self, item_id: ID):
+        # Create a form to edit the selected item
+        if item_id in self.forms:
+            form = self.forms[item_id]
+            form.show()
 
     def remove_item(self):
         # Logic to remove the selected item
@@ -62,8 +71,9 @@ class PydanticForm(QtWidgets.QWidget):
     """
     A form to display and edit Pydantic model fields.
     """
+    sync_requested = QtCore.Signal(AbstractObject)
 
-    def __init__(self, model: type[Object], parent=None):
+    def __init__(self, model: type[AbstractObject], parent=None):
         super().__init__(parent)
         self.is_subform = isinstance(parent, PydanticForm)
         # After some internal debate, I've decided that subforms will act in a slightly funky way-
@@ -96,6 +106,7 @@ class PydanticForm(QtWidgets.QWidget):
             layout.addWidget(input_field)
         self.setLayout(layout)
 
+
     def create_field_item(self, field_name, field_type):
         """
         Create an input field widget based on the field type.
@@ -111,39 +122,46 @@ class PydanticForm(QtWidgets.QWidget):
         else:
             # Iterable
             return ModelListView(field_type.__args__[0], self)
-        # Handle special "id" case
+        # Handle special "obj_id" case
         line_edit = QtWidgets.QLineEdit(self)
-        if field_name == "id":
-            # line_edit.setText(str(ID_FACTORY.from_field_name(self.type_name)))
+        if field_name == "obj_id":
             line_edit.setReadOnly(True)
+            # Generate a new ID
+            new_id = generate_id_from_type(self.model.id_type)
         return line_edit
 
     @classmethod
     def from_existing(
-        cls, obj_type: type[Object], obj_instance: Object, parent: Optional[QtWidgets.QWidget] = None
+        cls, obj_type: type[AbstractObject], obj_instance: AbstractObject, parent: Optional[QtWidgets.QWidget] = None
     ) -> "PydanticForm":
         """
         Create a PydanticForm from an existing Pydantic model instance.
         """
         form_instance = cls(obj_type, parent)
-        # Populate fields with existing data
-        for field in form_instance.annotations.keys():
-            value = getattr(obj_instance, field, "")
-            input_field = form_instance.findChild(QtWidgets.QLineEdit, field)
-            if input_field:
-                input_field.setText(str(value))
+        form_instance.sync(obj_instance)
         return form_instance
 
-    def save(self):
+
+    def sync(self, object: AbstractObject):
         """
-        Save the current form data back to the Pydantic model instance.
+        Sync the form with the given Pydantic model instance.
+        """
+        for field in self.annotations.keys():
+            value = getattr(object, field, "")
+            input_field = self.findChild(QtWidgets.QLineEdit, field)
+            if input_field:
+                input_field.setText(str(value))
+
+    def export_data(self) -> AbstractObject:
+        """
+        Export the current form data as a Pydantic model instance.
         """
         data = {}
         for field in self.annotations.keys():
             input_field = self.findChild(QtWidgets.QLineEdit, field)
             if input_field:
                 data[field] = input_field.text()
-        self.save_requested.emit(self.model.model_validate(data))
+        return self.model.model_validate(data)
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):
