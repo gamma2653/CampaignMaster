@@ -22,9 +22,10 @@ ItemID = Annotated[ID, StringConstraints(min_length=3, pattern=r"I-\d+")]
 CharacterID = Annotated[ID, StringConstraints(min_length=3, pattern=r"C-\d+")]
 LocationID = Annotated[ID, StringConstraints(min_length=3, pattern=r"L-\d+")]
 PlanID = Annotated[ID, StringConstraints(min_length=9, pattern=r"CamPlan-\d+")]
+# Devolved ID, for generic use (e.g., temporary objects, misc objects, etc.)
 GenericID = Annotated[ID, StringConstraints(min_length=3, pattern=r"[A-z]+-\d+")]
 
-IDS_ANNOTATED: set[type[ID] | type[Annotated]] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
+IDS_ANNOTATED: set[Annotated] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
 
 
 _CURRENT_IDS: Counter = Counter()
@@ -42,18 +43,17 @@ _CURRENT_IDS_LOCK = ReaderWriterSuite()
 A lock to manage concurrent access to _CURRENT_IDS and _RELEASED_IDS.
 """
 
-IDType = TypeVar("IDType", bound=ID)
 class AbstractObject(BaseModel):
     """
     Base class for all objects in the campaign planning system.
     """
-    id_type: ClassVar[TypeAlias]  # To be defined in subclasses
+    _id_type = ID  # To be defined in subclasses
     obj_id: ID
 
     # Bootstrap ID if not provided
     def __init__(self, **data):
         if "obj_id" not in data:
-            data["obj_id"] = generate_id_from_type(self.id_type)
+            data["obj_id"] = generate_id_from_type(self._id_type)
         super().__init__(**data)
 
 
@@ -61,7 +61,7 @@ class Rule(AbstractObject):
     """
     A class to represent a single rule in a tabletop RPG campaign.
     """
-    id_type: ClassVar[TypeAlias] = RuleID
+    _id_type = RuleID
     obj_id: RuleID
     description: str
     effect: str
@@ -71,34 +71,34 @@ class Objective(AbstractObject):
     """
     A class to represent a single objective in a campaign plan.
     """
-    id_type: ClassVar[TypeAlias] = ObjectiveID
+    _id_type = ObjectiveID
     description: str
     components: list[str]
     prerequisites: list[str]
 
 class Point(AbstractObject):
-    id_type: ClassVar[TypeAlias] = PointID
+    _id_type = PointID
     name: str
     description: str
     objective: Optional[ObjectiveID]
 
 
 class Segment(AbstractObject):
-    id_type: ClassVar[TypeAlias] = SegmentID
+    _id_type = SegmentID
     name: str
     description: str
     points: list[Point]
 
 
 class Arc(AbstractObject):
-    id_type: ClassVar[TypeAlias] = ArcID
+    _id_type: ClassVar[TypeAlias] = ArcID
     name: str
     description: str
     segments: list[Segment]
 
 
 class Item(AbstractObject):
-    id_type: ClassVar[TypeAlias] = ItemID
+    _id_type = ItemID
     name: str
     type_: str
     description: str
@@ -106,7 +106,7 @@ class Item(AbstractObject):
 
 
 class Character(AbstractObject):
-    id_type: ClassVar[TypeAlias] = CharacterID
+    _id_type = CharacterID
     name: str
     role: str
     backstory: str
@@ -117,7 +117,7 @@ class Character(AbstractObject):
 
 
 class Location(AbstractObject):
-    id_type: ClassVar[TypeAlias] = LocationID
+    _id_type = LocationID
     name: str
     description: str
     neighboring_locations: list[LocationID]
@@ -130,7 +130,7 @@ class CampaignPlan(AbstractObject):
     """
     A class to represent a campaign plan, loaded from a JSON file.
     """
-    id_type: ClassVar[TypeAlias] = PlanID
+    _id_type: ClassVar[TypeAlias] = PlanID
     title: str
     version: str
     setting: str
@@ -140,8 +140,6 @@ class CampaignPlan(AbstractObject):
     locations: list[Location]
     items: list[Item]
     rules: list[Rule]
-
-
 
 
 
@@ -171,7 +169,8 @@ def _prefix_from_type(id_type) -> str:
         # Not an Annotated type, or StringConstraints is not the first element, assume it's the base ID type
         return "MISC"  # Unknown prefix, aka category
 
-def generate_id_from_type(id_type: type[IDType]) -> IDType:
+AnnotatedType = TypeVar("AnnotatedType", bound=ID)
+def generate_id_from_type(id_type: Annotated[AnnotatedType, StringConstraints]) -> AnnotatedType:
     """
     Generate a new ID based on the given ID type.
 
