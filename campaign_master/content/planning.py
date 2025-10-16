@@ -1,7 +1,7 @@
 # Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
 
 import re
-from typing import Annotated, NewType, Optional, TypeAlias, TypeVar, ClassVar
+from typing import Annotated, Any, NewType, Optional, TypeAlias, TypeVar, ClassVar, override
 from collections import Counter
 from pydantic import BaseModel, StringConstraints
 
@@ -47,13 +47,13 @@ class AbstractObject(BaseModel):
     """
     Base class for all objects in the campaign planning system.
     """
-    _id_type = ID  # To be defined in subclasses
+    _id_type: ClassVar[Optional[Annotated]] = None  # To be defined in subclasses
     obj_id: ID
 
     # Bootstrap ID if not provided
     def __init__(self, **data):
         if "obj_id" not in data:
-            data["obj_id"] = generate_id_from_type(self._id_type)
+            data["obj_id"] = generate_id_from_type(GenericID if self._id_type is None else self._id_type)
         super().__init__(**data)
 
 
@@ -72,12 +72,14 @@ class Objective(AbstractObject):
     A class to represent a single objective in a campaign plan.
     """
     _id_type = ObjectiveID
+    obj_id: ObjectiveID
     description: str
     components: list[str]
     prerequisites: list[str]
 
 class Point(AbstractObject):
     _id_type = PointID
+    obj_id: PointID
     name: str
     description: str
     objective: Optional[ObjectiveID]
@@ -85,13 +87,15 @@ class Point(AbstractObject):
 
 class Segment(AbstractObject):
     _id_type = SegmentID
+    obj_id: SegmentID
     name: str
     description: str
     points: list[Point]
 
 
 class Arc(AbstractObject):
-    _id_type: ClassVar[TypeAlias] = ArcID
+    _id_type = ArcID
+    obj_id: ArcID
     name: str
     description: str
     segments: list[Segment]
@@ -99,6 +103,7 @@ class Arc(AbstractObject):
 
 class Item(AbstractObject):
     _id_type = ItemID
+    obj_id: ItemID
     name: str
     type_: str
     description: str
@@ -107,6 +112,7 @@ class Item(AbstractObject):
 
 class Character(AbstractObject):
     _id_type = CharacterID
+    obj_id: CharacterID
     name: str
     role: str
     backstory: str
@@ -118,19 +124,21 @@ class Character(AbstractObject):
 
 class Location(AbstractObject):
     _id_type = LocationID
+    obj_id: LocationID
     name: str
     description: str
     neighboring_locations: list[LocationID]
     coords: Optional[
         tuple[float, float] | tuple[float, float, float]
-    ]  # (latitude, longitude, [altitude])
+    ]  # (latitude, longitude[, altitude])
 
 
 class CampaignPlan(AbstractObject):
     """
     A class to represent a campaign plan, loaded from a JSON file.
     """
-    _id_type: ClassVar[TypeAlias] = PlanID
+    _id_type = PlanID
+    obj_id: PlanID
     title: str
     version: str
     setting: str
@@ -169,8 +177,8 @@ def _prefix_from_type(id_type) -> str:
         # Not an Annotated type, or StringConstraints is not the first element, assume it's the base ID type
         return "MISC"  # Unknown prefix, aka category
 
-AnnotatedType = TypeVar("AnnotatedType", bound=ID)
-def generate_id_from_type(id_type: Annotated[AnnotatedType, StringConstraints]) -> AnnotatedType:
+IDType = TypeVar("IDType", bound=ID)
+def generate_id_from_type(id_type: type[IDType]) -> IDType:
     """
     Generate a new ID based on the given ID type.
 
