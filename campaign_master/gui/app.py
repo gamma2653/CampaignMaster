@@ -11,6 +11,8 @@ from ..content.planning import (
 
 from PySide6 import QtWidgets, QtCore
 
+id_ = generate_id_from_type(RuleID)
+print(f"Generated ID: {id_}")
 
 class ModelListView(QtWidgets.QGroupBox):
     item_added = QtCore.Signal(AbstractObject)
@@ -127,7 +129,8 @@ class PydanticForm(QtWidgets.QWidget):
         if field_name == "obj_id":
             line_edit.setReadOnly(True)
             # Generate a new ID
-            new_id = generate_id_from_type(self.model.id_type)
+            print(self.model)
+            new_id = generate_id_from_type(self.model.id_type())
         return line_edit
 
     @classmethod
@@ -138,7 +141,7 @@ class PydanticForm(QtWidgets.QWidget):
         Create a PydanticForm from an existing Pydantic model instance.
         """
         form_instance = cls(obj_type, parent)
-        form_instance.sync(obj_instance)
+        form_instance.sync(obj_instance)    
         return form_instance
 
 

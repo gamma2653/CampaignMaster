@@ -1,13 +1,13 @@
 # Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
 
 import re
-from typing import Annotated, Any, NewType, Optional, TypeAlias, TypeVar, ClassVar, override
+from typing import Annotated, Any, NewType, Optional, TypeVar, ClassVar, cast
 from collections import Counter
 from pydantic import BaseModel, StringConstraints
 
 from .locking import ReaderWriterSuite
 
-ID = NewType("ID", str)
+ID = NewType("ID", tuple[str, int])
 """
 Group 1: Prefix (e.g., "R", "O", etc.)
 Group 2: Numeric part (e.g., "001", "002", etc.)
@@ -47,15 +47,20 @@ class AbstractObject(BaseModel):
     """
     Base class for all objects in the campaign planning system.
     """
-    _id_type: ClassVar[Optional[Annotated]] = None  # To be defined in subclasses
-    obj_id: ID
+    obj_id: GenericID
+
+    @classmethod
+    def id_type(cls) -> Annotated:
+        obj_id_annotation = cls.model_fields.get("obj_id")
+        if obj_id_annotation is None:
+            return GenericID
+        return obj_id_annotation.annotation
 
     # Bootstrap ID if not provided
     def __init__(self, **data):
         if "obj_id" not in data:
-            data["obj_id"] = generate_id_from_type(GenericID if self._id_type is None else self._id_type)
+            data["obj_id"] = generate_id_from_type(self.__class__.id_type())
         super().__init__(**data)
-
 
 class Rule(AbstractObject):
     """
@@ -177,8 +182,8 @@ def _prefix_from_type(id_type) -> str:
         # Not an Annotated type, or StringConstraints is not the first element, assume it's the base ID type
         return "MISC"  # Unknown prefix, aka category
 
-IDType = TypeVar("IDType", bound=ID)
-def generate_id_from_type(id_type: type[IDType]) -> IDType:
+IDType = TypeVar("IDType")
+def generate_id_from_type(id_type: Annotated[IDType, Any]) -> IDType:
     """
     Generate a new ID based on the given ID type.
 
@@ -189,7 +194,7 @@ def generate_id_from_type(id_type: type[IDType]) -> IDType:
         ID: A new unique ID of the specified type.
     """
     # Retrieve prefix from type, then generate ID, then cast to type
-    return id_type(generate_id(_prefix_from_type(id_type)))
+    return cast(IDType, generate_id(_prefix_from_type(id_type)))
 
 def generate_id(prefix: str) -> ID:
     """
@@ -208,7 +213,7 @@ def generate_id(prefix: str) -> ID:
             new_id = _RELEASED_IDS[prefix].pop()
             return new_id
         _CURRENT_IDS[prefix] += 1
-        id = ID(f"{prefix}{_CURRENT_IDS[prefix]:04d}")
+        id = ID((prefix, _CURRENT_IDS[prefix]))  # NOTE: Unbounded integer IDs
     return id
 
 
