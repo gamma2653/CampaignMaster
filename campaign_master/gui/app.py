@@ -1,6 +1,6 @@
 # GUI application for managing tabletop RPG campaigns
 
-from typing import Optional, cast, Any
+from typing import Optional, cast, Any, NamedTuple
 
 from ..content.planning import (
     ID,
@@ -13,6 +13,8 @@ from pydantic.fields import FieldInfo
 from PySide6 import QtWidgets, QtCore, QtGui
 
 
+FieldPair = NamedTuple("FieldPair", [("field_name", str), ("field", QtWidgets.QWidget)])
+
 class ObjectListWidget(QtWidgets.QGroupBox):
     """
     A list view to display and manage a list of Pydantic model instances.
@@ -24,6 +26,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
         self, model: type[AbstractObject], parent: "Optional[ObjectForm]" = None
     ):
         # TODO: localize and pluralize the title
+        print(model)
         super().__init__(f"{model.__name__}s", parent)
         self.model = model
         self.init_ui()
@@ -58,6 +61,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
     def open_add_item(self):
         # Create a pop-out form to add a new item, and connect its save event
         form = ObjectForm(self.model, self.parent())
+        # On subform save, add item to the list view
         form.save_event.connect(lambda: self.add_item(form.export_content()))
         form.show()
         # HACK: Sneak-peak the ID from the newly created form.
@@ -82,12 +86,10 @@ class ObjectListWidget(QtWidgets.QGroupBox):
 
     def edit_item(self, item_id: ID):
         # Create a form to edit the selected item
-        if item_id in self.forms:
-            self.forms[str(item_id)].show()
-        else:
+        if str(item_id) not in self.forms:
             print(f"Warning: No form found for item ID {item_id}. Opening new form.")
-            form = ObjectForm(self.model, self.parent())
-            form.show()
+            self.forms[str(item_id)] = ObjectForm(self.model, self.parent())
+        self.forms[str(item_id)].show()
 
     def remove_item(self):
         # Logic to remove the selected item
@@ -106,23 +108,31 @@ class ObjectListWidget(QtWidgets.QGroupBox):
             form.prompt_for_save = False
             form.close()
         return super().closeEvent(event)
+    
+    def close_form(self) -> None:
+        self.close()
 
 
-class ObjectCreateButton(QtWidgets.QPushButton):
+class ObjectCreateWidget(QtWidgets.QWidget):
     """
-    A button to create a new Pydantic model instance.
+    A widget to create a new Pydantic model instance.
     """
 
     def __init__(self, model: type[AbstractObject], parent=None):
-        super().__init__("Create", parent)
+        super().__init__(parent)
         self.model = model
         self.form = ObjectForm(self.model, self.parent())
-        self.clicked.connect(self.form.show)
+        self.label = QtWidgets.QLabel(f"<Empty>", self)
+        self.button = QtWidgets.QPushButton(f"Create {self.model.__name__}", self)
+        self.button.clicked.connect(self.form.show)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(self.label)
+        layout.addWidget(self.button)
+        self.setLayout(layout)
 
-    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+    def close_form(self) -> None:
         self.form.prompt_for_save = False
         self.form.close()
-        return super().closeEvent(event)
 
 
 class ObjectForm(QtWidgets.QWidget):
@@ -137,6 +147,7 @@ class ObjectForm(QtWidgets.QWidget):
         super().__init__(parent)
         self.is_subform = isinstance(parent, ObjectForm)
         self.model = model
+        self.exists = False
         # After some internal debate, I've decided that subforms will act in a slightly funky way-
         # To pop out, they will reset their parent, while keeping track of the original parent.
         self.parent_form: Optional["ObjectForm"] = None
@@ -145,10 +156,45 @@ class ObjectForm(QtWidgets.QWidget):
             self.parent_form = cast("ObjectForm", parent)
             self.setParent(None)
         # Internal data tracking
-        self.dirty_fields: set[tuple[str, QtWidgets.QWidget]] = set()
+        self.dirty_fields: set[FieldPair] = set()
         self._raw_content: dict[str, Any] = {}
         self.obj_id = self.export_content().obj_id
         self.init_ui()
+        self.setWindowTitle(f"{self.model_name} Form")
+    
+    @staticmethod
+    def get_line_content(field: QtWidgets.QLineEdit) -> str:
+        """
+        Retrieve the current content of a QLineEdit field.
+        """
+        return field.text()
+    
+    @staticmethod
+    def get_object_content(field: ObjectCreateWidget) -> AbstractObject:
+        """
+        Retrieve the current content of a subform as a Pydantic model instance.
+        """
+        return field.form.export_content()
+
+    @staticmethod
+    def get_list_content(field: ObjectListWidget) -> list[AbstractObject]:
+        """
+        Retrieve the current content of a list widget as a list of Pydantic model instances.
+        """
+        # Compile list content
+        items = []
+        for i in range(field.list_widget.count()):
+            item_widget = field.list_widget.item(i)
+            item_id = item_widget.data(QtCore.Qt.ItemDataRole.UserRole)
+            if item_id and item_id in field.forms:
+                item_form = field.forms[item_id]
+                items.append(item_form.export_content())
+        return items
+
+    TYPE_TO_RETRIEVER = {
+        ObjectCreateWidget: get_object_content,
+        ObjectListWidget: get_list_content,
+    }
 
     @property
     def raw_content(self) -> dict[str, Any]:
@@ -157,20 +203,8 @@ class ObjectForm(QtWidgets.QWidget):
         """
         raw_content = {}
         for field_name, field in self.dirty_fields:
-            if isinstance(field, QtWidgets.QLineEdit):
-                field = cast(QtWidgets.QLineEdit, field)
-                raw_content[field_name] = field.text()
-            elif isinstance(field, ObjectListWidget):
-                field = cast(ObjectListWidget, field)
-                # Compile list content
-                items = []
-                for i in range(field.list_widget.count()):
-                    item_widget = field.list_widget.item(i)
-                    item_id = item_widget.data(QtCore.Qt.ItemDataRole.UserRole)
-                    if item_id and item_id in field.forms:
-                        item_form = field.forms[item_id]
-                        items.append(item_form.export_content())
-                raw_content[field_name] = items
+            retriever = self.TYPE_TO_RETRIEVER.get(type(field), ObjectForm.get_line_content)
+            raw_content[field_name] = retriever(field)
         # Compile w/ existing content
         return self._raw_content | raw_content
 
@@ -205,13 +239,19 @@ class ObjectForm(QtWidgets.QWidget):
     def save_content(self):
         """
         Save the current content of the form.
+        Validate and store the content, emitting the save_event signal.
         """
         try:
             self._raw_content = self.export_content().model_dump()
         except Exception as e:
             print(f"Error saving content: {e}")
         self.dirty_fields.clear()
-        self.save_event.emit()
+        if self.exists:
+            # Update existing content
+            pass
+        else:
+            self.exists = True
+            self.save_event.emit()
 
     def save_and_close(self):
         """
@@ -251,7 +291,7 @@ class ObjectForm(QtWidgets.QWidget):
         """
         Mark a field as dirty (aka modified, unsynced).
         """
-        self.dirty_fields.add((field_name, self.fields[field_name]))
+        self.dirty_fields.add(FieldPair(field_name, self.fields[field_name]))
 
     def create_field_item(self, field_name, field_type):
         """
@@ -265,7 +305,7 @@ class ObjectForm(QtWidgets.QWidget):
             # Not iterable
             if issubclass(field_type, AbstractObject):
                 # Subform
-                return ObjectCreateButton(field_type, self)
+                return ObjectCreateWidget(field_type, self)
         else:
             # Iterable
             return ObjectListWidget(field_type.__args__[0], self)
@@ -305,9 +345,15 @@ class ObjectForm(QtWidgets.QWidget):
             elif reply == QtWidgets.QMessageBox.StandardButton.Cancel:
                 event.ignore()
                 return
-        # Request fields to close up
+        # Close any subforms
         for field in self.fields.values():
-            field.close()
+            if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
+                field = cast(ObjectCreateWidget | ObjectListWidget, field)
+                field.close_form()
+        # Release ID
+        if not self.exists:
+            release_id(self.obj_id)
+        # Execute normal close event
         return super().closeEvent(event)
 
 
