@@ -1,6 +1,12 @@
-# Campaign Master
+# Camp-Plan
 
 A campanion application for game masters of various TTRPG formats. This application allows a game master to plan, and then subseqeuently execute a game plan for player sessions. As development continues, support for additional game mechanics will be added, via a "Rules" framework, more to come later.
+
+As far as game masters are concerned, running a TTRPG campaign is associated with two primary actitivies: preparation (planning), and execution (running the campaign with players).
+
+This application breaks down this process into two clean steps. First, the user is able to plan out their campaign, or at least some overarching critical storypoints. Notably, the plan will be able to be modified on the fly, with new branches able to be spun off, and a notion of "executed" storypoints.
+
+To fit this theme, the "installation" and "usage" instructions are outlined below, as "Preparation" and "Execution."
 
 ## Preperation
 
@@ -30,7 +36,8 @@ A campanion application for game masters of various TTRPG formats. This applicat
 
 - Run `python -m campaign_master -h` to see more exhaustive usage information.
 
-The best way to conceptualize this module is that it can first and foremost be run in two different ways, as a local applet (as a Qt application), or as a web server. The switch from serving via FastAPI to serving via Qt is considered trivial thanks to the build step. If a hybrid mode is desired, just serve the static files via Qt.
+<p>This module can first and foremost be run in two different ways, as a local applet (a Qt application), or as a web server.</p>
+<sub>The switch from serving via FastAPI to serving via Qt is considered trivial thanks to the build step. If a hybrid mode is desired, just serve the static files via Qt.</sub>
 
 ### App Mode
 <sub>For this mode of operation, NodeJS is not required.</sub>

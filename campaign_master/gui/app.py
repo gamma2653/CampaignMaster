@@ -1,23 +1,19 @@
 # GUI application for managing tabletop RPG campaigns
 
-from typing import Optional, cast
+from typing import Optional, cast, Any
+
 from ..content.planning import (
     ID,
     AbstractObject,
     CampaignPlan,
-    RuleID,
-    generate_id_from_type,
+    release_id,
 )
+from pydantic.fields import FieldInfo
 
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 
-id_ = generate_id_from_type(RuleID)
-print(f"Generated ID: {id_}")
 
-class ModelListView(QtWidgets.QGroupBox):
-    item_added = QtCore.Signal(AbstractObject)
-    item_removed = QtCore.Signal(AbstractObject)
-
+class ObjectListWidget(QtWidgets.QGroupBox):
     """
     A list view to display and manage a list of Pydantic model instances.
 
@@ -25,7 +21,7 @@ class ModelListView(QtWidgets.QGroupBox):
     """
 
     def __init__(
-        self, model: type[AbstractObject], parent: "Optional[PydanticForm]" = None
+        self, model: type[AbstractObject], parent: "Optional[ObjectForm]" = None
     ):
         # TODO: localize and pluralize the title
         super().__init__(f"{model.__name__}s", parent)
@@ -38,76 +34,224 @@ class ModelListView(QtWidgets.QGroupBox):
         self.list_widget = QtWidgets.QListWidget(self)
         layout.addWidget(self.list_widget)
 
-        self.forms: dict[ID, PydanticForm] = {}
+        # Track open forms for editing items, keyed by str(obj_id)
+        self.forms: dict[str, ObjectForm] = {}
 
         self.add_button = QtWidgets.QPushButton("Add", self)
-        self.add_button.clicked.connect(self.add_item)
-        layout.addWidget(self.add_button)
-
+        self.edit_button = QtWidgets.QPushButton("Edit", self)
         self.remove_button = QtWidgets.QPushButton("Remove", self)
+
+        self.add_button.clicked.connect(self.open_add_item)
+        self.edit_button.clicked.connect(
+            lambda: self.edit_item(
+                self.list_widget.currentItem().data(QtCore.Qt.ItemDataRole.UserRole)
+            )
+        )
         self.remove_button.clicked.connect(self.remove_item)
+
+        layout.addWidget(self.add_button)
+        layout.addWidget(self.edit_button)
         layout.addWidget(self.remove_button)
 
         self.setLayout(layout)
 
-    def add_item(self):
-        # Create a form to add a new item
-        form = PydanticForm(self.model, self.parent())
+    def open_add_item(self):
+        # Create a pop-out form to add a new item, and connect its save event
+        form = ObjectForm(self.model, self.parent())
+        form.save_event.connect(lambda: self.add_item(form.export_content()))
         form.show()
         # HACK: Sneak-peak the ID from the newly created form.
-        self.forms[form.export_data().obj_id] = form
+        obj_id = form.raw_content.get("obj_id", None)
+        if obj_id:
+            self.forms[obj_id] = form
+        else:
+            print(
+                f"Warning: Could not retrieve obj_id from new form of model {form.model_name}."
+            )
 
+    def add_item(self, item: AbstractObject):
+        # Add the item to the list view
+        if str(item.obj_id) not in self.forms:
+            print(
+                f"Warning: Item with obj_id {item.obj_id} not in forms dict. Cannot add."
+            )
+        else:
+            item_widget = QtWidgets.QListWidgetItem(str(item))
+            item_widget.setData(QtCore.Qt.ItemDataRole.UserRole, item.obj_id)
+            self.list_widget.addItem(item_widget)
 
     def edit_item(self, item_id: ID):
         # Create a form to edit the selected item
         if item_id in self.forms:
-            form = self.forms[item_id]
+            self.forms[str(item_id)].show()
+        else:
+            print(f"Warning: No form found for item ID {item_id}. Opening new form.")
+            form = ObjectForm(self.model, self.parent())
             form.show()
 
     def remove_item(self):
         # Logic to remove the selected item
-        pass
+        selected_items = self.list_widget.selectedItems()
+        for item in selected_items:
+            item_id = item.data(QtCore.Qt.ItemDataRole.UserRole)
+            if item_id and str(item_id) in self.forms:
+                form = self.forms[str(item_id)]
+                form.hide()
+                # del self.forms[str(item_id)]
+                self.list_widget.takeItem(self.list_widget.row(item))
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        # Close any open forms
+        for form in self.forms.values():
+            form.prompt_for_save = False
+            form.close()
+        return super().closeEvent(event)
 
 
-class PydanticForm(QtWidgets.QWidget):
+class ObjectCreateButton(QtWidgets.QPushButton):
+    """
+    A button to create a new Pydantic model instance.
+    """
+
+    def __init__(self, model: type[AbstractObject], parent=None):
+        super().__init__("Create", parent)
+        self.model = model
+        self.form = ObjectForm(self.model, self.parent())
+        self.clicked.connect(self.form.show)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self.form.prompt_for_save = False
+        self.form.close()
+        return super().closeEvent(event)
+
+
+class ObjectForm(QtWidgets.QWidget):
     """
     A form to display and edit Pydantic model fields.
     """
-    sync_requested = QtCore.Signal(AbstractObject)
+
+    save_event = QtCore.Signal()
+    prompt_for_save = True
 
     def __init__(self, model: type[AbstractObject], parent=None):
         super().__init__(parent)
-        self.is_subform = isinstance(parent, PydanticForm)
+        self.is_subform = isinstance(parent, ObjectForm)
+        self.model = model
         # After some internal debate, I've decided that subforms will act in a slightly funky way-
         # To pop out, they will reset their parent, while keeping track of the original parent.
-        self.parent_form: Optional["PydanticForm"]
+        self.parent_form: Optional["ObjectForm"] = None
+        self.fields: dict[str, QtWidgets.QWidget] = {}
         if self.is_subform:
-            self.parent_form = cast("PydanticForm", parent)
+            self.parent_form = cast("ObjectForm", parent)
             self.setParent(None)
-        else:
-            self.parent_form = None
-        self.model = model
+        # Internal data tracking
+        self.dirty_fields: set[tuple[str, QtWidgets.QWidget]] = set()
+        self._raw_content: dict[str, Any] = {}
+        self.obj_id = self.export_content().obj_id
         self.init_ui()
 
     @property
-    def annotations(self):
-        return self.model.__annotations__
-    
+    def raw_content(self) -> dict[str, Any]:
+        """
+        Retrieve the current content of the form as a validated Pydantic model instance.
+        """
+        raw_content = {}
+        for field_name, field in self.dirty_fields:
+            if isinstance(field, QtWidgets.QLineEdit):
+                field = cast(QtWidgets.QLineEdit, field)
+                raw_content[field_name] = field.text()
+            elif isinstance(field, ObjectListWidget):
+                field = cast(ObjectListWidget, field)
+                # Compile list content
+                items = []
+                for i in range(field.list_widget.count()):
+                    item_widget = field.list_widget.item(i)
+                    item_id = item_widget.data(QtCore.Qt.ItemDataRole.UserRole)
+                    if item_id and item_id in field.forms:
+                        item_form = field.forms[item_id]
+                        items.append(item_form.export_content())
+                raw_content[field_name] = items
+        # Compile w/ existing content
+        return self._raw_content | raw_content
+
+    def export_content(self) -> AbstractObject:
+        # Validate and return the content as a Pydantic model instance
+        return self.model.model_validate(self.raw_content)
+        # TODO: On validation error, highlight the offending fields
+
+    @raw_content.setter
+    def raw_content(self, content: AbstractObject):
+        # Validate and set the content of the form
+        content = self.model.model_validate(content)
+        # Reflect the content in the form fields
+        for field in self.model_fields.keys():
+            value = getattr(content, field, "")
+            input_field = self.findChild(
+                QtWidgets.QLineEdit,
+                field,
+                QtCore.Qt.FindChildOption.FindDirectChildrenOnly,
+            )
+            if input_field:
+                input_field.setText(str(value))
+
     @property
-    def type_name(self) -> str:
-        return self.model.__name__.lower()
+    def model_fields(self) -> dict[str, FieldInfo]:
+        return self.model.model_fields
+
+    @property
+    def model_name(self) -> str:
+        return self.model.__name__
+
+    def save_content(self):
+        """
+        Save the current content of the form.
+        """
+        try:
+            self._raw_content = self.export_content().model_dump()
+        except Exception as e:
+            print(f"Error saving content: {e}")
+        self.dirty_fields.clear()
+        self.save_event.emit()
+
+    def save_and_close(self):
+        """
+        Save the current content and close the form.
+        """
+        self.save_content()
+        self.close()
 
     def init_ui(self):
         """
         Precondition: self.fields is a list of field names in the Pydantic model.
         """
-        print(f"Initializing UI with fields: {self.annotations.keys()}")
         layout = QtWidgets.QVBoxLayout(self)
-        for field in self.annotations.keys():
-            input_field = self.create_field_item(field, self.annotations[field])
-            layout.addWidget(input_field)
+        for field in self.model_fields.keys():
+            self.fields[field] = self.create_field_item(
+                field, self.model_fields[field].annotation
+            )
+            layout.addWidget(self.fields[field])
+        # Special handling for "obj_id" field to make it read-only
+        obj_id_field: Optional[QtWidgets.QWidget] = self.fields.get("obj_id", None)
+        try:
+            obj_id_field = cast(QtWidgets.QLineEdit, obj_id_field)
+            obj_id_field.setReadOnly(True)
+            obj_id_field.setText(str(self.obj_id))
+        except Exception as e:
+            print(f"Error setting obj_id field to read-only: {e}?")
+        # Add save and save_and_close buttons
+        self.save_button = QtWidgets.QPushButton("Save", self)
+        self.save_button.clicked.connect(self.save_content)
+        layout.addWidget(self.save_button)
+        self.save_and_close_button = QtWidgets.QPushButton("Save and Close", self)
+        self.save_and_close_button.clicked.connect(self.save_and_close)
+        layout.addWidget(self.save_and_close_button)
         self.setLayout(layout)
 
+    def mark_field_dirty(self, field_name: str):
+        """
+        Mark a field as dirty (aka modified, unsynced).
+        """
+        self.dirty_fields.add((field_name, self.fields[field_name]))
 
     def create_field_item(self, field_name, field_type):
         """
@@ -115,56 +259,56 @@ class PydanticForm(QtWidgets.QWidget):
 
         If the field type is iterable,
         """
-        print(f"Creating input field for {field_name} of type {field_type}")
         try:
             iter(field_type)
         except TypeError:
             # Not iterable
-            pass
+            if issubclass(field_type, AbstractObject):
+                # Subform
+                return ObjectCreateButton(field_type, self)
         else:
             # Iterable
-            return ModelListView(field_type.__args__[0], self)
-        # Handle special "obj_id" case
+            return ObjectListWidget(field_type.__args__[0], self)
+
+        # Default to QLineEdit for simple types
         line_edit = QtWidgets.QLineEdit(self)
-        if field_name == "obj_id":
-            line_edit.setReadOnly(True)
-            # Generate a new ID
-            print(self.model)
-            new_id = generate_id_from_type(self.model.id_type())
+        line_edit.textChanged.connect(lambda: self.mark_field_dirty(field_name))
+        line_edit.setPlaceholderText(field_name)
         return line_edit
 
     @classmethod
     def from_existing(
-        cls, obj_type: type[AbstractObject], obj_instance: AbstractObject, parent: Optional[QtWidgets.QWidget] = None
-    ) -> "PydanticForm":
+        cls,
+        obj_instance: AbstractObject,
+        parent: Optional[QtWidgets.QWidget] = None,
+    ) -> "ObjectForm":
         """
         Create a PydanticForm from an existing Pydantic model instance.
         """
-        form_instance = cls(obj_type, parent)
-        form_instance.sync(obj_instance)    
+        form_instance = cls(type(obj_instance), parent=parent)
+        form_instance.raw_content = obj_instance
         return form_instance
 
-
-    def sync(self, object: AbstractObject):
-        """
-        Sync the form with the given Pydantic model instance.
-        """
-        for field in self.annotations.keys():
-            value = getattr(object, field, "")
-            input_field = self.findChild(QtWidgets.QLineEdit, field)
-            if input_field:
-                input_field.setText(str(value))
-
-    def export_data(self) -> AbstractObject:
-        """
-        Export the current form data as a Pydantic model instance.
-        """
-        data = {}
-        for field in self.annotations.keys():
-            input_field = self.findChild(QtWidgets.QLineEdit, field)
-            if input_field:
-                data[field] = input_field.text()
-        return self.model.model_validate(data)
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        # Request confirmation if there are unsaved changes
+        if self.dirty_fields and self.prompt_for_save:
+            reply = QtWidgets.QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                "You have unsaved changes. Do you want to save before closing?",
+                QtWidgets.QMessageBox.StandardButton.Yes
+                | QtWidgets.QMessageBox.StandardButton.No
+                | QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                self.save_content()
+            elif reply == QtWidgets.QMessageBox.StandardButton.Cancel:
+                event.ignore()
+                return
+        # Request fields to close up
+        for field in self.fields.values():
+            field.close()
+        return super().closeEvent(event)
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):
@@ -175,8 +319,16 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
 
         self.central_widget = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.central_widget)
+        self.main_form: Optional[ObjectForm] = None
 
         self.setup_ui()
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        # Close any open forms or dialogs
+        for i in range(self.central_widget.count()):
+            widget = self.central_widget.widget(i)
+            widget.close()
+        return super().closeEvent(event)
 
     def setup_ui(self):
         """
@@ -206,9 +358,9 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         Spawn a Pydantic form to create a new campaign plan.
         """
         self.label.setText("Starting a new campaign...")
-        self.form = PydanticForm(CampaignPlan, self)
-        self.central_widget.addWidget(self.form)
-        self.central_widget.setCurrentWidget(self.form)
+        self.main_form = ObjectForm(CampaignPlan, self)
+        self.central_widget.addWidget(self.main_form)
+        self.central_widget.setCurrentWidget(self.main_form)
 
     def load_existing_campaign(self):
         self.label.setText("Loading an existing campaign...")
@@ -218,10 +370,10 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         )
         if file_path:
             # Load the campaign plan from the selected file
-            # self.form = PydanticForm.from_existing(
-            #     _CampaignPlan, load_obj(_CampaignPlan, file_path), self
-            # )
-            self.central_widget.addWidget(self.form)
-            self.central_widget.setCurrentWidget(self.form)
-        else:
-            self.label.setText("No file selected.")
+            with open(file_path, "rb") as f:
+                self.main_form = ObjectForm.from_existing(
+                    CampaignPlan.model_validate_json(f.read()),
+                    self,
+                )
+            self.central_widget.addWidget(self.main_form)
+            self.central_widget.setCurrentWidget(self.main_form)

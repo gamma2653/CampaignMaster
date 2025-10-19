@@ -1,31 +1,58 @@
 # Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
 
 import re
-from typing import Annotated, Any, NewType, Optional, TypeVar, ClassVar, cast
+from typing import Optional, ClassVar, Annotated, Any
 from collections import Counter
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, Field, model_validator, BeforeValidator
 
 from .locking import ReaderWriterSuite
 
-ID = NewType("ID", tuple[str, int])
-"""
-Group 1: Prefix (e.g., "R", "O", etc.)
-Group 2: Numeric part (e.g., "001", "002", etc.)
-"""
+id_pattern = re.compile(r"^([a-zA-Z]+)-(\d+)$")
 
-RuleID = Annotated[ID, StringConstraints(min_length=3, pattern=r"R-\d+")]
-ObjectiveID = Annotated[ID, StringConstraints(min_length=3, pattern=r"O-\d+")]
-PointID = Annotated[ID, StringConstraints(min_length=3, pattern=r"P-\d+")]
-SegmentID = Annotated[ID, StringConstraints(min_length=3, pattern=r"S-\d+")]
-ArcID = Annotated[ID, StringConstraints(min_length=3, pattern=r"A-\d+")]
-ItemID = Annotated[ID, StringConstraints(min_length=3, pattern=r"I-\d+")]
-CharacterID = Annotated[ID, StringConstraints(min_length=3, pattern=r"C-\d+")]
-LocationID = Annotated[ID, StringConstraints(min_length=3, pattern=r"L-\d+")]
-PlanID = Annotated[ID, StringConstraints(min_length=9, pattern=r"CamPlan-\d+")]
-# Devolved ID, for generic use (e.g., temporary objects, misc objects, etc.)
-GenericID = Annotated[ID, StringConstraints(min_length=3, pattern=r"[A-z]+-\d+")]
+class ID(BaseModel):
+    """
+    Group 1: Prefix (e.g., "R", "O", etc.)
+    Group 2: Numeric part (e.g., "1", "2", etc.)
+    """
+    numeric: int
+    prefix: str = "MISC"
 
-IDS_ANNOTATED: set[Annotated] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
+    _max_numeric_digits: ClassVar[int] = 6
+
+    def __str__(self) -> str:
+        return f"{self.prefix}-{self.numeric:0{self._max_numeric_digits}d}"
+    
+    def to_digits(self, max_digits: Optional[int] = None) -> int:
+        """
+        Get the numeric part of the ID, zero-padded to max_digits.
+        """
+        if max_digits is None:
+            max_digits = self._max_numeric_digits
+        return int(f"{self.numeric:0{max_digits}d}")
+
+    @classmethod
+    def from_str(cls, id_str: Any) -> Any:
+        if not isinstance(id_str, str):
+            return id_str
+        match = id_pattern.match(id_str)
+        if not match:
+            raise ValueError(f"Invalid ID format: {id_str}")
+        prefix, numeric_str = match.groups()
+        numeric = int(numeric_str)
+        return cls(prefix=prefix, numeric=numeric)
+
+    @model_validator(mode="after")
+    def valid_prefix(self) -> "ID":
+        if not self.prefix.isalpha():
+            raise ValueError(f"Invalid prefix: {self.prefix}. Must be letters only.")
+        return self
+    
+
+    def __hash__(self) -> int:
+        return hash((self.prefix, self.numeric))
+
+ValidID = Annotated[ID, BeforeValidator(ID.from_str)]
+# IDS_ANNOTATED: set[Annotated] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
 
 
 _CURRENT_IDS: Counter = Counter()
@@ -47,154 +74,212 @@ class AbstractObject(BaseModel):
     """
     Base class for all objects in the campaign planning system.
     """
-    obj_id: GenericID
+    obj_id: ValidID
 
-    @classmethod
-    def id_type(cls) -> Annotated:
-        obj_id_annotation = cls.model_fields.get("obj_id")
-        if obj_id_annotation is None:
-            return GenericID
-        return obj_id_annotation.annotation
+    _default_prefix: ClassVar[str] = "MISC"
 
+    
+    # FIXME: This borked constructor type definition. See Segment class for example.
     # Bootstrap ID if not provided
     def __init__(self, **data):
         if "obj_id" not in data:
-            data["obj_id"] = generate_id_from_type(self.__class__.id_type())
+            data["obj_id"] = generate_id(self._default_prefix)
         super().__init__(**data)
+    
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.obj_id})"
 
 class Rule(AbstractObject):
     """
     A class to represent a single rule in a tabletop RPG campaign.
     """
-    _id_type = RuleID
-    obj_id: RuleID
-    description: str
-    effect: str
-    components: list[str]
+    _default_prefix: ClassVar[str] = "R"
+    description: str = ""
+    """
+    A textual description of the rule.
+    """
+    effect: str = ""
+    """
+    A description of the effect of the rule. This may include mechanical effects, narrative effects, or both.
+    """
+    components: list[str] = []
+    """
+    A list of components that make up the rule. This may include keywords, phrases, or other elements that define the rule.
+    """
 
 class Objective(AbstractObject):
     """
     A class to represent a single objective in a campaign plan.
     """
-    _id_type = ObjectiveID
-    obj_id: ObjectiveID
-    description: str
-    components: list[str]
-    prerequisites: list[str]
+    _default_prefix: ClassVar[str] = "O"
+    description: str = ""
+    """
+    A textual description of the objective.
+    """
+    components: list[str] = []
+    """
+    A list of components that make up the objective. This may include keywords, phrases, or other elements that define the objective.
+    """
+
+    prerequisites: list[str] = []
+    """
+    A list of prerequisites that must be met before the objective can be attempted.
+    This may include other objectives, character levels, items, or other conditions.
+    """
 
 class Point(AbstractObject):
-    _id_type = PointID
-    obj_id: PointID
-    name: str
-    description: str
-    objective: Optional[ObjectiveID]
+    _default_prefix: ClassVar[str] = "P"
+    name: str = ""
+    """
+    The name of the story point.
+    """
+    description: str = ""
+    """
+    A textual description of the story point.
+    """
+    objective: Optional[ID] = None
+    """
+    An optional reference to an Objective ID associated with this point.
+    """
 
 
 class Segment(AbstractObject):
-    _id_type = SegmentID
-    obj_id: SegmentID
-    name: str
-    description: str
-    points: list[Point]
+    _default_prefix: ClassVar[str] = "S"
+    name: str = ""
+    """
+    The name of the story segment.
+    """
+    description: str = ""
+    """
+    A textual description of the story segment.
+    """
+    start: Point = Field(default_factory=Point)  # type: ignore[assignment]
+    """
+    The starting point of the segment.
+    """
+    end: Point = Field(default_factory=Point)  # type: ignore[assignment]
+    """
+    The ending point of the segment.
+    """
 
 
 class Arc(AbstractObject):
-    _id_type = ArcID
-    obj_id: ArcID
-    name: str
-    description: str
-    segments: list[Segment]
+    _default_prefix: ClassVar[str] = "A"
+    name: str = ""
+    """
+    The name of the story arc.
+    """
+    description: str = ""
+    """
+    A textual description of the story arc.
+    """
+    segments: list[Segment] = []
+    """
+    A list of segments that make up the story arc.
+    """
 
 
 class Item(AbstractObject):
-    _id_type = ItemID
-    obj_id: ItemID
-    name: str
-    type_: str
-    description: str
-    properties: dict[str, str]
+    _default_prefix: ClassVar[str] = "I"
+    name: str = ""
+    """
+    The name of the item.
+    """
+    type_: str = ""
+    """
+    The type of the item (e.g., weapon, armor, potion).
+    """
+    description: str = ""
+    """
+    A textual description of the item.
+    """
+    properties: dict[str, str] = {}
+    """
+    A dictionary of properties that define the item's attributes and miscellaneous properties.
+    """
 
 
 class Character(AbstractObject):
-    _id_type = CharacterID
-    obj_id: CharacterID
-    name: str
-    role: str
-    backstory: str
-    attributes: dict[str, int]
-    skills: dict[str, int]
-    storylines: list[ArcID | SegmentID | PointID]
-    inventory: list[ItemID]
+    _default_prefix: ClassVar[str] = "C"
+    name: str = ""
+    """
+    The name of the character.
+    """
+    role: str = ""
+    """
+    The role of the character (e.g., hero, villain, NPC).
+    """
+    backstory: str = ""
+    """
+    A brief backstory for the character.
+    """
+    attributes: dict[str, int] = {}
+    """
+    A dictionary of attributes that define the character's capabilities (e.g., strength, intelligence).
+    """
+    skills: dict[str, int] = {}
+    """
+    A dictionary of skills that the character possesses (e.g., stealth, persuasion).
+    """
+    storylines: list[ID] = []
+    """
+    A list of storylines that the character is involved in.
+    """
+    inventory: list[ID] = []
+    """
+    A list of item IDs that the character possesses.
+    """
 
 
 class Location(AbstractObject):
-    _id_type = LocationID
-    obj_id: LocationID
-    name: str
-    description: str
-    neighboring_locations: list[LocationID]
+    _default_prefix: ClassVar[str] = "L"
+    name: str = ""
+    """
+    The name of the location.
+    """
+    description: str = ""
+    """
+    A textual description of the location.
+    """
+    neighboring_locations: list[ID] = []
+    """
+    A list of IDs of neighboring locations.
+    """
     coords: Optional[
         tuple[float, float] | tuple[float, float, float]
     ]  # (latitude, longitude[, altitude])
+    """
+    The geographical coordinates of the location in-universe.
+    NOTE: It is up to the CampaignPlan to define the coordinate system, via a Rule.
+    """
 
 
 class CampaignPlan(AbstractObject):
     """
     A class to represent a campaign plan, loaded from a JSON file.
     """
-    _id_type = PlanID
-    obj_id: PlanID
-    title: str
-    version: str
-    setting: str
-    summary: str
-    storypoints: list[Arc]
-    npcs: list[Character]
-    locations: list[Location]
-    items: list[Item]
-    rules: list[Rule]
+    _default_prefix: ClassVar[str] = "CampPlan"
+    title: str = ""
+    version: str = ""
+    setting: str = ""
+    summary: str = ""
+    storypoints: list[Arc] = []
+    npcs: list[Character] = []
+    locations: list[Location] = []
+    items: list[Item] = []
+    rules: list[Rule] = []
 
 
+def get_next_id_numeric(prefix: str) -> int:
+    with _CURRENT_IDS_LOCK.writer():
+        if prefix not in _RELEASED_IDS:
+            _RELEASED_IDS[prefix] = set()
+        if _RELEASED_IDS[prefix]:
+            new_id = _RELEASED_IDS[prefix].pop()
+            return new_id.numeric
+        _CURRENT_IDS[prefix] += 1
+        return _CURRENT_IDS[prefix]
 
-def pattern_from_annotated(id_type) -> re.Pattern:
-    try:
-        return re.compile(id_type.__metadata__[0].pattern)
-    except (AttributeError, IndexError):
-        raise ValueError(f"Type {id_type} is not an Annotated ID type with StringConstraints")
-
-"""
-Generic type variable for ID types.
-"""
-def _prefix_from_type(id_type) -> str:
-    """
-    Get the prefix string for a given ID type.
-
-    Args:
-        id_type (type[ID]): The ID type (e.g., RuleID, ObjectiveID).
-    Returns:
-        str: The prefix string (e.g., "R" for RuleID).
-    """
-    if id_type not in IDS_ANNOTATED:
-        raise ValueError(f"Unknown ID type: {id_type}")
-    try:
-        return id_type.__metadata__[0].pattern.split('-')[0]
-    except (AttributeError, IndexError):
-        # Not an Annotated type, or StringConstraints is not the first element, assume it's the base ID type
-        return "MISC"  # Unknown prefix, aka category
-
-IDType = TypeVar("IDType")
-def generate_id_from_type(id_type: Annotated[IDType, Any]) -> IDType:
-    """
-    Generate a new ID based on the given ID type.
-
-    Args:
-        id_type (type[ID]): The ID type (e.g., RuleID, ObjectiveID).
-
-    Returns:
-        ID: A new unique ID of the specified type.
-    """
-    # Retrieve prefix from type, then generate ID, then cast to type
-    return cast(IDType, generate_id(_prefix_from_type(id_type)))
 
 def generate_id(prefix: str) -> ID:
     """
@@ -206,29 +291,16 @@ def generate_id(prefix: str) -> ID:
     Returns:
         ID: A new unique ID with the specified prefix.
     """
-    with _CURRENT_IDS_LOCK.writer():
-        if prefix not in _RELEASED_IDS:
-            _RELEASED_IDS[prefix] = set()
-        if _RELEASED_IDS[prefix]:
-            new_id = _RELEASED_IDS[prefix].pop()
-            return new_id
-        _CURRENT_IDS[prefix] += 1
-        id = ID((prefix, _CURRENT_IDS[prefix]))  # NOTE: Unbounded integer IDs
-    return id
-
+    return ID(prefix=prefix, numeric=get_next_id_numeric(prefix))
 
 def release_id(id: ID):
     """
     Release an ID back to the factory for reuse.
     """
-    match = pattern_from_annotated(id).match(id)
-    if not match:
-        raise ValueError(f"Invalid ID format: {id}")
-    prefix = match.group(1)
     with _CURRENT_IDS_LOCK.writer():
-        if prefix not in _RELEASED_IDS:
-            _RELEASED_IDS[prefix] = set()
-        _RELEASED_IDS[prefix].add(id)
+        if id.prefix not in _RELEASED_IDS:
+            _RELEASED_IDS[id.prefix] = set()
+        _RELEASED_IDS[id.prefix].add(id)
 
 def get_released_ids(prefix: str) -> set[ID]:
     """
