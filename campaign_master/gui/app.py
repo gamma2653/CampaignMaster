@@ -26,7 +26,6 @@ class ObjectListWidget(QtWidgets.QGroupBox):
         self, model: type[AbstractObject], parent: "Optional[ObjectForm]" = None
     ):
         # TODO: localize and pluralize the title
-        print(model)
         super().__init__(f"{model.__name__}s", parent)
         self.model = model
         self.init_ui()
@@ -110,7 +109,13 @@ class ObjectListWidget(QtWidgets.QGroupBox):
         return super().closeEvent(event)
     
     def close_form(self) -> None:
-        self.close()
+        [form.close() for form in self.forms.values()]
+    
+    def hide_form(self) -> None:
+        [form.hide() for form in self.forms.values()]
+    
+    def show_form(self) -> None:
+        [form.show() for form in self.forms.values()]
 
 
 class ObjectCreateWidget(QtWidgets.QWidget):
@@ -129,10 +134,20 @@ class ObjectCreateWidget(QtWidgets.QWidget):
         layout.addWidget(self.label)
         layout.addWidget(self.button)
         self.setLayout(layout)
+    
+    def update_label(self, obj: AbstractObject) -> None:
+        self.label.setText(str(obj))
+        self.button.setText(f"Edit {self.model.__name__}")
 
     def close_form(self) -> None:
         self.form.prompt_for_save = False
         self.form.close()
+    
+    def hide_form(self) -> None:
+        self.form.hide()
+    
+    def show_form(self) -> None:
+        self.form.show()
 
 
 class ObjectForm(QtWidgets.QWidget):
@@ -305,7 +320,17 @@ class ObjectForm(QtWidgets.QWidget):
             # Not iterable
             if issubclass(field_type, AbstractObject):
                 # Subform
-                return ObjectCreateWidget(field_type, self)
+                create_widget = ObjectCreateWidget(field_type, self)
+                # Mark dirty on save, and update label
+                create_widget.form.save_event.connect(
+                    lambda: self.mark_field_dirty(field_name)
+                )
+                create_widget.form.save_event.connect(
+                    lambda: create_widget.update_label(
+                        create_widget.form.export_content()
+                    )
+                )
+                return create_widget
         else:
             # Iterable
             return ObjectListWidget(field_type.__args__[0], self)
@@ -349,12 +374,20 @@ class ObjectForm(QtWidgets.QWidget):
         for field in self.fields.values():
             if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
                 field = cast(ObjectCreateWidget | ObjectListWidget, field)
-                field.close_form()
+                field.hide_form()
         # Release ID
         if not self.exists:
             release_id(self.obj_id)
         # Execute normal close event
         return super().closeEvent(event)
+
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        # Show fields that were hidden when the form was closed
+        # for field in self.fields.values():
+        #     if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
+        #         field = cast(ObjectCreateWidget | ObjectListWidget, field)
+        #         field.show_form()
+        return super().showEvent(event)
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):
