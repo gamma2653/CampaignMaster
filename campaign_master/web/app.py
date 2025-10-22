@@ -17,7 +17,7 @@ def get_required_fields(model: type[planning.AbstractObject]) -> list[str]:
             required_fields.append(field_name)
     return required_fields
 
-_ANNOTATION_TO_JS_TYPE: dict[type, str] = {
+ANNO_TO_JS_TYPE: dict[type, str] = {
     str: "text",
     int: "number",
     float: "number",
@@ -27,11 +27,6 @@ _ANNOTATION_TO_JS_TYPE: dict[type, str] = {
     tuple: "array",
 }
 
-def annotation_to_js_type(annotation: type) -> str:
-    """
-    Converts a type annotation to a string representation.
-    """
-    return _ANNOTATION_TO_JS_TYPE.get(annotation, "text")
 
 def build():
     """
@@ -48,6 +43,17 @@ def build():
     subprocess.run(['npm', 'run', 'build'], check=True, shell=True)
     print("Web app built successfully.")
 
+
+def run_dev():
+    """
+    Runs the development server.
+    """
+    try:
+        subprocess.run(['npm', 'run', 'dev'], check=True, shell=True)
+    except KeyboardInterrupt:
+        print("Development server interrupted by user.")
+    else:
+        print("Development server closed.")
 
 # Base case, first serve. Rest is handled by the frontend router.
 # To conceptualize, this establishes the applet session, while endpoints and static files are requested as needed.
@@ -74,7 +80,7 @@ async def get_app_fields():
         {
             "name": field_name,
             "label": field_name.replace("_", " ").title(),
-            "type": str(field_info.annotation),
+            "type": ANNO_TO_JS_TYPE.get(field_info.annotation or str, "text"),
             "required": field_name in required_fields
         }
         for field_name, field_info in planning.CampaignPlan.model_fields.items()

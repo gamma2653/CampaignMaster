@@ -7,7 +7,7 @@
     "noResolve": false,
     "removeComments": true,
     "sourceMap": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "strict": true
   },
   "include": [

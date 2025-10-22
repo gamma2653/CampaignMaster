@@ -8,45 +8,94 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as IndexRouteImport } from './routes/index'
+import { createFileRoute } from '@tanstack/react-router'
 
-const AboutRoute = AboutRouteImport.update({
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as PlanningIndexRouteImport } from './routes/planning/index'
+import { Route as PlanningCampaignIndexRouteImport } from './routes/planning/campaign/index'
+import { Route as PlanningCampaignIdRouteImport } from './routes/planning/campaign/$id'
+
+const AboutLazyRouteImport = createFileRoute('/about')()
+
+const AboutLazyRoute = AboutLazyRouteImport.update({
   id: '/about',
   path: '/about',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlanningIndexRoute = PlanningIndexRouteImport.update({
+  id: '/planning/',
+  path: '/planning/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanningCampaignIndexRoute = PlanningCampaignIndexRouteImport.update({
+  id: '/planning/campaign/',
+  path: '/planning/campaign/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanningCampaignIdRoute = PlanningCampaignIdRouteImport.update({
+  id: '/planning/campaign/$id',
+  path: '/planning/campaign/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/about': typeof AboutLazyRoute
+  '/planning': typeof PlanningIndexRoute
+  '/planning/campaign/$id': typeof PlanningCampaignIdRoute
+  '/planning/campaign': typeof PlanningCampaignIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/about': typeof AboutLazyRoute
+  '/planning': typeof PlanningIndexRoute
+  '/planning/campaign/$id': typeof PlanningCampaignIdRoute
+  '/planning/campaign': typeof PlanningCampaignIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/about': typeof AboutLazyRoute
+  '/planning/': typeof PlanningIndexRoute
+  '/planning/campaign/$id': typeof PlanningCampaignIdRoute
+  '/planning/campaign/': typeof PlanningCampaignIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/planning'
+    | '/planning/campaign/$id'
+    | '/planning/campaign'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to:
+    | '/'
+    | '/about'
+    | '/planning'
+    | '/planning/campaign/$id'
+    | '/planning/campaign'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/planning/'
+    | '/planning/campaign/$id'
+    | '/planning/campaign/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  AboutLazyRoute: typeof AboutLazyRoute
+  PlanningIndexRoute: typeof PlanningIndexRoute
+  PlanningCampaignIdRoute: typeof PlanningCampaignIdRoute
+  PlanningCampaignIndexRoute: typeof PlanningCampaignIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -55,7 +104,7 @@ declare module '@tanstack/react-router' {
       id: '/about'
       path: '/about'
       fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+      preLoaderRoute: typeof AboutLazyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +114,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/planning/': {
+      id: '/planning/'
+      path: '/planning'
+      fullPath: '/planning'
+      preLoaderRoute: typeof PlanningIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planning/campaign/': {
+      id: '/planning/campaign/'
+      path: '/planning/campaign'
+      fullPath: '/planning/campaign'
+      preLoaderRoute: typeof PlanningCampaignIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planning/campaign/$id': {
+      id: '/planning/campaign/$id'
+      path: '/planning/campaign/$id'
+      fullPath: '/planning/campaign/$id'
+      preLoaderRoute: typeof PlanningCampaignIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  AboutLazyRoute: AboutLazyRoute,
+  PlanningIndexRoute: PlanningIndexRoute,
+  PlanningCampaignIdRoute: PlanningCampaignIdRoute,
+  PlanningCampaignIndexRoute: PlanningCampaignIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -26,12 +26,13 @@ if __name__ == "__main__":
             print("Exiting after build.")
             sys.exit(0)
         if known_args.debug:
-            from fastapi.staticfiles import StaticFiles
-            static_path = pathlib.Path(__file__).parent.parent / "dist" / "static"
-            print(f"Serving static files from: {static_path.resolve(strict=True)}")
-            app.app.mount("/static", StaticFiles(directory=static_path), name="static")
-            print("Debug mode is enabled.")
-        uvicorn.run(app.app, host=known_args.host, port=known_args.port, log_level="debug" if known_args.debug else "info")
+            app.run_dev()
+            # from fastapi.staticfiles import StaticFiles
+            # static_path = pathlib.Path(__file__).parent.parent / "dist" / "static"
+            # print(f"Serving static files from: {static_path.resolve(strict=True)}")
+            # app.app.mount("/static", StaticFiles(directory=static_path), name="static")
+            # print("Debug mode is enabled.")
+        # uvicorn.run(app.app, host=known_args.host, port=known_args.port, log_level="debug" if known_args.debug else "info")
         sys.exit(0)
     if known_args.gui:
         app = QtWidgets.QApplication(sys.argv)
