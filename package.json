@@ -17,15 +17,21 @@
     "@rsbuild/plugin-react": "^1.4.1",
     "@rspack/cli": "^1.5.8",
     "@rspack/core": "^1.5.8",
+    "@tailwindcss/postcss": "^4.1.15",
+    "@tanstack/react-router-devtools": "^1.133.22",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.1",
     "eslint": "^9.35.0",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.15",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.43.0"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.5",
+    "@tanstack/react-router": "^1.133.22",
+    "@tanstack/router-plugin": "^1.133.22",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }
