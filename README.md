@@ -69,5 +69,6 @@ The debug flag can be used for more verbose logging.
 ##### React
   - **[RSBuild](https://rsbuild.rs/)** (Pre-compilation of app before serving)
   - **[TypeScript](https://www.typescriptlang.org/docs/handbook/react.html)** (TypeScript flavored React, see their [documentation](https://react.dev/learn/typescript))
+  - **[Tanstack](https://tanstack.com)**
   - More to be added as developed.
 

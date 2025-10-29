@@ -3,7 +3,7 @@
 import re
 from typing import Optional, ClassVar, Annotated, Any
 from collections import Counter
-from pydantic import BaseModel, Field, field_validator, model_validator, BeforeValidator
+from pydantic import BaseModel, Field, field_validator, BeforeValidator
 
 from .locking import ReaderWriterSuite
 
@@ -44,11 +44,11 @@ class ID(BaseModel):
         return cls(prefix=prefix, numeric=numeric)
 
     @field_validator("prefix", mode="after")
-    def valid_prefix(self) -> "ID":
-        if not self.prefix.isalpha():
-            raise ValueError(f"Invalid prefix: {self.prefix}. Must be letters only.")
-        return self
-
+    @classmethod
+    def valid_prefix(cls, v: str) -> str:
+        if not v.isalpha():
+            raise ValueError(f"Invalid prefix: {v}. Must be letters only.")
+        return v
     def __hash__(self) -> int:
         return hash((self.prefix, self.numeric))
 
@@ -89,9 +89,10 @@ class AbstractObject(BaseModel):
         super().__init__(obj_id=obj_id, **data)
 
     @field_validator("obj_id", mode="before")
-    def try_coerce_id(self, v: Any) -> ID:
+    @classmethod
+    def try_coerce_id(cls, v: Any) -> ID:
         if not v:
-            return generate_id(prefix=self._default_prefix)
+            return generate_id(prefix=cls._default_prefix)
         if isinstance(v, str):
             return ID.from_str(v)
         return v

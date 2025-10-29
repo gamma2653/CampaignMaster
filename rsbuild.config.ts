@@ -12,9 +12,12 @@ export default defineConfig({
                     autoCodeSplitting: true,
                     routesDirectory: "./campaign_master/web/react/routes",
                     generatedRouteTree: "./campaign_master/web/react/routeTree.gen.ts",
-                })
+                }),
             ]
-        }
+        },
+        // postcss: {
+
+        // }
     },
     source: {
         entry: {
