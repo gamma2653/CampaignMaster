@@ -15,10 +15,7 @@ export default defineConfig({
                 }),
             ]
         },
-        // postcss: {
-
-        // }
-    },
+    },  
     source: {
         entry: {
             index: './campaign_master/web/react/index.tsx',

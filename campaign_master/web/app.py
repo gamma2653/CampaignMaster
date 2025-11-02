@@ -7,7 +7,7 @@ from ..content import planning, executing
 
 app = fastapi.FastAPI()
 
-def get_required_fields(model: type[planning.AbstractObject]) -> list[str]:
+def get_required_fields(model: type[planning.Object]) -> list[str]:
     """
     Returns a list of names of required fields in a Pydantic model.
     """
@@ -41,6 +41,7 @@ def build():
 
     subprocess.run(['npm', 'install'], check=True, shell=True)
     subprocess.run(['npm', 'run', 'build'], check=True, shell=True)
+    subprocess.run(['npm', 'run', 'css'], check=True, shell=True)
     print("Web app built successfully.")
 
 
@@ -57,6 +58,7 @@ def run_dev():
 
 # Base case, first serve. Rest is handled by the frontend router.
 # To conceptualize, this establishes the applet session, while endpoints and static files are requested as needed.
+# In production, serve built files from 'dist' directory using Nginx or some other CDN.
 @app.get("/")
 async def index():
     try:
@@ -64,6 +66,8 @@ async def index():
     except Exception as e:
         return fastapi.responses.PlainTextResponse(str(e), status_code=500)
 
+
+# Actual FastAPI endpoints below
 
 @app.get("/api/app/planning")
 async def get_app_fields():

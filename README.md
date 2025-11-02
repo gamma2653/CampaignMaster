@@ -1,6 +1,6 @@
 # Camp-Plan
 
-A campanion application for game masters of various TTRPG formats. This application allows a game master to plan, and then subseqeuently execute a game plan for player sessions. As development continues, support for additional game mechanics will be added, via a "Rules" framework, more to come later.
+A companion application for game masters of various TTRPG formats. This application allows a game master to plan, and then subsequently execute a game plan for player sessions. As development continues, support for additional game mechanics will be added, via a "Rules" framework, more to come later.
 
 As far as game masters are concerned, running a TTRPG campaign is associated with two primary actitivies: preparation (planning), and execution (running the campaign with players).
 

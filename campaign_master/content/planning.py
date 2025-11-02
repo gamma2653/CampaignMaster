@@ -3,12 +3,13 @@
 import re
 from typing import Optional, ClassVar, Annotated, Any
 from collections import Counter
-from pydantic import BaseModel, Field, field_validator, BeforeValidator
+from pydantic import BaseModel, Field, field_validator, BeforeValidator, model_validator
 
 from .locking import ReaderWriterSuite
 
 id_pattern = re.compile(r"^([a-zA-Z]+)-(\d+)$")
 
+DEFAULT_ID_PREFIX = "MISC"
 
 class ID(BaseModel):
     """
@@ -17,7 +18,7 @@ class ID(BaseModel):
     """
 
     numeric: int
-    prefix: str = "MISC"
+    prefix: str = DEFAULT_ID_PREFIX
 
     _max_numeric_digits: ClassVar[int] = 6
 
@@ -43,6 +44,12 @@ class ID(BaseModel):
         numeric = int(numeric_str)
         return cls(prefix=prefix, numeric=numeric)
 
+    @model_validator(mode="before")
+    def validate_id(self, value: Any) -> Any:
+        if isinstance(value, str):
+            return self.__class__.from_str(value)
+        return value
+
     @field_validator("prefix", mode="after")
     @classmethod
     def valid_prefix(cls, v: str) -> str:
@@ -53,7 +60,6 @@ class ID(BaseModel):
         return hash((self.prefix, self.numeric))
 
 
-ValidID = Annotated[ID, BeforeValidator(ID.from_str)]
 # IDS_ANNOTATED: set[Annotated] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
 
 
@@ -73,14 +79,14 @@ A lock to manage concurrent access to _CURRENT_IDS and _RELEASED_IDS.
 """
 
 
-class AbstractObject(BaseModel):
+class Object(BaseModel):
     """
     Base class for all objects in the campaign planning system.
     """
 
-    obj_id: Optional[ValidID] = None
+    obj_id: Optional[ID] = None
 
-    _default_prefix: ClassVar[str] = "MISC"
+    _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
     # Bootstrap ID if not provided
     def __init__(self, obj_id: Optional[ID] = None, **data: Any) -> None:
@@ -101,7 +107,7 @@ class AbstractObject(BaseModel):
         return f"{self.__class__.__name__}({self.obj_id})"
 
 
-class Rule(AbstractObject):
+class Rule(Object):
     """
     A class to represent a single rule in a tabletop RPG campaign.
     """
@@ -121,7 +127,7 @@ class Rule(AbstractObject):
     """
 
 
-class Objective(AbstractObject):
+class Objective(Object):
     """
     A class to represent a single objective in a campaign plan.
     """
@@ -143,7 +149,7 @@ class Objective(AbstractObject):
     """
 
 
-class Point(AbstractObject):
+class Point(Object):
     _default_prefix: ClassVar[str] = "P"
     name: str = ""
     """
@@ -159,7 +165,7 @@ class Point(AbstractObject):
     """
 
 
-class Segment(AbstractObject):
+class Segment(Object):
     _default_prefix: ClassVar[str] = "S"
     name: str = ""
     """
@@ -180,7 +186,7 @@ class Segment(AbstractObject):
     """
 
 
-class Arc(AbstractObject):
+class Arc(Object):
     _default_prefix: ClassVar[str] = "A"
     name: str = ""
     """
@@ -196,7 +202,7 @@ class Arc(AbstractObject):
     """
 
 
-class Item(AbstractObject):
+class Item(Object):
     _default_prefix: ClassVar[str] = "I"
     name: str = ""
     """
@@ -216,7 +222,7 @@ class Item(AbstractObject):
     """
 
 
-class Character(AbstractObject):
+class Character(Object):
     _default_prefix: ClassVar[str] = "C"
     name: str = ""
     """
@@ -248,7 +254,7 @@ class Character(AbstractObject):
     """
 
 
-class Location(AbstractObject):
+class Location(Object):
     _default_prefix: ClassVar[str] = "L"
     name: str = ""
     """
@@ -271,7 +277,7 @@ class Location(AbstractObject):
     """
 
 
-class CampaignPlan(AbstractObject):
+class CampaignPlan(Object):
     """
     A class to represent a campaign plan, loaded from a JSON file.
     """
