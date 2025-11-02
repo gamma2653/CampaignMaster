@@ -29,14 +29,14 @@ const generateQueries = <IDType, RetType>(endpoint: string, singular_endpoint?: 
 // I <3 functional programming
 
 const [useRule, useRuleByID] = generateQueries<RuleID, Rule>('rules', 'rule')
-const [useObjective, useObjectiveByID] = generateQueries<ObjectiveID, Objective>('objective', 'objective')
-const [usePoint, usePointByID] = generateQueries<PointID, Point>('point', 'point')
-const [useSegment, useSegmentByID] = generateQueries<SegmentID, Segment>('segment', 'segment')
-const [useArc, useArcByID] = generateQueries<ArcID, Arc>('arc', 'arc')
-const [useItem, useItemByID] = generateQueries<ItemID, Item>('item', 'item')
-const [useCharacter, useCharacterByID] = generateQueries<CharacterID, Character>('character', 'character')
-const [useLocation, useLocationByID] = generateQueries<LocationID, Location>('location', 'location')
-const [useCampaignPlan, useCampaignPlanByID] = generateQueries<CampaignID, CampaignPlan>('plan', 'plan')
+const [useObjective, useObjectiveByID] = generateQueries<ObjectiveID, Objective>('objectives', 'objective')
+const [usePoint, usePointByID] = generateQueries<PointID, Point>('points', 'point')
+const [useSegment, useSegmentByID] = generateQueries<SegmentID, Segment>('segments', 'segment')
+const [useArc, useArcByID] = generateQueries<ArcID, Arc>('arcs', 'arc')
+const [useItem, useItemByID] = generateQueries<ItemID, Item>('items', 'item')
+const [useCharacter, useCharacterByID] = generateQueries<CharacterID, Character>('characters', 'character')
+const [useLocation, useLocationByID] = generateQueries<LocationID, Location>('locations', 'location')
+const [useCampaignPlan, useCampaignPlanByID] = generateQueries<CampaignID, CampaignPlan>('plans', 'plan')
 
 
 export { useRuleByID, useRule, useObjective, useObjectiveByID, usePoint, usePointByID, useSegment, useSegmentByID, useArc, useArcByID, useItem, useItemByID, useCharacter, useCharacterByID, useLocation, useLocationByID, useCampaignPlanByID, useCampaignPlan }
