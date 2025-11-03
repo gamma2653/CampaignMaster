@@ -4,43 +4,58 @@ import { z } from 'zod'
 
 // Should match models in campaign_master/content/planning.py, etc.
 
-const DEFAULT_PREFIX = 'MISC'
-
-export const AnyIDSchema = z.object({
+// HACK: Using a constant object to define prefixes for ID types, while also defining a TypeScript interface for type safety
+//  Necessary for endpoint generation in `query.tsx`
+// NOTE: Must be a bijection (one-to-one mapping) between names and prefix literals
+export const PREFIXES = {
+    MISC: 'MISC',
+    RULE: 'R',
+    OBJECTIVE: 'O',
+    POINT: 'P',
+    SEGMENT: 'S',
+    ARC: 'A',
+    ITEM: 'I',
+    CHARACTER: 'C',
+    LOCATION: 'L',
+    CAMPAIGN: 'CampPlan',
+} as const
+// Zod prototype schemas
+const AnyIDSchema = z.object({
     numeric: z.number().int().nonnegative().catch(0).default(0),
-    prefix: z.string().min(1).catch(DEFAULT_PREFIX).default(DEFAULT_PREFIX),
+    prefix: z.string().min(1).catch(PREFIXES.MISC).default(PREFIXES.MISC),
 })
-export const RuleIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('R'),
+
+const RuleIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.RULE),
 })
-export const ObjectiveIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('O'),
+const ObjectiveIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.OBJECTIVE),
 })
-export const PointIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('P'),
+const PointIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.POINT),
 })
-export const SegmentIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('S'),
+const SegmentIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.SEGMENT),
 })
-export const ArcIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('A'),
+const ArcIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.ARC),
 })
-export const ItemIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('I'),
+const ItemIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.ITEM),
 })
-export const CharacterIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('C'),
+const CharacterIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.CHARACTER),
 })
-export const LocationIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('L'),
+const LocationIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.LOCATION),
 })
-export const CampaignIDSchema = AnyIDSchema.extend({
-    prefix: z.literal('CampPlan'),
+const CampaignIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.CAMPAIGN),
 })
 
 
 export const ObjectSchema = z.object({
-    obj_id: AnyIDSchema
+    obj_id: AnyIDSchema,
 })
 
 export const RuleSchema = ObjectSchema.extend({
@@ -61,7 +76,7 @@ export const PointSchema = ObjectSchema.extend({
     obj_id: PointIDSchema,
     name: z.string().min(1).catch('Unnamed Point').default('Unnamed Point'),
     description: z.string().min(1).catch('No description').default('No description'),
-    objective: z.optional(AnyIDSchema),
+    objective: z.optional(ObjectiveIDSchema),
 })
 
 export const SegmentSchema = ObjectSchema.extend({
@@ -94,15 +109,14 @@ export const CharacterSchema = ObjectSchema.extend({
     backstory: z.string().min(1).catch('No backstory').default('No backstory'),
     attributes: z.map(z.string(), z.number()),
     skills: z.map(z.string(), z.number()),
-    storylines: z.array(AnyIDSchema).default([]),
-    inventory: z.array(AnyIDSchema).default([]),
+    inventory: z.array(ItemIDSchema).default([]),
 })
 
 export const LocationSchema = ObjectSchema.extend({
     obj_id: LocationIDSchema,
     name: z.string().min(1).catch('Unnamed Location').default('Unnamed Location'),
     description: z.string().min(1).catch('No description').default('No description'),
-    neighboring_locations: z.array(AnyIDSchema).default([]),
+    neighboring_locations: z.array(LocationIDSchema).default([]),
     coords: z.optional(
         z.union([
             z.tuple([z.number(), z.number()]),
@@ -113,16 +127,16 @@ export const LocationSchema = ObjectSchema.extend({
 
 export const CampaignSchema = ObjectSchema.extend({
     obj_id: CampaignIDSchema,
-    title: z.string().min(1),
-    version: z.string().min(1),
-    setting: z.string().min(1),
-    summary: z.string().min(1),
-    storypoints: z.array(ArcSchema),
-    characters: z.array(CharacterSchema),
-    locations: z.array(LocationSchema),
-    items: z.array(ItemSchema),
-    rules: z.array(RuleSchema),
-    objectives: z.array(ObjectiveSchema),
+    title: z.string().min(1).catch('Unnamed Campaign').default('Unnamed Campaign'),
+    version: z.string().min(1).catch('0.0.0').default('0.0.0'),
+    setting: z.string().min(1).catch('Generic').default('Generic'),
+    summary: z.string().min(1).catch('No summary').default('No summary'),
+    storypoints: z.array(ArcSchema).catch([]).default([]),
+    characters: z.array(CharacterSchema).catch([]).default([]),
+    locations: z.array(LocationSchema).catch([]).default([]),
+    items: z.array(ItemSchema).catch([]).default([]),
+    rules: z.array(RuleSchema).catch([]).default([]),
+    objectives: z.array(ObjectiveSchema).catch([]).default([]),
 })
 
 // Higher order type (ID)
@@ -152,6 +166,25 @@ export type AnyObject = Object | Rule | Objective | Point | Segment | Arc | Item
 // NOTE: No equivalent for the above Higher order type (ID)
 //  in Python because of the way Pydantic models are structured there.
 //  Maybe there is something funky I could do with Annotated types, but not important right now.
+
+// Example Point object
+// const examplePoint: Point = PointSchema.parse({
+//     obj_id: { numeric: 1 },
+//     name: 'Example Point',
+//     description: 'This is an example point in the campaign.',
+//     objective: undefined,
+// })
+
+// Heck, a campaign plan can be initialized from scratch with just this:
+// const exampleCampaignPlan: CampaignPlan = CampaignSchema.parse({
+//     obj_id: { numeric: 1 },
+// })
+
+
+// Util function
+export const getUrlSegment = (idObj: AnyID) => {
+    return `${idObj.prefix.toLowerCase()}/${idObj.numeric}`
+}
 
 export default {
     AnyIDSchema,

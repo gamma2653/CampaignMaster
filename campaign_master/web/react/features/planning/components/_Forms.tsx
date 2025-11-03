@@ -1,7 +1,7 @@
 import type { AnyFieldApi } from '@tanstack/react-form'
 import { useForm } from '@tanstack/react-form'
 
-import type { CampaignPlan } from '../schemas'
+import type { CampaignPlan } from '../../../schemas'
 
 
 function FieldInfo({ field }: { field: AnyFieldApi }) {
