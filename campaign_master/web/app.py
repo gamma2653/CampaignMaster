@@ -41,7 +41,7 @@ def build():
 
     subprocess.run(['npm', 'install'], check=True, shell=True)
     subprocess.run(['npm', 'run', 'build'], check=True, shell=True)
-    subprocess.run(['npm', 'run', 'css'], check=True, shell=True)
+    # subprocess.run(['npm', 'run', 'css'], check=True, shell=True)
     print("Web app built successfully.")
 
 

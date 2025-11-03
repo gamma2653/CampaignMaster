@@ -9,8 +9,10 @@ body {
     color: rgb(255, 255, 255);
 }
 
-body textarea {
+body textarea, input {
     color: rgb(255, 255, 255);
     border: 1px solid rgb(85, 85, 85);
 }
+
+
 
