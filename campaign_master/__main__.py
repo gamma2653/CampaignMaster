@@ -1,6 +1,5 @@
 import sys
 import argparse
-import pathlib
 
 import uvicorn
 from PySide6 import QtCore, QtWidgets

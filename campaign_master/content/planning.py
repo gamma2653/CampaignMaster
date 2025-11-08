@@ -34,7 +34,7 @@ class ID(BaseModel):
         return int(f"{self.numeric:0{max_digits}d}")
 
     @classmethod
-    def from_str(cls, id_str: Any) -> Any:
+    def from_str(cls, id_str: str) -> "ID":
         if not isinstance(id_str, str):
             return id_str
         match = id_pattern.match(id_str)
@@ -45,10 +45,11 @@ class ID(BaseModel):
         return cls(prefix=prefix, numeric=numeric)
 
     @model_validator(mode="before")
-    def validate_id(self, value: Any) -> Any:
-        if isinstance(value, str):
-            return self.__class__.from_str(value)
-        return value
+    @classmethod
+    def validate_id(cls, values: Any) -> Any:
+        if isinstance(values, str):
+            return cls.from_str(values)
+        return values
 
     @field_validator("prefix", mode="after")
     @classmethod
@@ -88,20 +89,16 @@ class Object(BaseModel):
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
-    # Bootstrap ID if not provided
-    def __init__(self, obj_id: Optional[ID] = None, **data: Any) -> None:
-        if obj_id is None:
-            obj_id = generate_id(prefix=data.get("prefix", self._default_prefix))
-        super().__init__(obj_id=obj_id, **data)
-
-    @field_validator("obj_id", mode="before")
+    @model_validator(mode="before")
     @classmethod
-    def try_coerce_id(cls, v: Any) -> ID:
-        if not v:
-            return generate_id(prefix=cls._default_prefix)
-        if isinstance(v, str):
-            return ID.from_str(v)
-        return v
+    def try_coerce_id(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("obj_id"):
+                id_ = generate_id(prefix=cls._default_prefix)
+                return {**data, "obj_id": id_.model_dump()}
+            if isinstance(data.get("obj_id"), str):
+                return {**data, "obj_id": ID.from_str(data["obj_id"]).model_dump()}
+        return data
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.obj_id})"

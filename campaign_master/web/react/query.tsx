@@ -35,8 +35,10 @@ const generateShallowQueries = <IDType extends AnyID, RetType extends Object>(pr
 const generateNestedQuery = <IDType extends AnyID, RetType extends Object, ParentIDType extends AnyID = IDType>(baseEndpoint: string) => {
     return (parentIDs: ParentIDType[], id: IDType) => {
         const prefixes = [...parentIDs.map(parentID => parentID.prefix), id.prefix]
+        const numerics = [...parentIDs.map(parentID => parentID.numeric), id.numeric]
         return useQuery({
-            queryKey: [baseEndpoint, ...parentIDs, id],
+            // NOTE: Look into later whether numerics should be first, for cache efficiency
+            queryKey: [baseEndpoint, ...prefixes, ...numerics],
             queryFn: async (): Promise<RetType> => {
                 const response = await fetch(`${BASE_API_URL}${[...parentIDs, id].map(id => getUrlSegment(id)).join('/')}`)
                 return await response.json()
@@ -80,4 +82,4 @@ const usePointByCampaignAndID = generateNestedQuery<CampaignID, Point, PointID>(
 //     })
 // }
 
-export { useRule, useRuleByID, useObjective, useObjectiveByID, usePoint, usePointByID, useSegment, useSegmentByID, useArc, useArcByID, useItem, useItemByID, useCharacter, useCharacterByID, useLocation, useLocationByID, useCampaignPlan, useCampaignPlanByID }
+export { useRule, useRuleByID, useObjective, useObjectiveByID, usePoint, usePointByID, useSegment, useSegmentByID, useArc, useArcByID, useItem, useItemByID, useCharacter, useCharacterByID, useLocation, useLocationByID, useCampaignPlan, useCampaignPlanByID, usePointByCampaignAndID }
