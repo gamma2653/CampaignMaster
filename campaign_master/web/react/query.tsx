@@ -40,7 +40,7 @@ const generateNestedQuery = <IDType extends AnyID, RetType extends Object, Paren
             // NOTE: Look into later whether numerics should be first, for cache efficiency
             queryKey: [baseEndpoint, ...prefixes, ...numerics],
             queryFn: async (): Promise<RetType> => {
-                const response = await fetch(`${BASE_API_URL}${[...parentIDs, id].map(id => getUrlSegment(id)).join('/')}`)
+                const response = await fetch(`${BASE_API_URL}/${baseEndpoint}/${[...parentIDs, id].map(id => getUrlSegment(id)).join('/')}`)
                 return await response.json()
             },
         })
@@ -59,6 +59,7 @@ const [useCharacter, useCharacterByID] = generateShallowQueries<CharacterID, Cha
 const [useLocation, useLocationByID] = generateShallowQueries<LocationID, Location>([PREFIXES.LOCATION])
 const [useCampaignPlan, useCampaignPlanByID] = generateShallowQueries<CampaignID, CampaignPlan>([PREFIXES.CAMPAIGN])
 const usePointByCampaignAndID = generateNestedQuery<CampaignID, Point, PointID>('campaign_points')  // endpoint: /api/campaign/campaign_points/campplan/{campaign_numeric}/p/{point_numeric}
+// const useObjectiveByCampaignAndID = generateNestedQuery<CampaignID, Objective, ObjectiveID>('campaign_objectives') // TODO: Implement when needed
 // TODO: Find better endpoint names for nested queries
 
 // Example of unrolled version for clarity:

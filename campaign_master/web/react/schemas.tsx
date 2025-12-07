@@ -19,6 +19,7 @@ export const PREFIXES = {
     LOCATION: 'L',
     CAMPAIGN: 'CampPlan',
 } as const
+export type PREFIXES_T = typeof PREFIXES[keyof typeof PREFIXES]
 // Zod prototype schemas
 const AnyIDSchema = z.object({
     numeric: z.number().int().nonnegative().catch(0).default(0),
