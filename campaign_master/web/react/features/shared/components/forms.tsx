@@ -1,7 +1,7 @@
 import { createFormHook, formOptions } from '@tanstack/react-form'
-import type { CampaignPlan } from '../../../schemas'
+import type { Arc, CampaignPlan, Point, Rule, Segment } from '../../../schemas'
 import { PREFIXES } from '../../../schemas'
-import { TextField, SubscribeButton, IDField } from './fields'
+import { TextField, SubscribeButton, IDField, PointField, CampaignPlanField, arcOpts, campaignOpts } from './fields'
 import { fieldContext, formContext } from './ctx'
 
 
@@ -18,6 +18,8 @@ const { useAppForm, withForm } = createFormHook({
         * @returns A JSX element representing the ID field.
         */
         IDField,
+        PointField,
+        CampaignPlanField,
     },
     formComponents: {
         /**
@@ -31,70 +33,66 @@ const { useAppForm, withForm } = createFormHook({
     formContext,
 })
 
-
-const campaignOpts = formOptions({
-    defaultValues: {
-        obj_id: {
-            prefix: 'CampPlan',
-            numeric: 0,
-        },
-        title: '',
-        version: '',
-        setting: '',
-        summary: '',
-        storypoints: [],
-        characters: [],
-        locations: [],
-        items: [],
-        rules: [],
-        objectives: [],
-    }
-})
+export type useAppForm_RT = ReturnType<typeof useAppForm>
 
 
 
 
-// export const CampaignPlanForm = withForm({
-//     ...campaignOpts,
-//     // props: {
 
-//     // }
-//     render: ({ form }) => {
-//         return (
-//             <div>
-//                 <form.AppField
-//                     name="title"
-//                     children={(field) => <field.TextField label="Campaign Title" />}
-//                 />
-//                 <form.AppForm>
-//                     <form.SubscribeButton label="Subscribe" />
-//                 </form.AppForm>
-//             </div>
-//         )
-//     }
-// })
-
+export const ArcForm = () => {
+    const form = useAppForm({
+        ...arcOpts,
+    })
+    return (
+        <div>
+            <h1>Arc</h1>
+            <form.AppField
+                name="obj_id"
+                children={(field) => <field.IDField label="Arc ID" prefix={PREFIXES.ARC} />}
+            />
+            <form.AppField
+                name="name"
+                children={(field) => <field.TextField label="Arc Name" />}
+            />
+            <form.AppField
+                name="description"
+                children={(field) => <field.TextField label="Arc Description" />}
+            />
+            <form.AppField
+                name="segments"
+                mode="array"
+                children={(field) => (
+                    <div>
+                        {field.state.value.map((_, i) => (
+                            <div key={i}>
+                                <h2>Segment {i + 1}</h2>
+                                {/* <SegmentFormFields /> */}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            />
+        </div>
+    )
+}
 
 export const CampaignPlanForm = () => {
-  const form = useAppForm({
-    ...campaignOpts,
-  })
+    const form = useAppForm({
+        ...campaignOpts,
+    })
 
-  return (
-    <div>
-        <h1>Campaign Plan</h1>
-        <form.AppField
-            name="obj_id"
-            children={(field) => <field.IDField label="Campaign ID" prefix={PREFIXES.CAMPAIGN} />}
-        />
-        <form.AppField
-            name="title"
-            children={(field) => <field.TextField label="Campaign Title" />}
-        />
-        <form.AppForm>
-            <form.SubscribeButton label="Submit" />
-        </form.AppForm>
-    </div>
-  )
+    return (
+        <div>
+            <h1>Campaign Plan</h1>
+            {/* Add CampaignPlanField */}
+            <form.AppField
+                name="campaign_plan"
+                children={(field) => <field.CampaignPlanField />}
+            />
+            <form.AppForm>
+                <form.SubscribeButton label="Submit" />
+            </form.AppForm>
+        </div>
+    )
 }
 

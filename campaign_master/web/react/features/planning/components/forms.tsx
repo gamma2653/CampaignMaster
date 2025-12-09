@@ -1,4 +1,4 @@
-import { CampaignPlanForm } from '../../shared/components/forms'
+import { CampaignPlanForm } from '../../shared/components/new_forms'
 
 export { CampaignPlanForm }
 // import type { AnyFieldApi } from '@tanstack/react-form'

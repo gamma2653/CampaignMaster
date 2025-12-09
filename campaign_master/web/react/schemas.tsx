@@ -17,9 +17,22 @@ export const PREFIXES = {
     ITEM: 'I',
     CHARACTER: 'C',
     LOCATION: 'L',
-    CAMPAIGN: 'CampPlan',
+    CAMPAIGN_PLAN: 'CampPlan',
 } as const
 export type PREFIXES_T = typeof PREFIXES[keyof typeof PREFIXES]
+
+export const PREFIX_TO_NAME = {
+    [PREFIXES.MISC]: "Miscellaneous",
+    [PREFIXES.RULE]: "Rule",
+    [PREFIXES.OBJECTIVE]: "Objective",
+    [PREFIXES.POINT]: "Point",
+    [PREFIXES.SEGMENT]: "Segment",
+    [PREFIXES.ARC]: "Arc",
+    [PREFIXES.ITEM]: "Item",
+    [PREFIXES.CHARACTER]: "Character",
+    [PREFIXES.LOCATION]: "Location",
+    [PREFIXES.CAMPAIGN_PLAN]: "Campaign Plan",
+}
 // Zod prototype schemas
 const AnyIDSchema = z.object({
     numeric: z.number().int().nonnegative().catch(0).default(0),
@@ -51,12 +64,34 @@ const LocationIDSchema = AnyIDSchema.extend({
     prefix: z.literal(PREFIXES.LOCATION),
 })
 const CampaignIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.CAMPAIGN),
+    prefix: z.literal(PREFIXES.CAMPAIGN_PLAN),
 })
 
 
 export const ObjectSchema = z.object({
     obj_id: AnyIDSchema,
+})
+
+export const PointSchema = ObjectSchema.extend({
+    obj_id: PointIDSchema,
+    name: z.string().min(1).catch('Unnamed Point').default('Unnamed Point'),
+    description: z.string().min(1).catch('No description').default('No description'),
+    objective: z.nullable(ObjectiveIDSchema),
+})
+
+export const SegmentSchema = ObjectSchema.extend({
+    obj_id: SegmentIDSchema,
+    name: z.string().min(1).catch('Unnamed Segment').default('Unnamed Segment'),
+    description: z.string().min(1).catch('No description').default('No description'),
+    start: z.nullable(PointSchema),
+    end: z.nullable(PointSchema),
+})
+
+export const ArcSchema = ObjectSchema.extend({
+    obj_id: ArcIDSchema,
+    name: z.string().min(1).catch('Unnamed Arc').default('Unnamed Arc'),
+    description: z.string().min(1).catch('No description').default('No description'),
+    segments: z.array(SegmentSchema),
 })
 
 export const RuleSchema = ObjectSchema.extend({
@@ -71,28 +106,6 @@ export const ObjectiveSchema = ObjectSchema.extend({
     description: z.string().default(''),
     components: z.array(z.string()).default([]),
     prerequisites: z.array(z.string()).default([]),
-})
-
-export const PointSchema = ObjectSchema.extend({
-    obj_id: PointIDSchema,
-    name: z.string().min(1).catch('Unnamed Point').default('Unnamed Point'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    objective: z.optional(ObjectiveIDSchema),
-})
-
-export const SegmentSchema = ObjectSchema.extend({
-    obj_id: SegmentIDSchema,
-    name: z.string().min(1).catch('Unnamed Segment').default('Unnamed Segment'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    start: PointSchema,
-    end: PointSchema,
-})
-
-export const ArcSchema = ObjectSchema.extend({
-    obj_id: ArcIDSchema,
-    name: z.string().min(1).catch('Unnamed Arc').default('Unnamed Arc'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    segments: z.array(SegmentSchema),
 })
 
 export const ItemSchema = ObjectSchema.extend({
@@ -163,23 +176,6 @@ export type Character = z.infer<typeof CharacterSchema>
 export type Location = z.infer<typeof LocationSchema>
 export type CampaignPlan = z.infer<typeof CampaignSchema>
 export type AnyObject = Object | Rule | Objective | Point | Segment | Arc | Item | Character | Location | CampaignPlan
-
-// NOTE: No equivalent for the above Higher order type (ID)
-//  in Python because of the way Pydantic models are structured there.
-//  Maybe there is something funky I could do with Annotated types, but not important right now.
-
-// Example Point object
-// const examplePoint: Point = PointSchema.parse({
-//     obj_id: { numeric: 1 },
-//     name: 'Example Point',
-//     description: 'This is an example point in the campaign.',
-//     objective: undefined,
-// })
-
-// Heck, a campaign plan can be initialized from scratch with just this:
-// const exampleCampaignPlan: CampaignPlan = CampaignSchema.parse({
-//     obj_id: { numeric: 1 },
-// })
 
 
 // Util function

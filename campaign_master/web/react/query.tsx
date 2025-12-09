@@ -57,7 +57,7 @@ const [useArc, useArcByID] = generateShallowQueries<ArcID, Arc>([PREFIXES.ARC])
 const [useItem, useItemByID] = generateShallowQueries<ItemID, Item>([PREFIXES.ITEM])
 const [useCharacter, useCharacterByID] = generateShallowQueries<CharacterID, Character>([PREFIXES.CHARACTER])
 const [useLocation, useLocationByID] = generateShallowQueries<LocationID, Location>([PREFIXES.LOCATION])
-const [useCampaignPlan, useCampaignPlanByID] = generateShallowQueries<CampaignID, CampaignPlan>([PREFIXES.CAMPAIGN])
+const [useCampaignPlan, useCampaignPlanByID] = generateShallowQueries<CampaignID, CampaignPlan>([PREFIXES.CAMPAIGN_PLAN])
 const usePointByCampaignAndID = generateNestedQuery<CampaignID, Point, PointID>('campaign_points')  // endpoint: /api/campaign/campaign_points/campplan/{campaign_numeric}/p/{point_numeric}
 // const useObjectiveByCampaignAndID = generateNestedQuery<CampaignID, Objective, ObjectiveID>('campaign_objectives') // TODO: Implement when needed
 // TODO: Find better endpoint names for nested queries
