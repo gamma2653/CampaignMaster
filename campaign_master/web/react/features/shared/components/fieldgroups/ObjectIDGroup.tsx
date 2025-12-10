@@ -1,5 +1,5 @@
-import { withFieldGroup } from "./ctx";
-import { AnyID, PREFIXES, PREFIXES_T } from "../../../schemas";
+import { withFieldGroup } from "../ctx";
+import { AnyID, PREFIXES, PREFIXES_T } from "../../../../schemas";
 
 const defaultValues = {
     prefix: PREFIXES.MISC as PREFIXES_T,

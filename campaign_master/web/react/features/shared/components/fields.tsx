@@ -1,4 +1,4 @@
-import { useFieldContext, useFormContext } from '../../shared/components/ctx'
+import { useFieldContext, useFormContext } from './ctx'
 
 export function TextField({ label }: { label: string }) {
   // The `Field` infers that it should have a `value` type of `string`
@@ -9,6 +9,21 @@ export function TextField({ label }: { label: string }) {
       <input
         value={field.state.value}
         onChange={(e) => field.handleChange(e.target.value)}
+      />
+    </label>
+  )
+}
+
+export function NumberField({ label }: { label: string }) {
+  // The `Field` infers that it should have a `value` type of `number`
+  const field = useFieldContext<number>()
+  return (
+    <label>
+      <span>{label}</span>
+      <input
+        type="number"
+        value={field.state.value}
+        onChange={(e) => field.handleChange(Number(e.target.value))}
       />
     </label>
   )

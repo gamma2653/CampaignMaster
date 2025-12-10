@@ -13,6 +13,9 @@ function RootComponent() {
       <nav>
         <ul>
           <li>
+            <Link to="/campaign">Home</Link>
+          </li>
+          <li>
             <Link to="/campaign/plan">Plan</Link>
           </li>
           <li>

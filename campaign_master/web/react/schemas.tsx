@@ -113,7 +113,7 @@ export const ItemSchema = ObjectSchema.extend({
     name: z.string().min(1).catch('Unnamed Item').default('Unnamed Item'),
     type_: z.string().min(1).catch('Misc').default('Misc'),
     description: z.string().min(1).catch('No description').default('No description'),
-    properties: z.map(z.string(), z.string()),
+    properties: z.record(z.string(), z.string()),
 })
 
 export const CharacterSchema = ObjectSchema.extend({
@@ -121,8 +121,8 @@ export const CharacterSchema = ObjectSchema.extend({
     name: z.string().min(1).catch('Unnamed Character').default('Unnamed Character'),
     role: z.string().min(1).catch('No role').default('No role'),
     backstory: z.string().min(1).catch('No backstory').default('No backstory'),
-    attributes: z.map(z.string(), z.number()),
-    skills: z.map(z.string(), z.number()),
+    attributes: z.record(z.string(), z.number()),
+    skills: z.record(z.string(), z.number()),
     inventory: z.array(ItemIDSchema).default([]),
 })
 
