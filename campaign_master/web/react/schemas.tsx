@@ -83,8 +83,8 @@ export const SegmentSchema = ObjectSchema.extend({
     obj_id: SegmentIDSchema,
     name: z.string().min(1).catch('Unnamed Segment').default('Unnamed Segment'),
     description: z.string().min(1).catch('No description').default('No description'),
-    start: z.nullable(PointSchema),
-    end: z.nullable(PointSchema),
+    start: PointSchema,
+    end: PointSchema,
 })
 
 export const ArcSchema = ObjectSchema.extend({

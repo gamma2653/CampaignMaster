@@ -1,3 +1,3 @@
-import { CampaignPlanForm } from '../../shared/components/forms'
+import { CampaignPlanForm } from "./CampaignPlanForm"
 
 export { CampaignPlanForm }
