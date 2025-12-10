@@ -4,7 +4,7 @@ from typing import Optional, cast, Any, NamedTuple
 
 from ..content.planning import (
     ID,
-    AbstractObject,
+    Object,
     CampaignPlan,
     release_id,
 )
@@ -14,7 +14,6 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 
 FieldPair = NamedTuple("FieldPair", [("field_name", str), ("field", QtWidgets.QWidget)])
-
 class ObjectListWidget(QtWidgets.QGroupBox):
     """
     A list view to display and manage a list of Pydantic model instances.
@@ -23,7 +22,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
     """
 
     def __init__(
-        self, model: type[AbstractObject], parent: "Optional[ObjectForm]" = None
+        self, model: type[Object], parent: "Optional[ObjectForm]" = None
     ):
         # TODO: localize and pluralize the title
         super().__init__(f"{model.__name__}s", parent)
@@ -72,7 +71,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
                 f"Warning: Could not retrieve obj_id from new form of model {form.model_name}."
             )
 
-    def add_item(self, item: AbstractObject):
+    def add_item(self, item: Object):
         # Add the item to the list view
         if str(item.obj_id) not in self.forms:
             print(
@@ -123,7 +122,7 @@ class ObjectCreateWidget(QtWidgets.QWidget):
     A widget to create a new Pydantic model instance.
     """
 
-    def __init__(self, model: type[AbstractObject], parent=None):
+    def __init__(self, model: type[Object], parent=None):
         super().__init__(parent)
         self.model = model
         self.form = ObjectForm(self.model, self.parent())
@@ -135,7 +134,7 @@ class ObjectCreateWidget(QtWidgets.QWidget):
         layout.addWidget(self.button)
         self.setLayout(layout)
     
-    def update_label(self, obj: AbstractObject) -> None:
+    def update_label(self, obj: Object) -> None:
         self.label.setText(str(obj))
         self.button.setText(f"Edit {self.model.__name__}")
 
@@ -158,7 +157,7 @@ class ObjectForm(QtWidgets.QWidget):
     save_event = QtCore.Signal()
     prompt_for_save = True
 
-    def __init__(self, model: type[AbstractObject], parent=None):
+    def __init__(self, model: type[Object], parent=None):
         super().__init__(parent)
         self.is_subform = isinstance(parent, ObjectForm)
         self.model = model
@@ -185,14 +184,14 @@ class ObjectForm(QtWidgets.QWidget):
         return field.text()
     
     @staticmethod
-    def get_object_content(field: ObjectCreateWidget) -> AbstractObject:
+    def get_object_content(field: ObjectCreateWidget) -> Object:
         """
         Retrieve the current content of a subform as a Pydantic model instance.
         """
         return field.form.export_content()
 
     @staticmethod
-    def get_list_content(field: ObjectListWidget) -> list[AbstractObject]:
+    def get_list_content(field: ObjectListWidget) -> list[Object]:
         """
         Retrieve the current content of a list widget as a list of Pydantic model instances.
         """
@@ -223,13 +222,13 @@ class ObjectForm(QtWidgets.QWidget):
         # Compile w/ existing content
         return self._raw_content | raw_content
 
-    def export_content(self) -> AbstractObject:
+    def export_content(self) -> Object:
         # Validate and return the content as a Pydantic model instance
         return self.model.model_validate(self.raw_content)
         # TODO: On validation error, highlight the offending fields
 
     @raw_content.setter
-    def raw_content(self, content: AbstractObject):
+    def raw_content(self, content: Object):
         # Validate and set the content of the form
         content = self.model.model_validate(content)
         # Reflect the content in the form fields
@@ -318,7 +317,7 @@ class ObjectForm(QtWidgets.QWidget):
             iter(field_type)
         except TypeError:
             # Not iterable
-            if issubclass(field_type, AbstractObject):
+            if issubclass(field_type, Object):
                 # Subform
                 create_widget = ObjectCreateWidget(field_type, self)
                 # Mark dirty on save, and update label
@@ -344,7 +343,7 @@ class ObjectForm(QtWidgets.QWidget):
     @classmethod
     def from_existing(
         cls,
-        obj_instance: AbstractObject,
+        obj_instance: Object,
         parent: Optional[QtWidgets.QWidget] = None,
     ) -> "ObjectForm":
         """
@@ -376,18 +375,18 @@ class ObjectForm(QtWidgets.QWidget):
                 field = cast(ObjectCreateWidget | ObjectListWidget, field)
                 field.hide_form()
         # Release ID
-        if not self.exists:
+        if not self.exists and self.obj_id is not None:
             release_id(self.obj_id)
         # Execute normal close event
         return super().closeEvent(event)
 
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
+    # def showEvent(self, event: QtGui.QShowEvent) -> None:
         # Show fields that were hidden when the form was closed
         # for field in self.fields.values():
         #     if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
         #         field = cast(ObjectCreateWidget | ObjectListWidget, field)
         #         field.show_form()
-        return super().showEvent(event)
+        # return super().showEvent(event)
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):

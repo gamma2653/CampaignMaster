@@ -3,25 +3,28 @@
 import re
 from typing import Optional, ClassVar, Annotated, Any
 from collections import Counter
-from pydantic import BaseModel, Field, model_validator, BeforeValidator
+from pydantic import BaseModel, Field, field_validator, BeforeValidator, model_validator
 
 from .locking import ReaderWriterSuite
 
 id_pattern = re.compile(r"^([a-zA-Z]+)-(\d+)$")
+
+DEFAULT_ID_PREFIX = "MISC"
 
 class ID(BaseModel):
     """
     Group 1: Prefix (e.g., "R", "O", etc.)
     Group 2: Numeric part (e.g., "1", "2", etc.)
     """
+
     numeric: int
-    prefix: str = "MISC"
+    prefix: str = DEFAULT_ID_PREFIX
 
     _max_numeric_digits: ClassVar[int] = 6
 
     def __str__(self) -> str:
         return f"{self.prefix}-{self.numeric:0{self._max_numeric_digits}d}"
-    
+
     def to_digits(self, max_digits: Optional[int] = None) -> int:
         """
         Get the numeric part of the ID, zero-padded to max_digits.
@@ -31,7 +34,7 @@ class ID(BaseModel):
         return int(f"{self.numeric:0{max_digits}d}")
 
     @classmethod
-    def from_str(cls, id_str: Any) -> Any:
+    def from_str(cls, id_str: str) -> "ID":
         if not isinstance(id_str, str):
             return id_str
         match = id_pattern.match(id_str)
@@ -41,17 +44,23 @@ class ID(BaseModel):
         numeric = int(numeric_str)
         return cls(prefix=prefix, numeric=numeric)
 
-    @model_validator(mode="after")
-    def valid_prefix(self) -> "ID":
-        if not self.prefix.isalpha():
-            raise ValueError(f"Invalid prefix: {self.prefix}. Must be letters only.")
-        return self
-    
+    @model_validator(mode="before")
+    @classmethod
+    def validate_id(cls, values: Any) -> Any:
+        if isinstance(values, str):
+            return cls.from_str(values)
+        return values
 
+    @field_validator("prefix", mode="after")
+    @classmethod
+    def valid_prefix(cls, v: str) -> str:
+        if not v.isalpha():
+            raise ValueError(f"Invalid prefix: {v}. Must be letters only.")
+        return v
     def __hash__(self) -> int:
         return hash((self.prefix, self.numeric))
 
-ValidID = Annotated[ID, BeforeValidator(ID.from_str)]
+
 # IDS_ANNOTATED: set[Annotated] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
 
 
@@ -70,29 +79,36 @@ _CURRENT_IDS_LOCK = ReaderWriterSuite()
 A lock to manage concurrent access to _CURRENT_IDS and _RELEASED_IDS.
 """
 
-class AbstractObject(BaseModel):
+
+class Object(BaseModel):
     """
     Base class for all objects in the campaign planning system.
     """
-    obj_id: ValidID
 
-    _default_prefix: ClassVar[str] = "MISC"
+    obj_id: Optional[ID] = None
 
-    
-    # FIXME: This borked constructor type definition. See Segment class for example.
-    # Bootstrap ID if not provided
-    def __init__(self, **data):
-        if "obj_id" not in data:
-            data["obj_id"] = generate_id(self._default_prefix)
-        super().__init__(**data)
-    
+    _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
+
+    @model_validator(mode="before")
+    @classmethod
+    def try_coerce_id(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if not data.get("obj_id"):
+                id_ = generate_id(prefix=cls._default_prefix)
+                return {**data, "obj_id": id_.model_dump()}
+            if isinstance(data.get("obj_id"), str):
+                return {**data, "obj_id": ID.from_str(data["obj_id"]).model_dump()}
+        return data
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.obj_id})"
 
-class Rule(AbstractObject):
+
+class Rule(Object):
     """
     A class to represent a single rule in a tabletop RPG campaign.
     """
+
     _default_prefix: ClassVar[str] = "R"
     description: str = ""
     """
@@ -107,10 +123,12 @@ class Rule(AbstractObject):
     A list of components that make up the rule. This may include keywords, phrases, or other elements that define the rule.
     """
 
-class Objective(AbstractObject):
+
+class Objective(Object):
     """
     A class to represent a single objective in a campaign plan.
     """
+
     _default_prefix: ClassVar[str] = "O"
     description: str = ""
     """
@@ -127,7 +145,8 @@ class Objective(AbstractObject):
     This may include other objectives, character levels, items, or other conditions.
     """
 
-class Point(AbstractObject):
+
+class Point(Object):
     _default_prefix: ClassVar[str] = "P"
     name: str = ""
     """
@@ -143,7 +162,7 @@ class Point(AbstractObject):
     """
 
 
-class Segment(AbstractObject):
+class Segment(Object):
     _default_prefix: ClassVar[str] = "S"
     name: str = ""
     """
@@ -153,17 +172,18 @@ class Segment(AbstractObject):
     """
     A textual description of the story segment.
     """
-    start: Point = Field(default_factory=Point)  # type: ignore[assignment]
+    # Poetically, the start and end are always defined. (non-optional)
+    start: Point = Field(default_factory=Point)
     """
     The starting point of the segment.
     """
-    end: Point = Field(default_factory=Point)  # type: ignore[assignment]
+    end: Point = Field(default_factory=Point)
     """
     The ending point of the segment.
     """
 
 
-class Arc(AbstractObject):
+class Arc(Object):
     _default_prefix: ClassVar[str] = "A"
     name: str = ""
     """
@@ -179,7 +199,7 @@ class Arc(AbstractObject):
     """
 
 
-class Item(AbstractObject):
+class Item(Object):
     _default_prefix: ClassVar[str] = "I"
     name: str = ""
     """
@@ -199,7 +219,7 @@ class Item(AbstractObject):
     """
 
 
-class Character(AbstractObject):
+class Character(Object):
     _default_prefix: ClassVar[str] = "C"
     name: str = ""
     """
@@ -231,7 +251,7 @@ class Character(AbstractObject):
     """
 
 
-class Location(AbstractObject):
+class Location(Object):
     _default_prefix: ClassVar[str] = "L"
     name: str = ""
     """
@@ -254,20 +274,22 @@ class Location(AbstractObject):
     """
 
 
-class CampaignPlan(AbstractObject):
+class CampaignPlan(Object):
     """
     A class to represent a campaign plan, loaded from a JSON file.
     """
+
     _default_prefix: ClassVar[str] = "CampPlan"
     title: str = ""
     version: str = ""
     setting: str = ""
     summary: str = ""
     storypoints: list[Arc] = []
-    npcs: list[Character] = []
+    characters: list[Character] = []
     locations: list[Location] = []
     items: list[Item] = []
     rules: list[Rule] = []
+    objectives: list[Objective] = []
 
 
 def get_next_id_numeric(prefix: str) -> int:
@@ -293,6 +315,7 @@ def generate_id(prefix: str) -> ID:
     """
     return ID(prefix=prefix, numeric=get_next_id_numeric(prefix))
 
+
 def release_id(id: ID):
     """
     Release an ID back to the factory for reuse.
@@ -301,6 +324,7 @@ def release_id(id: ID):
         if id.prefix not in _RELEASED_IDS:
             _RELEASED_IDS[id.prefix] = set()
         _RELEASED_IDS[id.prefix].add(id)
+
 
 def get_released_ids(prefix: str) -> set[ID]:
     """

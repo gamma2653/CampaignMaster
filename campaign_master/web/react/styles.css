@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+body {
+    background-color: rgb(26, 52, 26);
+    color: rgb(255, 255, 255);
+}
+
+body textarea, input {
+    color: rgb(255, 255, 255);
+    border: 1px solid rgb(85, 85, 85);
+}
+
+
+
