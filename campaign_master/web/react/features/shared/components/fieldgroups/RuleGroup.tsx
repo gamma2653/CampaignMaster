@@ -2,7 +2,7 @@ import { withFieldGroup } from "../ctx";
 import { Rule, PREFIXES } from "../../../../schemas";
 import { ObjectIDGroup } from "./ObjectIDGroup";
 
-const defaultValues = {
+export const defaultValues = {
     obj_id: {
         prefix: PREFIXES.RULE,
         numeric: 0,

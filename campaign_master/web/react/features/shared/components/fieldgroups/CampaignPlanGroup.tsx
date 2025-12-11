@@ -3,6 +3,10 @@ import { Arc, CampaignPlan, PREFIXES } from "../../../../schemas";
 import { ObjectIDGroup } from "./ObjectIDGroup";
 import { ArcGroup, defaultValues as arcDefaultValues } from "./ArcGroup";
 import { CharacterGroup, defaultValues as characterDefaultValues } from "./CharacterGroup";
+import { LocationGroup, defaultValues as locationDefaultValues } from "./LocationGroup";
+import { ItemGroup, defaultValues as itemDefaultValues } from "./ItemGroup";
+import { RuleGroup, defaultValues as ruleDefaultValues } from "./RuleGroup";
+import { ObjectiveGroup, defaultValues as objectiveDefaultValues } from "./ObjectiveGroup";
 
 const defaultValues = {
     obj_id: { prefix: PREFIXES.CAMPAIGN_PLAN, numeric: 0 },
@@ -84,6 +88,87 @@ export const CampaignPlanGroup = withFieldGroup({
                                 }}
                             >
                                 Add Character
+                            </button>
+                        </div>
+                    )}
+                </group.AppField>
+                <group.AppField name="locations" mode="array">
+                    {(field) => (
+                        <div>
+                            <h3>Locations</h3>
+                            {group.state.values.locations.map((_, index) => (
+                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                    <h4>Location {index + 1}</h4>
+                                    <LocationGroup
+                                        form={group}
+                                        fields={`locations[${index}]`}
+                                    />
+                                </div>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    field.pushValue(locationDefaultValues)
+                                }}
+                            >
+                                Add Location
+                            </button>
+                        </div>
+                    )}
+                </group.AppField>
+                <group.AppField name="items" mode="array">
+                    {(field) => (
+                        <div>
+                            <h3>Items</h3>
+                            {group.state.values.items.map((_, index) => (
+                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                    <h4>Item {index + 1}</h4>
+                                    <ItemGroup
+                                        form={group}
+                                        fields={`items[${index}]`}
+                                    />
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => field.pushValue(itemDefaultValues)}>
+                                Add Item
+                            </button>
+                        </div>
+                    )}
+                </group.AppField>
+                <group.AppField name="rules" mode="array">
+                    {(field) => (
+                        <div>
+                            <h3>Rules</h3>
+                            {group.state.values.rules.map((_, index) => (
+                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                    <h4>Rule {index + 1}</h4>
+                                    <RuleGroup
+                                        form={group}
+                                        fields={`rules[${index}]`}
+                                    />
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => field.pushValue(ruleDefaultValues)}>
+                                Add Rule
+                            </button>
+                        </div>
+                    )}
+                </group.AppField>
+                <group.AppField name="objectives" mode="array">
+                    {(field) => (
+                        <div>
+                            <h3>Objectives</h3>
+                            {group.state.values.objectives.map((_, index) => (
+                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                    <h4>Objective {index + 1}</h4>
+                                    <ObjectiveGroup
+                                        form={group}
+                                        fields={`objectives[${index}]`}
+                                    />
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => field.pushValue(objectiveDefaultValues)}>
+                                Add Objective
                             </button>
                         </div>
                     )}
