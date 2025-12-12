@@ -21,10 +21,9 @@ export const CharacterGroup = withFieldGroup({
     render: ({ group }) => {
         return (
             <div>
-                <ObjectIDGroup
-                    form={group}
-                    fields="obj_id"
-                />
+                <group.AppField name="obj_id">
+                    {(field) => <field.IDDisplayField />}
+                </group.AppField>
                 <group.AppField name="name">
                     {(field) => <field.TextField label="Character Name" />}
                 </group.AppField>

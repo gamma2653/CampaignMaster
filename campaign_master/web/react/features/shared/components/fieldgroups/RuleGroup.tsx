@@ -18,10 +18,9 @@ export const RuleGroup = withFieldGroup({
     render: ({ group }) => {
         return (
             <div>
-                <ObjectIDGroup
-                    form={group}
-                    fields="obj_id"
-                />
+                <group.AppField name="obj_id">
+                    {(field) => <field.IDDisplayField />}
+                </group.AppField>
                 <group.AppField name="description">
                     {(field) => <field.TextField label="Rule Description" />}
                 </group.AppField>

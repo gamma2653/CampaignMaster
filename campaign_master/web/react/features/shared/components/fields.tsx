@@ -29,6 +29,17 @@ export function NumberField({ label }: { label: string }) {
   )
 }
 
+export function IDDisplayField() {
+  const field = useFieldContext<{ prefix: string; numeric: number }>()
+  return (
+    <div>
+      <span>
+        ID: {field.state.value.prefix}-{field.state.value.numeric}
+      </span>
+    </div>
+  )
+}
+
 export function SubscribeButton({ label }: { label: string }) {
   const form = useFormContext()
   return (

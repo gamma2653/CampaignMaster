@@ -27,10 +27,9 @@ export const LocationGroup = withFieldGroup({
         }
         return (
             <div>
-                <ObjectIDGroup
-                    form={group}
-                    fields="obj_id"
-                />
+                <group.AppField name="obj_id">
+                    {(field) => <field.IDDisplayField />}
+                </group.AppField>
                 <group.AppField name="name">
                     {(field) => <field.TextField label="Location Name" />}
                 </group.AppField>

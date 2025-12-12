@@ -28,10 +28,9 @@ export const CampaignPlanGroup = withFieldGroup({
     render: ({ group }) => {
         return (
             <div style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
-                <ObjectIDGroup
-                    form={group}
-                    fields="obj_id"
-                />
+                <group.AppField name="obj_id">
+                    {(field) => <field.IDDisplayField />}
+                </group.AppField>
                 <group.AppField name="title">
                     {(field) => <field.TextField label="Campaign Plan Title" />}
                 </group.AppField>

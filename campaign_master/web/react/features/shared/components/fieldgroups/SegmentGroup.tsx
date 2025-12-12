@@ -1,6 +1,5 @@
 import { withFieldGroup } from "../ctx";
 import { Segment, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
 import { PointGroup } from "./PointGroup";
 
 export const defaultValues = {
@@ -21,24 +20,29 @@ export const SegmentGroup = withFieldGroup({
     render: ({ group }) => {
         return (
             <div>
-                <ObjectIDGroup
-                    form={group}
-                    fields="obj_id"
-                />
+                <group.AppField name="obj_id">
+                    {(field) => <field.IDDisplayField />}
+                </group.AppField>
                 <group.AppField name="name">
                     {(field) => <field.TextField label="Segment Name" />}
                 </group.AppField>
                 <group.AppField name="description">
                     {(field) => <field.TextField label="Segment Description" />}
                 </group.AppField>
-                <PointGroup
-                    form={group}
-                    fields="start"
-                />
-                <PointGroup
-                    form={group}
-                    fields="end"
-                />
+                <div>
+                    <h3>Start Point</h3>
+                    <PointGroup
+                        form={group}
+                        fields="start"
+                    />
+                </div>
+                <div>
+                    <h3>End Point</h3>
+                    <PointGroup
+                        form={group}
+                        fields="end"
+                    />
+                </div>
             </div>
         )
     }

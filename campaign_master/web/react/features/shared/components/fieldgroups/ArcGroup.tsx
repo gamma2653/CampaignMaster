@@ -16,10 +16,9 @@ export const ArcGroup = withFieldGroup({
     render: ({ group }) => {
         return (
             <div>
-                <ObjectIDGroup
-                    form={group}
-                    fields="obj_id"
-                />
+                <group.AppField name="obj_id">
+                    {(field) => <field.IDDisplayField />}
+                </group.AppField>
                 <group.AppField name="name">
                     {(field) => <field.TextField label="Segment Name" />}
                 </group.AppField>
@@ -42,7 +41,6 @@ export const ArcGroup = withFieldGroup({
                             <button
                                 type="button"
                                 onClick={() => {
-                                    console.log('Adding segment')
                                     field.pushValue(segDefaultValues)
                                 }}
                             >
