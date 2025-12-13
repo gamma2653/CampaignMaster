@@ -1,3 +1,4 @@
+import { Point, PREFIXES } from '../../../schemas'
 import { useFieldContext, useFormContext } from './ctx'
 
 export function TextField({ label }: { label: string }) {
@@ -37,6 +38,29 @@ export function IDDisplayField() {
         ID: {field.state.value.prefix}-{field.state.value.numeric}
       </span>
     </div>
+  )
+}
+
+export function PointSelectField({ label, points }: { label: string, points?: Array<Point> }) {
+  const field = useFieldContext<{ prefix: string; numeric: number }>()
+  return (
+    <label>
+      <span>{label}</span>
+      <select
+        value={field.state.value.numeric}
+        onChange={(e) =>
+          field.handleChange({
+            prefix: PREFIXES.POINT,
+            numeric: Number(e.target.value),
+          })
+        }>
+        {points?.map((point) => (
+          <option key={point.obj_id.numeric} value={point.obj_id.numeric}>
+            {point.obj_id.prefix}-{point.obj_id.numeric} ({point.name})
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }
 

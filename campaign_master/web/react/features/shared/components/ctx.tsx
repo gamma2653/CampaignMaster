@@ -1,5 +1,5 @@
 import { createFormHookContexts, createFormHook } from '@tanstack/react-form'
-import { TextField, SubscribeButton, NumberField, IDDisplayField } from './fields'
+import { TextField, SubscribeButton, NumberField, IDDisplayField, PointSelectField } from './fields'
 
 export const { fieldContext, useFieldContext, formContext, useFormContext } =
     createFormHookContexts()
@@ -20,6 +20,7 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
         */
         NumberField,
         IDDisplayField,
+        PointSelectField,
     },
     formComponents: {
         /**

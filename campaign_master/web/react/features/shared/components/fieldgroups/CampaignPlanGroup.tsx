@@ -1,12 +1,12 @@
 import { withFieldGroup } from "../ctx";
-import { Arc, CampaignPlan, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
+import { Arc, CampaignPlan, Point, PREFIXES } from "../../../../schemas";
 import { ArcGroup, defaultValues as arcDefaultValues } from "./ArcGroup";
 import { CharacterGroup, defaultValues as characterDefaultValues } from "./CharacterGroup";
 import { LocationGroup, defaultValues as locationDefaultValues } from "./LocationGroup";
 import { ItemGroup, defaultValues as itemDefaultValues } from "./ItemGroup";
 import { RuleGroup, defaultValues as ruleDefaultValues } from "./RuleGroup";
 import { ObjectiveGroup, defaultValues as objectiveDefaultValues } from "./ObjectiveGroup";
+import { PointGroup, defaultValues as pointDefaultValues } from "./PointGroup";
 
 const defaultValues = {
     obj_id: { prefix: PREFIXES.CAMPAIGN_PLAN, numeric: 0 },
@@ -14,7 +14,8 @@ const defaultValues = {
     version: '',
     setting: '',
     summary: '',
-    storypoints: [] as Arc[],
+    storyline: [] as Arc[],
+    storypoints: [] as Point[],
     characters: [],
     locations: [],
     items: [],
@@ -46,13 +47,38 @@ export const CampaignPlanGroup = withFieldGroup({
                 <group.AppField name="storypoints" mode="array">
                     {(field) => (
                         <div>
-                            <h3>Storypoints</h3>
+                            <h3>Story Points (discrete)</h3>
                             {group.state.values.storypoints.map((_, index) => (
+                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                    <h4>Point {index + 1}</h4>
+                                    <PointGroup
+                                        form={group}
+                                        fields={`storypoints[${index}]`}
+                                    />
+                                </div>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    field.pushValue(pointDefaultValues)
+                                }}
+                            >
+                                Add Story Point
+                            </button>
+                        </div>
+                    )}
+                </group.AppField>
+                <group.AppField name="storyline" mode="array">
+                    {(field) => (
+                        <div>
+                            <h3>Storyline (continuous)</h3>
+                            {group.state.values.storyline.map((_, index) => (
                                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
                                     <h4>Storypoint {index + 1}</h4>
                                     <ArcGroup
                                         form={group}
-                                        fields={`storypoints[${index}]`}
+                                        fields={`storyline[${index}]`}
+                                        points={group.state.values.storypoints}
                                     />
                                 </div>
                             ))}

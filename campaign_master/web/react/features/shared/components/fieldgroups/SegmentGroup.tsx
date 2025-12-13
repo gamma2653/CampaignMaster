@@ -1,23 +1,23 @@
 import { withFieldGroup } from "../ctx";
-import { Segment, PREFIXES } from "../../../../schemas";
+import type { Point, Segment } from "../../../../schemas";
+import { PREFIXES } from "../../../../schemas";
 import { PointGroup } from "./PointGroup";
 
 export const defaultValues = {
     obj_id: { prefix: PREFIXES.SEGMENT, numeric: 0 },
     name: '',
     description: '',
-    start: {
-        obj_id: { prefix: PREFIXES.POINT, numeric: 0 },
-    },
-    end: {
-        obj_id: { prefix: PREFIXES.POINT, numeric: 1 },
-    },
+    start: { prefix: PREFIXES.POINT, numeric: 0 },
+    end: { prefix: PREFIXES.POINT, numeric: 1 },
 } as Segment
 
 
 export const SegmentGroup = withFieldGroup({
     defaultValues,
-    render: ({ group }) => {
+    props: {
+        points: [] as Array<Point>,
+    },
+    render: ({ group, points }) => {
         return (
             <div>
                 <group.AppField name="obj_id">
@@ -29,20 +29,27 @@ export const SegmentGroup = withFieldGroup({
                 <group.AppField name="description">
                     {(field) => <field.TextField label="Segment Description" />}
                 </group.AppField>
-                <div>
+                <group.AppField name="start">
+                    {(field) => <field.PointSelectField label="Start Point" points={points} />}
+                </group.AppField>
+                <group.AppField name="end">
+                    {(field) => <field.PointSelectField label="End Point" points={points} />}
+                </group.AppField>
+                {/* <div>
                     <h3>Start Point</h3>
+                    
                     <PointGroup
                         form={group}
                         fields="start"
                     />
-                </div>
-                <div>
+                </div> */}
+                {/* <div>
                     <h3>End Point</h3>
                     <PointGroup
                         form={group}
                         fields="end"
                     />
-                </div>
+                </div> */}
             </div>
         )
     }

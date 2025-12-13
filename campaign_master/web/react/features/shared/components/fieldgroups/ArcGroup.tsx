@@ -1,6 +1,5 @@
 import { withFieldGroup } from "../ctx";
-import { Arc, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
+import { Arc, Point, PREFIXES } from "../../../../schemas";
 import { SegmentGroup, defaultValues as segDefaultValues } from "./SegmentGroup";
 
 export const defaultValues = {
@@ -13,7 +12,10 @@ export const defaultValues = {
 
 export const ArcGroup = withFieldGroup({
     defaultValues,
-    render: ({ group }) => {
+    props: {
+        points: [] as Array<Point>,
+    },
+    render: ({ group, points }) => {
         return (
             <div>
                 <group.AppField name="obj_id">
@@ -35,6 +37,7 @@ export const ArcGroup = withFieldGroup({
                                     <SegmentGroup
                                         form={group}
                                         fields={`segments[${index}]`}
+                                        points={points}
                                     />
                                 </div>
                             ))}

@@ -83,8 +83,8 @@ export const SegmentSchema = ObjectSchema.extend({
     obj_id: SegmentIDSchema,
     name: z.string().min(1).catch('Unnamed Segment').default('Unnamed Segment'),
     description: z.string().min(1).catch('No description').default('No description'),
-    start: PointSchema,
-    end: PointSchema,
+    start: PointIDSchema,
+    end: PointIDSchema,
 })
 
 export const ArcSchema = ObjectSchema.extend({
@@ -145,7 +145,8 @@ export const CampaignSchema = ObjectSchema.extend({
     version: z.string().min(1).catch('0.0.0').default('0.0.0'),
     setting: z.string().min(1).catch('Generic').default('Generic'),
     summary: z.string().min(1).catch('No summary').default('No summary'),
-    storypoints: z.array(ArcSchema).catch([]).default([]),
+    storyline: z.array(ArcSchema).catch([]).default([]),
+    storypoints: z.array(PointSchema).catch([]).default([]),
     characters: z.array(CharacterSchema).catch([]).default([]),
     locations: z.array(LocationSchema).catch([]).default([]),
     items: z.array(ItemSchema).catch([]).default([]),
