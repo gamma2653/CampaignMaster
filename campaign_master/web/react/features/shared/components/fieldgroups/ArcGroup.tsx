@@ -43,6 +43,7 @@ export const ArcGroup = withFieldGroup({
                             ))}
                             <button
                                 type="button"
+                                className="add-button"
                                 onClick={() => {
                                     field.pushValue(segDefaultValues)
                                 }}

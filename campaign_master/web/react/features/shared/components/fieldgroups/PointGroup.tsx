@@ -25,7 +25,7 @@ export const PointGroup = withFieldGroup({
                     {(field) => <field.TextField label="Point Name" />}
                 </group.AppField>
                 <group.AppField name="description">
-                    {(field) => <field.TextField label="Point Description" />}
+                    {(field) => <field.TextAreaField label="Point Description" />}
                 </group.AppField>
             </div>
         )

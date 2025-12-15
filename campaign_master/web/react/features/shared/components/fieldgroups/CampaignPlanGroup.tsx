@@ -42,7 +42,7 @@ export const CampaignPlanGroup = withFieldGroup({
                     {(field) => <field.TextField label="Campaign Plan Setting" />}
                 </group.AppField>
                 <group.AppField name="summary">
-                    {(field) => <field.TextField label="Campaign Plan Summary" />}
+                    {(field) => <field.TextAreaField label="Campaign Plan Summary" />}
                 </group.AppField>
                 <group.AppField name="storypoints" mode="array">
                     {(field) => (
@@ -59,6 +59,7 @@ export const CampaignPlanGroup = withFieldGroup({
                             ))}
                             <button
                                 type="button"
+                                className="add-button"
                                 onClick={() => {
                                     field.pushValue(pointDefaultValues)
                                 }}
@@ -84,6 +85,7 @@ export const CampaignPlanGroup = withFieldGroup({
                             ))}
                             <button
                                 type="button"
+                                className="add-button"
                                 onClick={() => {
                                     field.pushValue(arcDefaultValues)
                                 }}
@@ -108,6 +110,7 @@ export const CampaignPlanGroup = withFieldGroup({
                             ))}
                             <button
                                 type="button"
+                                className="add-button"
                                 onClick={() => {
                                     field.pushValue(characterDefaultValues)
                                 }}
@@ -132,6 +135,7 @@ export const CampaignPlanGroup = withFieldGroup({
                             ))}
                             <button
                                 type="button"
+                                className="add-button"
                                 onClick={() => {
                                     field.pushValue(locationDefaultValues)
                                 }}
@@ -154,7 +158,7 @@ export const CampaignPlanGroup = withFieldGroup({
                                     />
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.pushValue(itemDefaultValues)}>
+                            <button type="button" className="add-button" onClick={() => field.pushValue(itemDefaultValues)}>
                                 Add Item
                             </button>
                         </>
@@ -173,7 +177,7 @@ export const CampaignPlanGroup = withFieldGroup({
                                     />
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.pushValue(ruleDefaultValues)}>
+                            <button type="button" className="add-button" onClick={() => field.pushValue(ruleDefaultValues)}>
                                 Add Rule
                             </button>
                         </>
@@ -192,7 +196,7 @@ export const CampaignPlanGroup = withFieldGroup({
                                     />
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.pushValue(objectiveDefaultValues)}>
+                            <button type="button" className="add-button" onClick={() => field.pushValue(objectiveDefaultValues)}>
                                 Add Objective
                             </button>
                         </>

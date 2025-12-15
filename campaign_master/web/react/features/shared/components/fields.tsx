@@ -15,6 +15,20 @@ export function TextField({ label }: { label: string }) {
   )
 }
 
+export function TextAreaField({ label }: { label: string }) {
+  // The `Field` infers that it should have a `value` type of `string`
+  const field = useFieldContext<string>()
+  return (
+    <label>
+      <span>{label}</span>
+      <textarea
+        value={field.state.value}
+        onChange={(e) => field.handleChange(e.target.value)}
+      />
+    </label>
+  )
+}
+
 export function NumberField({ label }: { label: string }) {
   // The `Field` infers that it should have a `value` type of `number`
   const field = useFieldContext<number>()
@@ -33,10 +47,20 @@ export function NumberField({ label }: { label: string }) {
 export function IDDisplayField() {
   const field = useFieldContext<{ prefix: string; numeric: number }>()
   return (
-    <div>
+    <div className="id-display-field">
       <span>
         ID: {field.state.value.prefix}-{field.state.value.numeric}
       </span>
+    </div>
+  )
+}
+
+export function NameValueCombo() {
+  const field = useFieldContext<{name: string; value: number}>()
+  return (
+    <div>
+      <input type="text" value={field.state.value.name} onChange={(e) => field.handleChange({ ...field.state.value, name: e.target.value })} />
+      <input type="number" value={field.state.value.value} onChange={(e) => field.handleChange({ ...field.state.value, value: Number(e.target.value) })} />
     </div>
   )
 }

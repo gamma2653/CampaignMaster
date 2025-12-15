@@ -1,5 +1,5 @@
 import { createFormHookContexts, createFormHook } from '@tanstack/react-form'
-import { TextField, SubscribeButton, NumberField, IDDisplayField, PointSelectField } from './fields'
+import { TextField, SubscribeButton, NumberField, IDDisplayField, PointSelectField, NameValueCombo, TextAreaField } from './fields'
 
 export const { fieldContext, useFieldContext, formContext, useFormContext } =
     createFormHookContexts()
@@ -18,9 +18,11 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
         * @param param0  Object containing the label for the field.
         * @returns A JSX element representing the ID field.
         */
+        TextAreaField,
         NumberField,
         IDDisplayField,
         PointSelectField,
+        NameValueCombo,
     },
     formComponents: {
         /**

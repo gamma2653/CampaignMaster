@@ -22,7 +22,7 @@ export const RuleGroup = withFieldGroup({
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>
                 <group.AppField name="description">
-                    {(field) => <field.TextField label="Rule Description" />}
+                    {(field) => <field.TextAreaField label="Rule Description" />}
                 </group.AppField>
                 <group.AppField name="effect">
                     {(field) => <field.TextField label="Rule Effect" />}
@@ -39,7 +39,7 @@ export const RuleGroup = withFieldGroup({
                                     </group.AppField>
                                 </div>
                             ))}
-                        <button type="button" onClick={() => field.pushValue('')}>
+                        <button type="button" className="add-button" onClick={() => field.pushValue('')}>
                             Add Component
                         </button>
                         </div>

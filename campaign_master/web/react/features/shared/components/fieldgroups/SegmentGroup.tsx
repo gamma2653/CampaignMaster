@@ -27,7 +27,7 @@ export const SegmentGroup = withFieldGroup({
                     {(field) => <field.TextField label="Segment Name" />}
                 </group.AppField>
                 <group.AppField name="description">
-                    {(field) => <field.TextField label="Segment Description" />}
+                    {(field) => <field.TextAreaField label="Segment Description" />}
                 </group.AppField>
                 <group.AppField name="start">
                     {(field) => <field.PointSelectField label="Start Point" points={points} />}
@@ -35,21 +35,6 @@ export const SegmentGroup = withFieldGroup({
                 <group.AppField name="end">
                     {(field) => <field.PointSelectField label="End Point" points={points} />}
                 </group.AppField>
-                {/* <div>
-                    <h3>Start Point</h3>
-                    
-                    <PointGroup
-                        form={group}
-                        fields="start"
-                    />
-                </div> */}
-                {/* <div>
-                    <h3>End Point</h3>
-                    <PointGroup
-                        form={group}
-                        fields="end"
-                    />
-                </div> */}
             </div>
         )
     }

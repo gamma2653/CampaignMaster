@@ -10,8 +10,8 @@ export const defaultValues = {
     name: '',
     role: '',
     backstory: '',
-    attributes: {} as Record<string, number>,
-    skills: {} as Record<string, number>,
+    attributes: [] as { name: string; value: number }[],
+    skills: [] as { name: string; value: number }[],
     inventory: [] as ItemID[],
 } as Character
 
@@ -31,32 +31,31 @@ export const CharacterGroup = withFieldGroup({
                     {(field) => <field.TextField label="Character Role" />}
                 </group.AppField>
                 <group.AppField name="backstory">
-                    {(field) => <field.TextField label="Character Backstory" />}
+                    {(field) => <field.TextAreaField label="Character Backstory" />}
                 </group.AppField>
-                <group.AppField name="attributes">
+                <group.AppField name="attributes" mode="array">
                     {(field) => (
                         <div>
                             <h3>Attributes</h3>
-                            {(Object.entries(group.state.values.attributes)).map(([key, value], index) => (
-                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                            {group.state.values.attributes.map((_, index) => (
+                                <div key={index}>
                                     <h4>Attribute {index + 1}</h4>
-                                    <group.AppField name={`attributes.${key}`}>
-                                        {(field) => (
-                                            <>
-                                                <field.NumberField label={`${key}`} />
-                                            </>
-                                        )}
+                                    <group.AppField name={`attributes[${index}].name`}>
+                                        {(subField) => <subField.TextField label="Attribute Name" />}
+                                    </group.AppField>
+                                    <group.AppField name={`attributes[${index}].value`}>
+                                        {(subField) => <subField.NumberField label="Attribute Value" />}
                                     </group.AppField>
                                 </div>
                             ))}
                             <input type="text" placeholder="New Attribute Name" id="new-attribute-name" />
-                            <button type="button" onClick={() => {
-                                field.handleChange({
-                                    ...group.state.values.attributes,
-                                    [`${(document.getElementById('new-attribute-name') as HTMLInputElement).value}`]: 0,
+                            <button type="button" className="add-button" onClick={() => {
+                                const new_attr_name_field = document.getElementById('new-attribute-name') as HTMLInputElement;
+                                field.pushValue({
+                                    name: new_attr_name_field?.value || 'Unnamed Attribute',
+                                    value: 0,
                                 });
-                                // clear text field
-                                (document.getElementById('new-attribute-name') as HTMLInputElement).value = ''
+                                new_attr_name_field.value = '';
                             }}>
                                 Add Attribute
                             </button>
@@ -67,23 +66,26 @@ export const CharacterGroup = withFieldGroup({
                     {(field) => (
                         <div>
                             <h3>Skills</h3>
-                            {(Object.entries(group.state.values.skills)).map(([key, value], index) => (
-                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                            {group.state.values.skills.map((_, index) => (
+                                <div key={index}>
                                     <h4>Skill {index + 1}</h4>
-                                    <group.AppField name={`skills.${key}`}>
-                                        {(field) => (
-                                            <>
-                                                <field.TextField label={`Skill ${index + 1}`} />
-                                                <field.NumberField label={`Value`} />
-                                            </>
-                                        )}
+                                    <group.AppField name={`skills[${index}].name`}>
+                                        {(subField) => <subField.TextField label="Skill Name" />}
+                                    </group.AppField>
+                                    <group.AppField name={`skills[${index}].value`}>
+                                        {(subField) => <subField.NumberField label="Skill Value" />}
                                     </group.AppField>
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.handleChange({
-                                ...group.state.values.skills,
-                                [`skill_${Object.keys(group.state.values.skills).length + 1}`]: 0,
-                            })}>
+                            <input type="text" placeholder="New Skill Name" id="new-skill-name" />
+                            <button type="button" className="add-button" onClick={() => {
+                                const new_skill_name_field = document.getElementById('new-skill-name') as HTMLInputElement;
+                                field.pushValue({
+                                    name: new_skill_name_field?.value || 'Unnamed Skill',
+                                    value: 0,
+                                });
+                                new_skill_name_field.value = '';
+                            }}>
                                 Add Skill
                             </button>
                         </div>
@@ -101,7 +103,7 @@ export const CharacterGroup = withFieldGroup({
                                     </group.AppField>
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.pushValue({ prefix: PREFIXES.ITEM, numeric: 0 } as ItemID)}>
+                            <button type="button" className="add-button" onClick={() => field.pushValue({ prefix: PREFIXES.ITEM, numeric: 0 } as ItemID)}>
                                 Add Item
                             </button>
                         </div>

@@ -26,7 +26,7 @@ export const LocationGroup = withFieldGroup({
             );
         }
         return (
-            <div>
+            <div className="location">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>
@@ -34,7 +34,7 @@ export const LocationGroup = withFieldGroup({
                     {(field) => <field.TextField label="Location Name" />}
                 </group.AppField>
                 <group.AppField name="description">
-                    {(field) => <field.TextField label="Location Description" />}
+                    {(field) => <field.TextAreaField label="Location Description" />}
                 </group.AppField>
                 <group.AppField name="coords">
                     {(field) => (

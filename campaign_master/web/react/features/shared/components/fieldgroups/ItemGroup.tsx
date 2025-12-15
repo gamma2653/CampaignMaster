@@ -22,7 +22,7 @@ export const ItemGroup = withFieldGroup({
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>
                 <group.AppField name="description">
-                    {(field) => <field.TextField label="Item Description" />}
+                    {(field) => <field.TextAreaField label="Item Description" />}
                 </group.AppField>
                 <group.AppField name="type_">
                     {(field) => <field.TextField label="Item Type" />}
@@ -44,7 +44,7 @@ export const ItemGroup = withFieldGroup({
                                     </group.AppField>
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.handleChange({
+                            <button type="button" className="add-button" onClick={() => field.handleChange({
                                 ...group.state.values.properties,
                                 [`property_${Object.keys(group.state.values.properties).length + 1}`]: '',
                             })}>

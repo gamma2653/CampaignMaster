@@ -22,7 +22,7 @@ export const ObjectiveGroup = withFieldGroup({
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>
                 <group.AppField name="description">
-                    {(field) => <field.TextField label="Objective Description" />}
+                    {(field) => <field.TextAreaField label="Objective Description" />}
                 </group.AppField>
                 <group.AppField name="components" mode="array">
                     {(field) => (
@@ -36,7 +36,7 @@ export const ObjectiveGroup = withFieldGroup({
                                     </group.AppField>
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.pushValue('')}>
+                            <button type="button" className="add-button" onClick={() => field.pushValue('')}>
                                 Add Component
                             </button>
                         </div>
@@ -54,7 +54,7 @@ export const ObjectiveGroup = withFieldGroup({
                                     </group.AppField>
                                 </div>
                             ))}
-                            <button type="button" onClick={() => field.pushValue('')}>
+                            <button type="button" className="add-button" onClick={() => field.pushValue('')}>
                                 Add Prerequisite
                             </button>
                         </div>
