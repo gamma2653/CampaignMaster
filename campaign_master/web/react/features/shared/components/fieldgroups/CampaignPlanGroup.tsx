@@ -46,10 +46,10 @@ export const CampaignPlanGroup = withFieldGroup({
                 </group.AppField>
                 <group.AppField name="storypoints" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Story Points (discrete)</h3>
                             {group.state.values.storypoints.map((_, index) => (
-                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                <div key={index} className="object point">
                                     <h4>Point {index + 1}</h4>
                                     <PointGroup
                                         form={group}
@@ -65,15 +65,15 @@ export const CampaignPlanGroup = withFieldGroup({
                             >
                                 Add Story Point
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
                 <group.AppField name="storyline" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Storyline (continuous)</h3>
                             {group.state.values.storyline.map((_, index) => (
-                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                <div key={index} className="object arc">
                                     <h4>Storypoint {index + 1}</h4>
                                     <ArcGroup
                                         form={group}
@@ -90,12 +90,12 @@ export const CampaignPlanGroup = withFieldGroup({
                             >
                                 Add Storypoint
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
                 <group.AppField name="characters" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Characters</h3>
                             {group.state.values.characters.map((_, index) => (
                                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
@@ -114,12 +114,12 @@ export const CampaignPlanGroup = withFieldGroup({
                             >
                                 Add Character
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
                 <group.AppField name="locations" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Locations</h3>
                             {group.state.values.locations.map((_, index) => (
                                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
@@ -138,12 +138,12 @@ export const CampaignPlanGroup = withFieldGroup({
                             >
                                 Add Location
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
                 <group.AppField name="items" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Items</h3>
                             {group.state.values.items.map((_, index) => (
                                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
@@ -157,12 +157,12 @@ export const CampaignPlanGroup = withFieldGroup({
                             <button type="button" onClick={() => field.pushValue(itemDefaultValues)}>
                                 Add Item
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
                 <group.AppField name="rules" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Rules</h3>
                             {group.state.values.rules.map((_, index) => (
                                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
@@ -176,12 +176,12 @@ export const CampaignPlanGroup = withFieldGroup({
                             <button type="button" onClick={() => field.pushValue(ruleDefaultValues)}>
                                 Add Rule
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
                 <group.AppField name="objectives" mode="array">
                     {(field) => (
-                        <div>
+                        <>
                             <h3>Objectives</h3>
                             {group.state.values.objectives.map((_, index) => (
                                 <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
@@ -195,7 +195,7 @@ export const CampaignPlanGroup = withFieldGroup({
                             <button type="button" onClick={() => field.pushValue(objectiveDefaultValues)}>
                                 Add Objective
                             </button>
-                        </div>
+                        </>
                     )}
                 </group.AppField>
             </div>

@@ -11,7 +11,7 @@ export const ObjectIDGroup = withFieldGroup({
     defaultValues,
     render: ({ group }) => {
         return (
-            <div>
+            <div className="object-id-group">
                 <group.AppField name="prefix">
                     {(field) => (
                         <label>

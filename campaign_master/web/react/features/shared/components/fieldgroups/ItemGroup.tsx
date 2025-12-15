@@ -17,7 +17,7 @@ export const ItemGroup = withFieldGroup({
     defaultValues,
     render: ({ group }) => {
         return (
-            <div>
+            <div className="item">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>

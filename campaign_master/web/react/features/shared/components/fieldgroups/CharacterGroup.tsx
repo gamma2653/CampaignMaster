@@ -20,7 +20,7 @@ export const CharacterGroup = withFieldGroup({
     defaultValues,
     render: ({ group }) => {
         return (
-            <div>
+            <div className="character">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>

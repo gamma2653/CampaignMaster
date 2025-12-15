@@ -17,7 +17,7 @@ export const ArcGroup = withFieldGroup({
     },
     render: ({ group, points }) => {
         return (
-            <div>
+            <div className="arc object">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>
@@ -29,10 +29,10 @@ export const ArcGroup = withFieldGroup({
                 </group.AppField>
                 <group.AppField name="segments" mode="array">
                     {(field) => (
-                        <div>
+                        <div className="segments">
                             <h3>Segments</h3>
                             {group.state.values.segments.map((_, index) => (
-                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                <div key={index} className="object">
                                     <h4>Segment {index + 1}</h4>
                                     <SegmentGroup
                                         form={group}

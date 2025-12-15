@@ -17,7 +17,7 @@ export const PointGroup = withFieldGroup({
     defaultValues,
     render: ({ group }) => {
         return (
-            <div>
+            <div className="point">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>

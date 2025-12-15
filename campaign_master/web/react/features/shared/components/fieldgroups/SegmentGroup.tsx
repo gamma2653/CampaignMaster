@@ -19,7 +19,7 @@ export const SegmentGroup = withFieldGroup({
     },
     render: ({ group, points }) => {
         return (
-            <div>
+            <div className="segment">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>

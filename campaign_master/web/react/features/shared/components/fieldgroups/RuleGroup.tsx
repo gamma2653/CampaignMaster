@@ -17,7 +17,7 @@ export const RuleGroup = withFieldGroup({
     defaultValues,
     render: ({ group }) => {
         return (
-            <div>
+            <div className="rule">
                 <group.AppField name="obj_id">
                     {(field) => <field.IDDisplayField />}
                 </group.AppField>
