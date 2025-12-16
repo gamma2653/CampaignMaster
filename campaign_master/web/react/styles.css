@@ -34,4 +34,25 @@ body textarea, input {
     border: none;
     border-radius: 3px;
     cursor: pointer;
+    max-width: 33%;
+    
+}
+
+.submit-button {
+    margin-top: 10px;
+    padding: 5px 15px;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.add-button:hover {
+    background-color: #45a049;
+}
+
+.add-button:disabled {
+    background-color: #888;
+    cursor: not-allowed;
 }

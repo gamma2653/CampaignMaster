@@ -16,29 +16,52 @@ export const defaultValues = {
 } as Character
 
 
+// type Props = {
+//     classNames?: {
+//         all?: string;
+//         obj_id?: string;
+//         name?: string;
+//         role?: string;
+//         backstory?: string;
+//         attributes?: string;
+//         skills?: string;
+//         inventory?: string;
+//     }
+// }
+
 export const CharacterGroup = withFieldGroup({
     defaultValues,
+    // props: {} as Props,
+    // render: ({ group, classNames }) => {
     render: ({ group }) => {
         return (
-            <div className="character">
-                <group.AppField name="obj_id">
-                    {(field) => <field.IDDisplayField />}
-                </group.AppField>
-                <group.AppField name="name">
-                    {(field) => <field.TextField label="Character Name" />}
-                </group.AppField>
-                <group.AppField name="role">
-                    {(field) => <field.TextField label="Character Role" />}
-                </group.AppField>
-                <group.AppField name="backstory">
-                    {(field) => <field.TextAreaField label="Character Backstory" />}
-                </group.AppField>
+            <div className="flex flex-col relative">
+                <div className="absolute top-0 right-0">
+                    <group.AppField name="obj_id">
+                        {(field) => <field.IDDisplayField />}
+                    </group.AppField>
+                </div>
+                <div className="pt-8">
+                    <group.AppField name="name">
+                        {(field) => <field.TextField label="Character Name" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="role">
+                        {(field) => <field.TextField label="Character Role" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="backstory">
+                        {(field) => <field.TextAreaField label="Character Backstory" />}
+                    </group.AppField>
+                </div>
                 <group.AppField name="attributes" mode="array">
                     {(field) => (
                         <div>
                             <h3>Attributes</h3>
                             {group.state.values.attributes.map((_, index) => (
-                                <div key={index}>
+                                <div key={index} className='border p-2 mb-2 '>
                                     <h4>Attribute {index + 1}</h4>
                                     <group.AppField name={`attributes[${index}].name`}>
                                         {(subField) => <subField.TextField label="Attribute Name" />}
@@ -67,7 +90,7 @@ export const CharacterGroup = withFieldGroup({
                         <div>
                             <h3>Skills</h3>
                             {group.state.values.skills.map((_, index) => (
-                                <div key={index}>
+                                <div key={index} className='border p-2 mb-2 '>
                                     <h4>Skill {index + 1}</h4>
                                     <group.AppField name={`skills[${index}].name`}>
                                         {(subField) => <subField.TextField label="Skill Name" />}
@@ -96,7 +119,7 @@ export const CharacterGroup = withFieldGroup({
                         <div>
                             <h3>Inventory</h3>
                             {group.state.values.inventory.map((_, index) => (
-                                <div key={index} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
+                                <div key={index} className='border p-2 mb-2 '>
                                     <h4>Item {index + 1}</h4>
                                     <group.AppField name={`inventory[${index}]`}>
                                         {(field) => <ObjectIDGroup form={group} fields={`inventory[${index}]`} />}

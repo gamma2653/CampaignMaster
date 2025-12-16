@@ -13,20 +13,36 @@ export const defaultValues = {
 } as Point
 
 
+// type Props = {
+//     classNames?: {
+//         all?: string;
+//         obj_id?: string;
+//         name?: string;
+//         description?: string;
+//     }
+// }
+
 export const PointGroup = withFieldGroup({
     defaultValues,
+    // props: {} as Props,
     render: ({ group }) => {
         return (
-            <div className="point">
-                <group.AppField name="obj_id">
-                    {(field) => <field.IDDisplayField />}
-                </group.AppField>
-                <group.AppField name="name">
-                    {(field) => <field.TextField label="Point Name" />}
-                </group.AppField>
-                <group.AppField name="description">
-                    {(field) => <field.TextAreaField label="Point Description" />}
-                </group.AppField>
+            <div className="flex flex-col gap-2">
+                <div className="ml-auto">
+                    <group.AppField name="obj_id">
+                        {(field) => <field.IDDisplayField />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="name">
+                        {(field) => <field.TextField label="Point Name" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="description">
+                        {(field) => <field.TextAreaField label="Point Description" />}
+                    </group.AppField>
+                </div>
             </div>
         )
     }

@@ -1,5 +1,6 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import Navbar from '../features/shared/components/nav'
 import '../styles.css'
 
 export const Route = createRootRoute({
@@ -10,19 +11,7 @@ function RootComponent() {
   return (
     <>
       <link rel="stylesheet" href="/styles.css" />
-      <nav>
-        <ul>
-          <li>
-            <Link to="/campaign">Home</Link>
-          </li>
-          <li>
-            <Link to="/campaign/plan">Plan</Link>
-          </li>
-          <li>
-            <Link to="/campaign/execute">Execute</Link>
-          </li>
-        </ul>
-      </nav>
+      <Navbar />
       <Outlet />
       <TanStackRouterDevtools position="bottom-right" />
     </>

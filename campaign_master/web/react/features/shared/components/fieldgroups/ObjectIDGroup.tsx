@@ -6,12 +6,22 @@ const defaultValues = {
     numeric: 0,
 } as AnyID
 
+// type Props = {
+//     classNames?: {
+//         all?: string;
+//         prefix?: string;
+//         numeric?: string;
+//     }
+// }
+
 
 export const ObjectIDGroup = withFieldGroup({
     defaultValues,
+    // props: {} as Props,
+    // render: ({ group, classNames }) => {
     render: ({ group }) => {
         return (
-            <div className="object-id-group">
+            <div className="flex flex-col gap-2">
                 <group.AppField name="prefix">
                     {(field) => (
                         <label>

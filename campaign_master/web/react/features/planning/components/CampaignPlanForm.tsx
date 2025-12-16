@@ -31,13 +31,14 @@ export function CampaignPlanForm() {
                     e.stopPropagation()
                     form.handleSubmit()
                 }}>
-                <h1>Campaign Plan Form</h1>
                 <CampaignPlanGroup
                     form={form}
                     fields={createFieldMap(campaignPlanOpts.defaultValues)}
                 />
                 <form.AppForm>
-                    <form.SubscribeButton label="Submit Campaign Plan" />
+                    <div className='flex flex-col p-2 pb-8'>
+                        <form.SubscribeButton label="Submit Campaign Plan" className='self-center submit-button' />
+                    </div>
                 </form.AppForm>
             </form>
         </div>

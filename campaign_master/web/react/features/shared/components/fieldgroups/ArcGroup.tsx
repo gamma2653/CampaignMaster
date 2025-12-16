@@ -9,50 +9,66 @@ export const defaultValues = {
     segments: [],
 } as Arc
 
+type Props = {
+    points: Array<Point>;
+    // classNames?: {
+    //     all?: string;
+    //     obj_id?: string;
+    //     name?: string;
+    //     description?: string;
+    //     segments?: string;
+    // }
+}
 
 export const ArcGroup = withFieldGroup({
     defaultValues,
-    props: {
-        points: [] as Array<Point>,
-    },
+    props: {} as Props,
     render: ({ group, points }) => {
         return (
-            <div className="arc object">
-                <group.AppField name="obj_id">
-                    {(field) => <field.IDDisplayField />}
-                </group.AppField>
-                <group.AppField name="name">
-                    {(field) => <field.TextField label="Segment Name" />}
-                </group.AppField>
-                <group.AppField name="description">
-                    {(field) => <field.TextField label="Segment Description" />}
-                </group.AppField>
-                <group.AppField name="segments" mode="array">
-                    {(field) => (
-                        <div className="segments">
-                            <h3>Segments</h3>
-                            {group.state.values.segments.map((_, index) => (
-                                <div key={index} className="object">
-                                    <h4>Segment {index + 1}</h4>
-                                    <SegmentGroup
-                                        form={group}
-                                        fields={`segments[${index}]`}
-                                        points={points}
-                                    />
-                                </div>
-                            ))}
-                            <button
-                                type="button"
-                                className="add-button"
-                                onClick={() => {
-                                    field.pushValue(segDefaultValues)
-                                }}
-                            >
-                                Add Segment
-                            </button>
-                        </div>
-                    )}
-                </group.AppField>
+            <div className="flex flex-col gap-2 relative">
+                <div className="absolute top-0 right-0">
+                    <group.AppField name="obj_id">
+                        {(field) => <field.IDDisplayField />}
+                    </group.AppField>
+                </div>
+                <div className="pt-8">
+                    <group.AppField name="name">
+                        {(field) => <field.TextField label="Segment Name" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="description">
+                        {(field) => <field.TextField label="Segment Description" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="segments" mode="array">
+                        {(field) => (
+                            <div>
+                                <h3 className='text-lg'>Segments</h3>
+                                {group.state.values.segments.map((_, index) => (
+                                    <div key={index} className='border p-2 mb-2'>
+                                        {/* <h4>Segment {index + 1}</h4> */}
+                                        <SegmentGroup
+                                            form={group}
+                                            fields={`segments[${index}]`}
+                                            points={points}
+                                        />
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    className="add-button"
+                                    onClick={() => {
+                                        field.pushValue(segDefaultValues)
+                                    }}
+                                >
+                                    Add Segment
+                                </button>
+                            </div>
+                        )}
+                    </group.AppField>
+                </div>
             </div>
         )
     }

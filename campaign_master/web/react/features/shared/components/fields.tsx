@@ -1,76 +1,87 @@
+import { Field, Label, Description, Textarea, Input } from '@headlessui/react'
+
 import { Point, PREFIXES } from '../../../schemas'
 import { useFieldContext, useFormContext } from './ctx'
 
 export function TextField({ label }: { label: string }) {
   // The `Field` infers that it should have a `value` type of `string`
   const field = useFieldContext<string>()
+  const textId = `text-${label.replace(/\s+/g, '-').toLowerCase()}`
+  const labelEl = label ? <Label className='p-2 font-bold'>{label}:</Label> : null
   return (
-    <label>
-      <span>{label}</span>
-      <input
+    <Field className='flex flex-row'>
+      {labelEl}
+      <Input
+        id={textId}
+        className='flex-1'
         value={field.state.value}
         onChange={(e) => field.handleChange(e.target.value)}
       />
-    </label>
+    </Field>
   )
 }
 
-export function TextAreaField({ label }: { label: string }) {
+export function TextAreaField({ label, id, description }: { label: string, id?: string, description?: string }) {
   // The `Field` infers that it should have a `value` type of `string`
   const field = useFieldContext<string>()
+  const labelEl = label ? <Label className='p-2 font-bold'>{label}:</Label> : null
+  const descriptionEl = description ? <Description className='p-2 text-sm text-gray-500'>{description}</Description> : null
   return (
-    <label>
-      <span>{label}</span>
-      <textarea
+    <Field>
+      {labelEl}
+      {descriptionEl}
+      <Textarea
         value={field.state.value}
+        className='min-h-full min-w-full'
         onChange={(e) => field.handleChange(e.target.value)}
       />
-    </label>
+    </Field>
   )
 }
 
-export function NumberField({ label }: { label: string }) {
+export function NumberField({ label, id }: { label: string, id?: string }) {
   // The `Field` infers that it should have a `value` type of `number`
   const field = useFieldContext<number>()
+  const labelEl = label ? <Label className='p-2 font-bold'>{label}:</Label> : null
   return (
-    <label>
-      <span>{label}</span>
-      <input
+    <Field>
+      {labelEl}
+      <Input
+        id={id}
         type="number"
         value={field.state.value}
         onChange={(e) => field.handleChange(Number(e.target.value))}
       />
-    </label>
+    </Field>
   )
 }
 
 export function IDDisplayField() {
   const field = useFieldContext<{ prefix: string; numeric: number }>()
   return (
-    <div className="id-display-field">
-      <span>
-        ID: {field.state.value.prefix}-{field.state.value.numeric}
-      </span>
-    </div>
+    <p className='p-2'>
+      <span className='font-bold'>ID:</span> {field.state.value.prefix}-{field.state.value.numeric}
+    </p>
   )
 }
 
 export function NameValueCombo() {
   const field = useFieldContext<{name: string; value: number}>()
   return (
-    <div>
+    <div className="name-value-combo">
       <input type="text" value={field.state.value.name} onChange={(e) => field.handleChange({ ...field.state.value, name: e.target.value })} />
       <input type="number" value={field.state.value.value} onChange={(e) => field.handleChange({ ...field.state.value, value: Number(e.target.value) })} />
     </div>
   )
 }
 
-export function PointSelectField({ label, points }: { label: string, points?: Array<Point> }) {
+export function PointSelectField({ label, points, id }: { label: string, points?: Array<Point>, id?: string }) {
   const field = useFieldContext<{ prefix: string; numeric: number }>()
   return (
-    <label>
-      <span>{label}</span>
+    <>
+      <label htmlFor={id}>{label}:</label>
       <select
+        id={id}
         value={field.state.value.numeric}
         onChange={(e) =>
           field.handleChange({
@@ -84,16 +95,16 @@ export function PointSelectField({ label, points }: { label: string, points?: Ar
           </option>
         ))}
       </select>
-    </label>
+    </>
   )
 }
 
-export function SubscribeButton({ label }: { label: string }) {
+export function SubscribeButton({ label, className }: { label: string, className?: string }) {
   const form = useFormContext()
   return (
     <form.Subscribe selector={(state) => state.isSubmitting}>
       {(isSubmitting) => (
-        <button type="submit" disabled={isSubmitting}>
+        <button type="submit" disabled={isSubmitting} className={className}>
           {label}
         </button>
       )}

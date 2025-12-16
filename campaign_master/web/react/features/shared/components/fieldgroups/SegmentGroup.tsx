@@ -12,29 +12,49 @@ export const defaultValues = {
 } as Segment
 
 
+type Props = {
+    points: Array<Point>;
+    // classNames?: {
+    //     all?: string;
+    //     obj_id?: string;
+    //     name?: string;
+    //     description?: string;
+    //     start?: string;
+    //     end?: string;
+    // }
+}
+
 export const SegmentGroup = withFieldGroup({
     defaultValues,
-    props: {
-        points: [] as Array<Point>,
-    },
+    props: {} as Props,
     render: ({ group, points }) => {
         return (
-            <div className="segment">
-                <group.AppField name="obj_id">
-                    {(field) => <field.IDDisplayField />}
-                </group.AppField>
-                <group.AppField name="name">
-                    {(field) => <field.TextField label="Segment Name" />}
-                </group.AppField>
-                <group.AppField name="description">
-                    {(field) => <field.TextAreaField label="Segment Description" />}
-                </group.AppField>
-                <group.AppField name="start">
-                    {(field) => <field.PointSelectField label="Start Point" points={points} />}
-                </group.AppField>
-                <group.AppField name="end">
-                    {(field) => <field.PointSelectField label="End Point" points={points} />}
-                </group.AppField>
+            <div className="flex flex-col gap-2 relative">
+                <div className="absolute top-0 right-0">
+                    <group.AppField name="obj_id">
+                        {(field) => <field.IDDisplayField />}
+                    </group.AppField>
+                </div>
+                <div className="pt-8">
+                    <group.AppField name="name">
+                        {(field) => <field.TextField label="Segment Name" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="description">
+                        {(field) => <field.TextAreaField label="Segment Description" />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="start">
+                        {(field) => <field.PointSelectField label="Start Point" points={points} />}
+                    </group.AppField>
+                </div>
+                <div>
+                    <group.AppField name="end">
+                        {(field) => <field.PointSelectField label="End Point" points={points} />}
+                    </group.AppField>
+                </div>
             </div>
         )
     }
