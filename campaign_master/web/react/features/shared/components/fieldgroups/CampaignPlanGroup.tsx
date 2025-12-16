@@ -34,14 +34,15 @@ export const CampaignPlanGroup = withFieldGroup({
         return (
             <div id="campaign-plan-group">
                 <h1 className="self-center p-4 font-bold text-xl">Campaign Plan</h1>
+                {/* Campaign Plan Metadata */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-blue-900 bg-blue-950">
                                 Campaign Plan Metadata
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
-                            <DisclosurePanel className="flex flex-col gap-4 p-2 border-t">
+                            <DisclosurePanel className="flex flex-col gap-4 p-2">
                                 <div className="ml-auto">
                                     <group.AppField name="obj_id">
                                         {(field) => <field.IDDisplayField />}
@@ -72,10 +73,11 @@ export const CampaignPlanGroup = withFieldGroup({
                     )}
                     
                 </Disclosure>
+                {/* Story Points (discrete) */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-green-900 bg-green-950">
                                 Story Points (discrete)
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
@@ -108,10 +110,11 @@ export const CampaignPlanGroup = withFieldGroup({
                         </>
                     )}
                 </Disclosure>
+                {/* Storyline Arcs (continuous) */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-purple-900 bg-purple-950">
                                 Storyline Arcs (continuous)
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
@@ -146,10 +149,11 @@ export const CampaignPlanGroup = withFieldGroup({
                         </>
                     )}
                 </Disclosure>
+                {/* Characters */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-yellow-900 bg-yellow-950">
                                 Characters
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
@@ -183,10 +187,11 @@ export const CampaignPlanGroup = withFieldGroup({
                         </>
                     )}
                 </Disclosure>
+                {/* Locations */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-green-900 bg-green-950">
                                 Locations
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
@@ -220,10 +225,11 @@ export const CampaignPlanGroup = withFieldGroup({
                         </>
                     )}
                 </Disclosure>
+                {/* Items */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-blue-900 bg-blue-950">
                                 Items
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
@@ -251,10 +257,11 @@ export const CampaignPlanGroup = withFieldGroup({
                         </>
                     )}
                 </Disclosure>
+                {/* Rules */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-red-900 bg-red-950">
                                 Rules
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>
@@ -282,10 +289,11 @@ export const CampaignPlanGroup = withFieldGroup({
                         </>
                     )}
                 </Disclosure>
+                {/* Objectives */}
                 <Disclosure defaultOpen={true}>
                     {({ open }) => (
                         <>
-                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg">
+                            <DisclosureButton className="w-full p-2 text-left font-semibold text-lg cursor-pointer border border-purple-900 bg-purple-950">
                                 Objectives
                                 <ChevronDownIcon className={clsx('w-5 inline-block', open && 'rotate-180')} />
                             </DisclosureButton>

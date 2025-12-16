@@ -4,8 +4,14 @@
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css" layer(utilities);
 
+@property --primary-bg-color {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: rgb(26, 52, 26);
+}
+
 body {
-    background-color: rgb(26, 52, 26);
+    background-color: var(--primary-bg-color);
     color: rgb(255, 255, 255);
 }
 
@@ -35,7 +41,7 @@ body textarea, input {
     border-radius: 3px;
     cursor: pointer;
     max-width: 33%;
-    
+
 }
 
 .submit-button {
@@ -55,4 +61,10 @@ body textarea, input {
 .add-button:disabled {
     background-color: #888;
     cursor: not-allowed;
+}
+
+select {
+    background-color: var(--primary-bg-color);
+    color: rgb(255, 255, 255);
+    border: 1px solid rgb(85, 85, 85);
 }
