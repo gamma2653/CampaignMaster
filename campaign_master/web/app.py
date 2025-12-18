@@ -1,65 +1,55 @@
-import subprocess
 import fastapi
 import pathlib
-from pydantic_core import PydanticUndefined  # HACK: Used to check for undefined defaults
+import uvicorn
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
-from ..content import planning, executing
+from ..content import api as content_api
 
-app = fastapi.FastAPI()
+from .settings import Settings
+from .auth import router as auth_router, create_db_and_tables as create_auth_db_and_tables
+from .api import router as api_router, create_db_and_tables as create_api_db_and_tables
 
-def get_required_fields(model: type[planning.Object]) -> list[str]:
+
+
+settings: Settings = Settings()
+engine = content_api.engine
+app: fastapi.FastAPI
+
+def initialize_app(settings_: Settings):
     """
-    Returns a list of names of required fields in a Pydantic model.
+    Initialize the FastAPI application with necessary configurations.
     """
-    required_fields = []
-    for field_name, field_info in model.model_fields.items():
-        if field_info.default is PydanticUndefined:
-            required_fields.append(field_name)
-    return required_fields
-
-ANNO_TO_JS_TYPE: dict[type, str] = {
-    str: "text",
-    int: "number",
-    float: "number",
-    bool: "checkbox",
-    list: "array",
-    dict: "object",
-    tuple: "array",
-}
+    global app, engine, settings
+    settings = settings_
+    engine = content_api.engine
+    app: fastapi.FastAPI = fastapi.FastAPI(lifespan=setter_and_cleaner)
+    
+    app.include_router(api_router, prefix="/api")
+    app.include_router(auth_router, prefix="/auth")
+    app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
+    app.add_api_route("/", index, methods=["GET"])
+    app.add_api_route("/{full_path:path}", spa_router, methods=["GET"])
 
 
-def build():
-    """
-    Builds the web app by installing dependencies and running the build script.
-
-    Raises
-    ------
-    subprocess.CalledProcessError
-        If any of the subprocess commands fail.
-    """
-    print("Building web app...")
-
-    subprocess.run(['npm', 'install'], check=True, shell=True)
-    subprocess.run(['npm', 'run', 'build'], check=True, shell=True)
-    # subprocess.run(['npm', 'run', 'css'], check=True, shell=True)
-    print("Web app built successfully.")
-
-
-def run_dev():
+def run_dev(host: str | None = None, port: int | None = None, debug: bool | None = None):
     """
     Runs the development server.
     """
+    host = host or settings.web_host
+    port = port or settings.web_port
+    debug = debug if debug is not None else settings.debug_mode
     try:
-        subprocess.run(['npm', 'run', 'dev'], check=True, shell=True)
-    except KeyboardInterrupt:
-        print("Development server interrupted by user.")
-    else:
-        print("Development server closed.")
+        uvicorn.run(app, host=host, port=port, log_level="debug" if debug else "info")
+    except Exception as e:
+        print(f"Error starting development server: {e}")
+
+
 
 # Base case, first serve. Rest is handled by the frontend router.
 # To conceptualize, this establishes the applet session, while endpoints and static files are requested as needed.
 # In production, serve built files from 'dist' directory using Nginx or some other CDN.
-@app.get("/")
+# @app.get("/")
 async def index():
     try:
         return fastapi.responses.FileResponse(pathlib.Path("dist/index.html"))
@@ -67,27 +57,21 @@ async def index():
         return fastapi.responses.PlainTextResponse(str(e), status_code=500)
 
 
-# Actual FastAPI endpoints below
+# Any case that does not match an API route should return the index.html for SPA routing.
+# @app.get("/{full_path:path}")
+async def spa_router(full_path: str):
+    try:
+        return fastapi.responses.FileResponse(pathlib.Path("dist/index.html"))
+    except Exception as e:
+        return fastapi.responses.PlainTextResponse(str(e), status_code=500)
 
-@app.get("/api/app/planning")
-async def get_app_fields():
-    """
-    API endpoint to retrieve planning object fields.
 
-    Returns
-    -------
-    dict
-        A dictionary containing the fields for planning objects.
-    """
-    required_fields = get_required_fields(planning.CampaignPlan)
-    obj = {"fields": [
-        {
-            "name": field_name,
-            "label": field_name.replace("_", " ").title(),
-            "type": ANNO_TO_JS_TYPE.get(field_info.annotation or str, "text"),
-            "required": field_name in required_fields
-        }
-        for field_name, field_info in planning.CampaignPlan.model_fields.items()
-    ]}
-    print(obj)
-    return obj
+# Mount auth router
+
+@asynccontextmanager
+async def setter_and_cleaner(app: fastapi.FastAPI):
+    # Initialize tables
+    create_api_db_and_tables(engine)
+    create_auth_db_and_tables(engine)
+    yield
+    # Cleanup resources here

@@ -1,5 +1,40 @@
+import sys
+import os
+import logging
 import threading
 import contextlib
+
+_CM_LOG_LEVEL = os.getenv("CM_LOG_LEVEL", "DEBUG").upper()
+try:
+    CM_LOG_LEVEL = logging.getLevelNamesMapping()[_CM_LOG_LEVEL]  # Validate log level
+except KeyError:
+    print(f"Invalid CM_LOG_LEVEL '{_CM_LOG_LEVEL}'")
+    sys.exit(1)
+    
+
+def get_basic_formatter() -> logging.Formatter:
+    return logging.Formatter(
+        "[%(name)s:%(levelname)s](%(asctime)s):`%(message)s`",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+def get_basic_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
+    """
+    Creates and returns a basic logger with the specified name.
+
+    Args:
+        name (str): The name of the logger.
+
+    Returns:
+        logging.Logger: Configured logger instance.
+    """
+    logger = logging.getLogger(name)
+    if not logger.hasHandlers():
+        logger.setLevel(level)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(get_basic_formatter())
+        logger.addHandler(handler)
+    return logger
 
 
 # From my 2022 CUP Robotics work

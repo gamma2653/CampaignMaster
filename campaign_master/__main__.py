@@ -1,11 +1,6 @@
 import sys
 import argparse
 
-import uvicorn
-from PySide6 import QtCore, QtWidgets
-
-from campaign_master.gui.app import CampaignMasterPlanApp
-from campaign_master.web import app
 
 parser = argparse.ArgumentParser(description="Campaign Master - Manage your tabletop RPG campaigns")
 parser.add_argument('--debug', action='store_true', help='Enable debug mode with verbose logging')
@@ -17,23 +12,19 @@ parser.add_argument('--port', type=int, default=8000, help='Port for the web app
 if __name__ == "__main__":
     known_args, _ = parser.parse_known_args()   
 
-    if known_args.debug and known_args.gui:
-        QtCore.qDebug("Debug mode is enabled")
     if known_args.web:
-        app.build()
+        from campaign_master.web import util, app as web_app
+        util.build()
         if input("Would you like to run the web server now? (y/n): ").strip().lower() not in ('y', 'yes', '1'):
-            print("Exiting after build.")
             sys.exit(0)
         if known_args.debug:
-            app.run_dev()
-            # from fastapi.staticfiles import StaticFiles
-            # static_path = pathlib.Path(__file__).parent.parent / "dist" / "static"
-            # print(f"Serving static files from: {static_path.resolve(strict=True)}")
-            # app.app.mount("/static", StaticFiles(directory=static_path), name="static")
-            # print("Debug mode is enabled.")
-        # uvicorn.run(app.app, host=known_args.host, port=known_args.port, log_level="debug" if known_args.debug else "info")
+            web_app.run_dev(host=known_args.host, port=known_args.port, debug=known_args.debug)
+        # else:
+            # This case should be handled by an external service like nginx in production
         sys.exit(0)
     if known_args.gui:
+        from PySide6 import QtWidgets
+        from campaign_master.gui.app import CampaignMasterPlanApp
         app = QtWidgets.QApplication(sys.argv)
         window = CampaignMasterPlanApp()
         window.show()

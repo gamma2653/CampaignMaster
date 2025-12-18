@@ -1,15 +1,24 @@
 # Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
-
 import re
-from typing import Optional, ClassVar, Annotated, Any
-from collections import Counter
-from pydantic import BaseModel, Field, field_validator, BeforeValidator, model_validator
+from typing import Optional, ClassVar, Any, TYPE_CHECKING
+from pydantic import BaseModel, Field, field_validator, PrivateAttr, model_validator
+from ..util import get_basic_logger
 
-from .locking import ReaderWriterSuite
+# To avoid circular imports
+# if TYPE_CHECKING:
+#     from ..content.api import IDService
+
+logger = get_basic_logger(__name__)
 
 id_pattern = re.compile(r"^([a-zA-Z]+)-(\d+)$")
 
 DEFAULT_ID_PREFIX = "MISC"
+
+IDDef = {
+    "numeric": int,
+    "prefix": DEFAULT_ID_PREFIX,
+}
+
 
 class ID(BaseModel):
     """
@@ -57,27 +66,9 @@ class ID(BaseModel):
         if not v.isalpha():
             raise ValueError(f"Invalid prefix: {v}. Must be letters only.")
         return v
+
     def __hash__(self) -> int:
         return hash((self.prefix, self.numeric))
-
-
-# IDS_ANNOTATED: set[Annotated] = {GenericID, RuleID, ObjectiveID, PointID, SegmentID, ArcID, ItemID, CharacterID, LocationID, PlanID}
-
-
-_CURRENT_IDS: Counter = Counter()
-"""
-Global counter to keep track of the current highest ID number for each prefix.
-Keyed by prefix (e.g., "P", "R", "O", etc.) to the highest number used.
-"""
-_RELEASED_IDS: dict[str, set[ID]] = {}
-"""
-A set to keep track of released IDs for reuse.
-Keyed by prefix (e.g., "P", "R", "O", etc.) to sets of IDs.
-"""
-_CURRENT_IDS_LOCK = ReaderWriterSuite()
-"""
-A lock to manage concurrent access to _CURRENT_IDS and _RELEASED_IDS.
-"""
 
 
 class Object(BaseModel):
@@ -88,14 +79,26 @@ class Object(BaseModel):
     obj_id: Optional[ID] = None
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
+    # _id_service: IDService = PrivateAttr()
+
+    # @property
+    # def id_service(self) -> IDService:
+    #     if not self._id_service:
+    #         # Warn and set default
+    #         from ..content.api import IDService
+    #         logger.error("IDService not set. Creating new instance for validation engine.")
+    #         self._id_service = IDService()
+    #     return self._id_service
 
     @model_validator(mode="before")
     @classmethod
     def try_coerce_id(cls, data: Any) -> Any:
+        # Lazy load generate_id to avoid circular imports
         if isinstance(data, dict):
             if not data.get("obj_id"):
-                id_ = generate_id(prefix=cls._default_prefix)
-                return {**data, "obj_id": id_.model_dump()}
+                from . import api as content_api
+                id_ = content_api.ObjectID.generate_id(prefix=cls._default_prefix)
+                return {**data, "obj_id": id_.to_pydantic()}
             if isinstance(data.get("obj_id"), str):
                 return {**data, "obj_id": ID.from_str(data["obj_id"]).model_dump()}
         return data
@@ -139,7 +142,7 @@ class Objective(Object):
     A list of components that make up the objective. This may include keywords, phrases, or other elements that define the objective.
     """
 
-    prerequisites: list[str] = []
+    prerequisites: list[ID] = []
     """
     A list of prerequisites that must be met before the objective can be attempted.
     This may include other objectives, character levels, items, or other conditions.
@@ -290,45 +293,3 @@ class CampaignPlan(Object):
     items: list[Item] = []
     rules: list[Rule] = []
     objectives: list[Objective] = []
-
-
-def get_next_id_numeric(prefix: str) -> int:
-    with _CURRENT_IDS_LOCK.writer():
-        if prefix not in _RELEASED_IDS:
-            _RELEASED_IDS[prefix] = set()
-        if _RELEASED_IDS[prefix]:
-            new_id = _RELEASED_IDS[prefix].pop()
-            return new_id.numeric
-        _CURRENT_IDS[prefix] += 1
-        return _CURRENT_IDS[prefix]
-
-
-def generate_id(prefix: str) -> ID:
-    """
-    Generate a new ID with the given prefix.
-
-    Args:
-        prefix (str): The prefix for the ID (e.g., "R" for Rule).
-
-    Returns:
-        ID: A new unique ID with the specified prefix.
-    """
-    return ID(prefix=prefix, numeric=get_next_id_numeric(prefix))
-
-
-def release_id(id: ID):
-    """
-    Release an ID back to the factory for reuse.
-    """
-    with _CURRENT_IDS_LOCK.writer():
-        if id.prefix not in _RELEASED_IDS:
-            _RELEASED_IDS[id.prefix] = set()
-        _RELEASED_IDS[id.prefix].add(id)
-
-
-def get_released_ids(prefix: str) -> set[ID]:
-    """
-    Get the set of released IDs for a given prefix.
-    """
-    with _CURRENT_IDS_LOCK.reader():
-        return _RELEASED_IDS.get(prefix, set())

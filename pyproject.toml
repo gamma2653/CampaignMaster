@@ -16,9 +16,8 @@ tqdm = {version = "^4.67.1"}
 PySide6 = {version = "~=6.8.1.1"}
 PySide6-Essentials = {version = "~=6.8.1.1"}
 PySide6-Addons = {version = "~=6.8.1.1"}
-pydantic = {version = "^2.11.7"}
-fastapi = {version = "^0.118.2", extras = ["standard"]}
-uvicorn = "^0.37.0"
+fastapi = {extras = ["all"], version = "^0.125.0"}
+sqlalchemy = "^2.0.45"
 
 
 [tool.poetry.group.formatting.dependencies]

@@ -6,8 +6,8 @@ from ..content.planning import (
     ID,
     Object,
     CampaignPlan,
-    release_id,
 )
+from ..content import api as content_api
 from pydantic.fields import FieldInfo
 
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -374,9 +374,11 @@ class ObjectForm(QtWidgets.QWidget):
             if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
                 field = cast(ObjectCreateWidget | ObjectListWidget, field)
                 field.hide_form()
+
         # Release ID
-        if not self.exists and self.obj_id is not None:
-            release_id(self.obj_id)
+        # if not self.exists and self.obj_id is not None:
+        #     content_api.ObjectID.release_id(self.obj_id)
+        
         # Execute normal close event
         return super().closeEvent(event)
 
