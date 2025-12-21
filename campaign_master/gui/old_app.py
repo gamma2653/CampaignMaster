@@ -58,14 +58,15 @@ class ObjectListWidget(QtWidgets.QGroupBox):
 
     def open_add_item(self):
         # Create a pop-out form to add a new item, and connect its save event
-        form = ObjectForm(self.model, self.parent())
+        form = ObjectForm.new(self.model, self.parent())
         # On subform save, add item to the list view
         form.save_event.connect(lambda: self.add_item(form.export_content()))
         form.show()
         # HACK: Sneak-peak the ID from the newly created form.
-        obj_id = form.raw_content.get("obj_id", None)
+        obj_id_raw = form.raw_content.get("obj_id", None)
+        obj_id = ID.model_validate(obj_id_raw) if obj_id_raw else None
         if obj_id:
-            self.forms[obj_id] = form
+            self.forms[str(obj_id)] = form
         else:
             print(
                 f"Warning: Could not retrieve obj_id from new form of model {form.model_name}."
@@ -86,7 +87,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
         # Create a form to edit the selected item
         if str(item_id) not in self.forms:
             print(f"Warning: No form found for item ID {item_id}. Opening new form.")
-            self.forms[str(item_id)] = ObjectForm(self.model, self.parent())
+            self.forms[str(item_id)] = ObjectForm.new(self.model, self.parent())
         self.forms[str(item_id)].show()
 
     def remove_item(self):
@@ -125,7 +126,7 @@ class ObjectCreateWidget(QtWidgets.QWidget):
     def __init__(self, model: type[Object], parent=None):
         super().__init__(parent)
         self.model = model
-        self.form = ObjectForm(self.model, self.parent())
+        self.form = ObjectForm.new(self.model, self.parent())
         self.label = QtWidgets.QLabel(f"<Empty>", self)
         self.button = QtWidgets.QPushButton(f"Create {self.model.__name__}", self)
         self.button.clicked.connect(self.form.show)
@@ -156,6 +157,17 @@ class ObjectForm(QtWidgets.QWidget):
 
     save_event = QtCore.Signal()
     prompt_for_save = True
+    _obj_id: ID | None = None
+
+    @property
+    def obj_id(self) -> ID:
+        if self._obj_id is None:
+            raise ValueError("obj_id has not been set yet.")
+        return self._obj_id
+    
+    @obj_id.setter
+    def obj_id(self, value: ID):
+        self._obj_id = value
 
     def __init__(self, model: type[Object], parent=None):
         super().__init__(parent)
@@ -172,8 +184,7 @@ class ObjectForm(QtWidgets.QWidget):
         # Internal data tracking
         self.dirty_fields: set[FieldPair] = set()
         self._raw_content: dict[str, Any] = {}
-        self.obj_id = self.export_content().obj_id
-        self.init_ui()
+        # self.obj_id = self.export_content().obj_id
         self.setWindowTitle(f"{self.model_name} Form")
     
     @staticmethod
@@ -217,13 +228,19 @@ class ObjectForm(QtWidgets.QWidget):
         """
         raw_content = {}
         for field_name, field in self.dirty_fields:
-            retriever = self.TYPE_TO_RETRIEVER.get(type(field), ObjectForm.get_line_content)
-            raw_content[field_name] = retriever(field)
+            if field_name == "obj_id":
+                # Special case for obj_id
+                raw_content[field_name] = self.obj_id.model_dump()
+            else:
+                retriever = self.TYPE_TO_RETRIEVER.get(type(field), ObjectForm.get_line_content)
+                raw_content[field_name] = retriever(field)
+            print(f"Retrieved field {field_name}: {raw_content[field_name]}")
         # Compile w/ existing content
         return self._raw_content | raw_content
 
     def export_content(self) -> Object:
         # Validate and return the content as a Pydantic model instance
+        print(f"Exporting content: {self.raw_content}")
         return self.model.model_validate(self.raw_content)
         # TODO: On validation error, highlight the offending fields
 
@@ -317,19 +334,24 @@ class ObjectForm(QtWidgets.QWidget):
             iter(field_type)
         except TypeError:
             # Not iterable
-            if issubclass(field_type, Object):
-                # Subform
-                create_widget = ObjectCreateWidget(field_type, self)
-                # Mark dirty on save, and update label
-                create_widget.form.save_event.connect(
-                    lambda: self.mark_field_dirty(field_name)
-                )
-                create_widget.form.save_event.connect(
-                    lambda: create_widget.update_label(
-                        create_widget.form.export_content()
+            is_object = False
+            try:
+                is_object = issubclass(field_type, Object)
+                if is_object:
+                    # Subform
+                    create_widget = ObjectCreateWidget(field_type, self)
+                    # Mark dirty on save, and update label
+                    create_widget.form.save_event.connect(
+                        lambda: self.mark_field_dirty(field_name)
                     )
-                )
-                return create_widget
+                    create_widget.form.save_event.connect(
+                        lambda: create_widget.update_label(
+                            create_widget.form.export_content()
+                        )
+                    )
+                    return create_widget
+            except TypeError:
+                pass
         else:
             # Iterable
             return ObjectListWidget(field_type.__args__[0], self)
@@ -351,6 +373,19 @@ class ObjectForm(QtWidgets.QWidget):
         """
         form_instance = cls(type(obj_instance), parent=parent)
         form_instance.raw_content = obj_instance
+        form_instance._obj_id = obj_instance.obj_id
+        form_instance.init_ui()
+        return form_instance
+
+
+    @classmethod
+    def new(cls, model: type[Object], parent: Optional[QtWidgets.QWidget] = None) -> "ObjectForm":
+        """
+        Create a new PydanticForm for a given Pydantic model type.
+        """
+        form_instance = cls(model, parent=parent)
+        form_instance.obj_id = content_api.generate_id(prefix=model._default_prefix).to_pydantic()
+        form_instance.init_ui()
         return form_instance
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
@@ -401,6 +436,7 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_form: Optional[ObjectForm] = None
 
+        content_api.create_db_and_tables()
         self.setup_ui()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
@@ -438,7 +474,7 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         Spawn a Pydantic form to create a new campaign plan.
         """
         self.label.setText("Starting a new campaign...")
-        self.main_form = ObjectForm(CampaignPlan, self)
+        self.main_form = ObjectForm.new(CampaignPlan, self)
         self.central_widget.addWidget(self.main_form)
         self.central_widget.setCurrentWidget(self.main_form)
 

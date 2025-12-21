@@ -14,11 +14,6 @@ id_pattern = re.compile(r"^([a-zA-Z]+)-(\d+)$")
 
 DEFAULT_ID_PREFIX = "MISC"
 
-IDDef = {
-    "numeric": int,
-    "prefix": DEFAULT_ID_PREFIX,
-}
-
 
 class ID(BaseModel):
     """
@@ -76,19 +71,9 @@ class Object(BaseModel):
     Base class for all objects in the campaign planning system.
     """
 
-    obj_id: Optional[ID] = None
+    obj_id: ID
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
-    # _id_service: IDService = PrivateAttr()
-
-    # @property
-    # def id_service(self) -> IDService:
-    #     if not self._id_service:
-    #         # Warn and set default
-    #         from ..content.api import IDService
-    #         logger.error("IDService not set. Creating new instance for validation engine.")
-    #         self._id_service = IDService()
-    #     return self._id_service
 
     @model_validator(mode="before")
     @classmethod
@@ -97,10 +82,11 @@ class Object(BaseModel):
         if isinstance(data, dict):
             if not data.get("obj_id"):
                 from . import api as content_api
-                id_ = content_api.ObjectID.generate_id(prefix=cls._default_prefix)
-                return {**data, "obj_id": id_.to_pydantic()}
+                id_ = content_api.generate_id(prefix=cls._default_prefix)
+                print(f"Generated ID: {id_}")
+                return {**data, "obj_id": id_}
             if isinstance(data.get("obj_id"), str):
-                return {**data, "obj_id": ID.from_str(data["obj_id"]).model_dump()}
+                return {**data, "obj_id": ID.from_str(data["obj_id"])}
         return data
 
     def __str__(self) -> str:
@@ -176,11 +162,11 @@ class Segment(Object):
     A textual description of the story segment.
     """
     # Poetically, the start and end are always defined. (non-optional)
-    start: Point = Field(default_factory=Point)
+    start: Point
     """
     The starting point of the segment.
     """
-    end: Point = Field(default_factory=Point)
+    end: Point
     """
     The ending point of the segment.
     """
@@ -293,3 +279,20 @@ class CampaignPlan(Object):
     items: list[Item] = []
     rules: list[Rule] = []
     objectives: list[Objective] = []
+
+
+ALL_OBJECT_TYPES: list[type[Object]] = [
+    Rule,
+    Objective,
+    Point,
+    Segment,
+    Arc,
+    Item,
+    Character,
+    Location,
+    CampaignPlan,
+]
+
+PREFIX_TO_OBJECT_TYPE = {
+    obj_type._default_prefix: obj_type for obj_type in ALL_OBJECT_TYPES
+}

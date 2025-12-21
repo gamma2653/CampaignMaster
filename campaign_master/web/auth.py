@@ -1,7 +1,6 @@
 from typing import Annotated
 import fastapi
 from fastapi.security import OAuth2PasswordBearer
-from sqlmodel import SQLModel, Field, Session
 from sqlalchemy.engine import Engine
 
 

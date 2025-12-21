@@ -1,0 +1,678 @@
+from abc import abstractmethod
+from typing import Self
+from pydantic import BaseModel as PydanticBaseModel
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import (
+    declarative_base,
+    Mapped,
+    mapped_column,
+    relationship,
+    declared_attr,
+)
+from . import planning
+from ..util import get_basic_logger
+
+logger = get_basic_logger(__name__)
+
+# Base = declarative_base(metaclass=ObjectMeta)
+Base = declarative_base()
+
+
+class ProtoUser(Base):
+    __tablename__ = "proto_user"
+    """
+    SQLModel representation of a user in the system.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Serves no real purpose for GUI, but useful for Web API.
+    #  Links collections of objects to a user.
+
+
+# All Objects should mirror the planning.py business logic.
+class ObjectID(Base):
+    __tablename__ = "object_id"
+    __pydantic_model__ = planning.ID
+    """
+    SQLModel representation of the ID for database storage.
+    Inherits from planning.ID.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    """
+    The prefix part of the ID. Defined by the object type.
+    """
+    proto_user_id: Mapped[int] = mapped_column(ForeignKey("proto_user.id"), index=True)
+    """
+    Owner of the ID (ProtoUser).
+    0 indicates a global ID.
+    """
+    prefix: Mapped[str] = mapped_column(index=True)
+    """
+    The numeric part of the ID.
+    """
+    numeric: Mapped[int] = mapped_column(index=True)
+    # """
+    # Indicates whether the ID has been released back to the pool.
+    # """
+    # released: Mapped[bool] = mapped_column(default=False)
+
+    def __repr__(self) -> str:
+        return self.to_pydantic().__repr__()
+
+    # NOTE: Moving DB manipulation logic to api.py for better separation of concerns.
+
+    # @classmethod
+    # def release_id(cls, id_obj: "planning.ID"):
+    #     """
+    #     Release the given ID back to the pool.
+    #     NOTE: This should only be called when an object is deleted.
+    #     """
+    #     with Session() as session:
+    #         db_id = (
+    #             session.query(cls)
+    #             .filter_by(
+    #                 prefix=id_obj.prefix,
+    #                 numeric=id_obj.numeric,
+    #             )
+    #             .first()
+    #         )
+    #         if db_id:
+    #             db_id.released = True
+    #             session.flush()
+
+    def to_pydantic(self) -> "planning.ID":
+        """Convert to planning.ID."""
+        return planning.ID(prefix=self.prefix, numeric=self.numeric)
+
+    @classmethod
+    def from_pydantic(
+        cls, id_obj: "planning.ID", proto_user_id: int = 0
+    ) -> "Self":
+        """Create ObjectID from planning.ID."""
+        return cls(
+            prefix=id_obj.prefix, numeric=id_obj.numeric, proto_user_id=proto_user_id
+        )
+
+
+class ObjectBase(
+    Base,
+):
+    __tablename__ = "object_base"
+    __abstract__ = True
+
+    __pydantic_model__ = planning.Object
+
+    @classmethod
+    def _generate_id(cls, proto_user_id: int = 0) -> ObjectID:
+        from .api import generate_id
+        logger.debug(f"Generating ID for {cls.__name__} with prefix {cls.__pydantic_model__._default_prefix} and proto_user_id {proto_user_id}.")
+        return cls.from_pydantic(
+            planning.Object.model_validate({
+                "obj_id": generate_id(
+                    prefix=cls.__pydantic_model__._default_prefix,
+                    proto_user_id=proto_user_id,
+                )
+            })
+        )
+
+    """
+    SQLModel representation of the base object in the planning system.
+    Inherits from planning.Object.
+    """
+    id: Mapped[int] = mapped_column(
+        ForeignKey("object_id.id"),
+        primary_key=True,
+        default=lambda: ObjectBase._generate_id().id,
+    )
+
+    @declared_attr
+    def obj_id(cls) -> Mapped[ObjectID]:
+        return relationship("ObjectID", backref=cls.__tablename__, uselist=False)
+
+    def to_pydantic(self) -> "planning.Object":
+        return planning.Object.model_validate({
+            "obj_id": self.obj_id.to_pydantic(),
+            **self.__pydantic_model__.model_validate(self).model_dump()
+        })
+        
+
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Object") -> "Self":
+        logger.warning(f"Calling from_pydantic on {cls.__name__} with {obj.__class__.__name__}.")
+        logger.debug(f"obj: {obj}")
+        return cls(
+            obj_id=ObjectID.from_pydantic(obj.obj_id),
+            # **cls.__pydantic_model__.model_validate(obj).model_dump(exclude={"obj_id"})
+        )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}(obj_id={self.obj_id})>"
+
+
+class RuleComponent(Base):
+    __tablename__ = "rule_component"
+    """
+    SQLModel representation of a Rule Component in the planning system.
+    Inherits from planning.RuleComponent.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    value: Mapped[str] = mapped_column()
+    rule_id: Mapped[int] = mapped_column(ForeignKey("rule.id"))
+
+
+class Rule(ObjectBase):
+    __tablename__ = "rule"
+    __pydantic_model__ = planning.Rule
+    """
+    SQLModel representation of a Rule in the planning system.
+    Inherits from planning.Rule.
+    """
+    description: Mapped[str] = mapped_column()
+    effect: Mapped[str] = mapped_column()
+    components: Mapped[list[RuleComponent]] = relationship(
+        "RuleComponent", backref="rule"
+    )
+
+    def to_pydantic(self) -> "planning.Rule":
+        return planning.Rule(
+            obj_id=self.obj_id.to_pydantic(),
+            description=self.description,
+            effect=self.effect,
+            components=[comp.value for comp in self.components],
+        )
+
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Rule") -> "Self":  # type: ignore[override]
+        return cls(
+            description=obj.description,
+            effect=obj.effect,
+            components=[RuleComponent(value=comp) for comp in obj.components],
+        )
+
+
+class ObjectiveComponent(Base):
+    __tablename__ = "objective_component"
+    """
+    SQLModel representation of an Objective Component in the planning system.
+    Inherits from planning.ObjectiveComponent.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    objective_id: Mapped[int] = mapped_column(ForeignKey("objective.id"))
+    value: Mapped[str] = mapped_column()
+
+
+class ObjectivePrerequisite(Base):
+    __tablename__ = "objective_prerequisite"
+    """
+    Association table for Objective prerequisites.
+    """
+    objective_id: Mapped[int] = mapped_column(
+        ForeignKey("objective.id"), primary_key=True
+    )
+    prerequisite_id: Mapped[int] = mapped_column(
+        ForeignKey("objective.id"), primary_key=True
+    )
+
+
+class Objective(ObjectBase):
+    __tablename__ = "objective"
+    __pydantic_model__ = planning.Objective
+    """
+    SQLModel representation of an Objective in the planning system.
+    Inherits from planning.Objective.
+    """
+    description: Mapped[str] = mapped_column()
+    components: Mapped[list[ObjectiveComponent]] = relationship(
+        "ObjectiveComponent", backref="objective"
+    )
+    # Not sure about the below, testing required.
+    prerequisites: Mapped[list["Objective"]] = relationship(
+        "Objective",
+        secondary="objective_prerequisite",
+        primaryjoin="Objective.id==ObjectivePrerequisite.objective_id",
+        secondaryjoin="Objective.id==ObjectivePrerequisite.prerequisite_id",
+        backref="dependent_objectives",
+    )
+
+    def to_pydantic(self) -> "planning.Objective":
+        return planning.Objective(
+            obj_id=self.obj_id.to_pydantic(),
+            description=self.description,
+            components=[comp.value for comp in self.components],
+            prerequisites=[
+                prereq.obj_id.to_pydantic() for prereq in self.prerequisites
+            ],
+        )
+
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Objective") -> "Self": # type: ignore[override]
+        return cls(
+            description=obj.description,
+            components=[ObjectiveComponent(value=comp) for comp in obj.components],
+            # Prerequisites handling may require session management; omitted for brevity.
+        )
+
+
+class Point(ObjectBase):
+    __tablename__ = "point"
+    __pydantic_model__ = planning.Point
+    """
+    SQLModel representation of a Point in the planning system.
+    Inherits from planning.Point.
+    """
+    name: Mapped[str] = mapped_column()
+    description: Mapped[str] = mapped_column()
+    objective_id: Mapped[int | None] = mapped_column(ForeignKey("objective.id"))
+    objective: Mapped[Objective | None] = relationship(
+        "Objective", foreign_keys="[Point.objective_id]", backref="points"
+    )
+
+    def to_pydantic(self) -> "planning.Point":
+        return planning.Point(
+            obj_id=self.obj_id.to_pydantic(),
+            name=self.name,
+            description=self.description,
+            objective=self.objective.obj_id.to_pydantic() if self.objective else None,
+        )
+    
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Point") -> "Self": # type: ignore[override]
+        return cls(
+            name=obj.name,
+            description=obj.description,
+            objective=ObjectID.from_pydantic(obj.objective) if obj.objective else None,
+        )
+
+
+class Segment(ObjectBase):
+    __tablename__ = "segment"
+    __pydantic_model__ = planning.Segment
+    """
+    SQLModel representation of a Segment in the planning system.
+    Inherits from planning.Segment.
+    """
+    arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"))
+    name: Mapped[str] = mapped_column()
+    description: Mapped[str] = mapped_column()
+    # Point data
+    start_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
+    start: Mapped[Point] = relationship(
+        "Point", foreign_keys="[Segment.start_id]", backref="segment_starts"
+    )
+    end_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
+    end: Mapped[Point] = relationship(
+        "Point", foreign_keys="[Segment.end_id]", backref="segment_ends"
+    )
+
+    def to_pydantic(self) -> "planning.Segment":
+        return planning.Segment(
+            obj_id=self.obj_id.to_pydantic(),
+            name=self.name,
+            description=self.description,
+            start=self.start.to_pydantic(),
+            end=self.end.to_pydantic(),
+        )
+
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Segment") -> "Self": # type: ignore[override]
+        return cls(
+            name=obj.name,
+            description=obj.description,
+            start=Point.from_pydantic(obj.start),
+            end=Point.from_pydantic(obj.end),
+        )
+
+class Arc(ObjectBase):
+    __tablename__ = "arc"
+    __pydantic_model__ = planning.Arc
+    """
+    SQLModel representation of an Arc in the planning system.
+    Inherits from planning.Arc.
+    """
+    name: Mapped[str] = mapped_column()
+    description: Mapped[str] = mapped_column()
+    segments: Mapped[list[Segment]] = relationship("Segment", backref="arc")
+
+    def to_pydantic(self) -> "planning.Arc":
+        return planning.Arc(
+            obj_id=self.obj_id.to_pydantic(),
+            name=self.name,
+            description=self.description,
+            segments=[seg.to_pydantic() for seg in self.segments],
+        )
+
+
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Arc") -> "Self": # type: ignore[override]
+        return cls(
+            name=obj.name,
+            description=obj.description,
+            segments=[Segment.from_pydantic(seg) for seg in obj.segments],
+        )
+
+class ArcToCampaign(Base):
+    __tablename__ = "campaign_arc"
+    """
+    Association table for CampaignPlan and their Arcs (Storylines).
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"), primary_key=True)
+
+
+class ItemProperty(Base):
+    __tablename__ = "item_properties"
+    """
+    SQLModel representation of Item properties as key-value pairs.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id"))
+    key: Mapped[str] = mapped_column()
+    value: Mapped[str] = mapped_column()
+
+
+class Item(ObjectBase):
+    __tablename__ = "item"
+    __pydantic_model__ = planning.Item
+    """
+    SQLModel representation of an Item in the planning system.
+    Inherits from planning.Item.
+    """
+    name: Mapped[str] = mapped_column()
+    type_: Mapped[str] = mapped_column()
+    description: Mapped[str] = mapped_column()
+
+    _properties: Mapped[list[ItemProperty]] = relationship(
+        "ItemProperty", backref="item"
+    )
+
+    @property  # Heh, different type of property
+    def properties(self) -> dict[str, str]:
+        return {prop.key: prop.value for prop in self._properties}
+
+    @properties.setter
+    def properties(self, props: dict[str, str]):
+        self._properties = [ItemProperty(key=k, value=v) for k, v in props.items()]
+
+    def to_pydantic(self) -> "planning.Item":
+        return planning.Item(
+            obj_id=self.obj_id.to_pydantic(),
+            name=self.name,
+            type_=self.type_,
+            description=self.description,
+            properties=self.properties,
+        )
+
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Item") -> "Self": # type: ignore[override]
+        return cls(
+            name=obj.name,
+            type_=obj.type_,
+            description=obj.description,
+            properties=obj.properties,
+        )
+
+class CampaignItem(Base):
+    __tablename__ = "campaign_item"
+    """
+    Association table for CampaignPlan and their Items.
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id"), primary_key=True)
+
+
+class StorylineToCharacter(Base):
+    __tablename__ = "character_storylines"
+    """
+    Association table for Characters and their Storylines (Arcs).
+    """
+    character_id: Mapped[int] = mapped_column(
+        ForeignKey("character.id"), primary_key=True
+    )
+    arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"), primary_key=True)
+
+
+class CharacterInventory(Base):
+    __tablename__ = "character_inventory"
+    """
+    Association table for Characters and their Items (Inventory).
+    """
+    character_id: Mapped[int] = mapped_column(
+        ForeignKey("character.id"), primary_key=True
+    )
+    item_id: Mapped[int] = mapped_column(ForeignKey("item.id"), primary_key=True)
+
+
+class CharacterAttribute(Base):
+    __tablename__ = "character_attributes"
+    """
+    SQLModel representation of Character attributes as key-value pairs.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"))
+    key: Mapped[str] = mapped_column()
+    value: Mapped[int] = mapped_column()
+
+
+class CharacterSkill(Base):
+    __tablename__ = "character_skills"
+    """
+    SQLModel representation of Character skills as key-value pairs.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"))
+    key: Mapped[str] = mapped_column()
+    value: Mapped[int] = mapped_column()
+
+
+class Character(ObjectBase):
+    __tablename__ = "character"
+    __pydantic_model__ = planning.Character
+    """
+    SQLModel representation of a Character in the planning system.
+    Inherits from planning.Character.
+    """
+    name: Mapped[str] = mapped_column()
+    role: Mapped[str] = mapped_column()
+    backstory: Mapped[str] = mapped_column()
+
+    _attributes: Mapped[list[CharacterAttribute]] = relationship(
+        "CharacterAttribute", backref="character"
+    )
+
+    @property
+    def attributes(self) -> dict[str, int]:
+        return {attr.key: attr.value for attr in self._attributes}
+
+    @attributes.setter
+    def attributes(self, attrs: dict[str, int]):
+        self._attributes = [
+            CharacterAttribute(key=k, value=v) for k, v in attrs.items()
+        ]
+
+    _skills: Mapped[list[CharacterSkill]] = relationship(
+        "CharacterSkill", backref="character"
+    )
+
+    @property
+    def skills(self) -> dict[str, int]:
+        return {skill.key: skill.value for skill in self._skills}
+
+    @skills.setter
+    def skills(self, skills: dict[str, int]):
+        self._skills = [CharacterSkill(key=k, value=v) for k, v in skills.items()]
+
+    storylines: Mapped[list[Arc]] = relationship(
+        "Arc", secondary="character_storylines", backref="characters"
+    )
+    inventory: Mapped[list[Item]] = relationship(
+        "Item", secondary="character_inventory", backref="owners"
+    )
+
+    def to_pydantic(self) -> "planning.Character":
+        return planning.Character(
+            obj_id=self.obj_id.to_pydantic(),
+            name=self.name,
+            role=self.role,
+            backstory=self.backstory,
+            attributes=self.attributes,
+            skills=self.skills,
+        )
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Character") -> "Self": # type: ignore[override]
+        return cls(
+            name=obj.name,
+            role=obj.role,
+            backstory=obj.backstory,
+            attributes=obj.attributes,
+            skills=obj.skills,
+        )
+
+class CharacterToCampaign(Base):
+    __tablename__ = "campaign_character"
+    """
+    Association table for CampaignPlan and their Characters.
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    character_id: Mapped[int] = mapped_column(
+        ForeignKey("character.id"), primary_key=True
+    )
+
+
+class LocationCoord(Base):
+    __tablename__ = "location_coords"
+    """
+    SQLModel representation of Location coordinates.
+    """
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    location_id: Mapped[int] = mapped_column(ForeignKey("location.id"))
+    latitude: Mapped[float] = mapped_column()
+    longitude: Mapped[float] = mapped_column()
+    altitude: Mapped[float | None] = mapped_column()
+
+
+class LocationNeighbor(Base):
+    __tablename__ = "location_neighbors"
+    """
+    Association table for neighboring Locations.
+    """
+    location_id: Mapped[int] = mapped_column(
+        ForeignKey("location.id"), primary_key=True
+    )
+    neighbor_id: Mapped[int] = mapped_column(
+        ForeignKey("location.id"), primary_key=True
+    )
+
+
+class Location(ObjectBase):
+    __tablename__ = "location"
+    __pydantic_model__ = planning.Location
+    """
+    SQL model representation of a Location in the planning system.
+    Inherits from planning.Location.
+    """
+    name: Mapped[str] = mapped_column()
+    description: Mapped[str] = mapped_column()
+    coords: Mapped[LocationCoord | None] = relationship(
+        "LocationCoord", uselist=False, backref="location"
+    )
+    neighboring_locations: Mapped[list["Location"]] = relationship(
+        "Location",
+        secondary="location_neighbors",
+        primaryjoin="Location.id==LocationNeighbor.location_id",
+        secondaryjoin="Location.id==LocationNeighbor.neighbor_id",
+        backref="neighbors",
+    )
+    def to_pydantic(self) -> "planning.Location":
+        return planning.Location(
+            obj_id=self.obj_id.to_pydantic(),
+            name=self.name,
+            description=self.description,
+            coords=self.coords.to_pydantic() if self.coords else None,
+            neighboring_locations=[loc.obj_id.to_pydantic() for loc in self.neighbors],
+        )
+    @classmethod
+    def from_pydantic(cls, obj: "planning.Location") -> "Self": # type: ignore[override]
+        return cls(
+            name=obj.name,
+            description=obj.description,
+            coords=LocationCoord.from_pydantic(obj.coords) if obj.coords else None,
+            neighboring_locations=[ObjectID.from_pydantic(loc) for loc in obj.neighboring_locations],
+        )
+
+
+class CampaignLocation(Base):
+    __tablename__ = "campaign_location"
+    """
+    Association table for CampaignPlan and their Locations.
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    location_id: Mapped[int] = mapped_column(
+        ForeignKey("location.id"), primary_key=True
+    )
+
+
+class CampaignPlan(ObjectBase):
+    __tablename__ = "campaign_plan"
+    __pydantic_model__ = planning.CampaignPlan
+    """
+    SQLModel representation of a Campaign Plan in the planning system.
+    Inherits from planning.CampaignPlan.
+    """
+    title: Mapped[str] = mapped_column()
+    version: Mapped[str] = mapped_column()
+    setting: Mapped[str] = mapped_column()
+    summary: Mapped[str] = mapped_column()
+    # These relationships may be unnecessary, depending on how we load the full plan.
+    storypoints: Mapped[list[Arc]] = relationship(
+        "Arc", secondary="campaign_arc", backref="campaign_plan"
+    )
+    characters: Mapped[list[Character]] = relationship(
+        "Character", secondary="campaign_character", backref="campaign_plan"
+    )
+    locations: Mapped[list[Location]] = relationship(
+        "Location", secondary="campaign_location", backref="campaign_plan"
+    )
+    items: Mapped[list[Item]] = relationship(
+        "Item", secondary="campaign_item", backref="campaign_plan"
+    )
+
+    def to_pydantic(self) -> "planning.CampaignPlan":
+        return planning.CampaignPlan(
+            obj_id=self.obj_id.to_pydantic(),
+            title=self.title,
+            version=self.version,
+            setting=self.setting,
+            summary=self.summary,
+        )
+    @classmethod
+    def from_pydantic(cls, obj: "planning.CampaignPlan") -> "Self": # type: ignore[override]
+        # if obj.obj_id is None:
+        #     # Generate obj_id
+            
+        return cls(
+            title=obj.title,
+            version=obj.version,
+            setting=obj.setting,
+            summary=obj.summary,
+        )
+
+PydanticToSQLModel = {
+    planning.ID: ObjectID,
+    planning.Object: ObjectBase,
+    planning.Rule: Rule,
+    planning.Objective: Objective,
+    planning.Point: Point,
+    planning.Segment: Segment,
+    planning.Arc: Arc,
+    planning.Item: Item,
+    planning.Character: Character,
+    planning.Location: Location,
+    planning.CampaignPlan: CampaignPlan
+}
