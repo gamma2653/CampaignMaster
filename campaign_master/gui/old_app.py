@@ -384,7 +384,7 @@ class ObjectForm(QtWidgets.QWidget):
         Create a new PydanticForm for a given Pydantic model type.
         """
         form_instance = cls(model, parent=parent)
-        form_instance.obj_id = content_api.generate_id(prefix=model._default_prefix).to_pydantic()
+        form_instance.obj_id = content_api.generate_id(prefix=model._default_prefix)
         form_instance.init_ui()
         return form_instance
 

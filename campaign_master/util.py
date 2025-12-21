@@ -4,7 +4,9 @@ import logging
 import threading
 import contextlib
 
-_CM_LOG_LEVEL = os.getenv("CM_LOG_LEVEL", "DEBUG").upper()
+# TODO: Use settings.py logging config instead
+_DEFAULT_LEVEL = "INFO"
+_CM_LOG_LEVEL = os.getenv("CM_LOG_LEVEL", _DEFAULT_LEVEL).upper() or _DEFAULT_LEVEL
 try:
     CM_LOG_LEVEL = logging.getLevelNamesMapping()[_CM_LOG_LEVEL]  # Validate log level
 except KeyError:
@@ -18,7 +20,8 @@ def get_basic_formatter() -> logging.Formatter:
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 
-def get_basic_logger(name: str, level: int = logging.DEBUG) -> logging.Logger:
+
+def get_basic_logger(name: str, level: int = CM_LOG_LEVEL) -> logging.Logger:
     """
     Creates and returns a basic logger with the specified name.
 

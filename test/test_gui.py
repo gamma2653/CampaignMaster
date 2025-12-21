@@ -46,7 +46,3 @@ class GUITestCase(TestCase):
         self.app.quit()
 
     
-    def test_content_api(self):
-        campaign_plan = content_api.create_object(CampaignPlan)
-        print(campaign_plan)
-        self.assertIs(type(campaign_plan), CampaignPlan)

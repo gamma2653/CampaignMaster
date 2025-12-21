@@ -219,7 +219,7 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
 
         if object_select_dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             selected_item = object_select.get_selected_object()
-            self.list_widget.addItem(str(selected_item.obj_id))
+            self.list_widget.addItem(str(selected_item))
             self.objects.append(selected_item)
 
     def remove_object(self):

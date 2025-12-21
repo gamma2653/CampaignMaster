@@ -28,6 +28,11 @@ class ID(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.prefix}-{self.numeric:0{self._max_numeric_digits}d}"
+    
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ID):
+            return self is other
+        return self.prefix == other.prefix and self.numeric == other.numeric
 
     def to_digits(self, max_digits: Optional[int] = None) -> int:
         """
@@ -71,7 +76,7 @@ class Object(BaseModel):
     Base class for all objects in the campaign planning system.
     """
 
-    obj_id: ID
+    _obj_id: ID | None = None
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
@@ -88,6 +93,20 @@ class Object(BaseModel):
             if isinstance(data.get("obj_id"), str):
                 return {**data, "obj_id": ID.from_str(data["obj_id"])}
         return data
+    
+    @property
+    def obj_id(self) -> ID:
+        if self._obj_id is None:
+            # Generate on the fly if not set
+            from . import api as content_api
+            self._obj_id = content_api.generate_id(prefix=self._default_prefix)
+        return self._obj_id
+    
+    @obj_id.setter
+    def obj_id(self, value: ID | str) -> None:
+        if isinstance(value, str):
+            value = ID.from_str(value)
+        self._obj_id = value
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}({self.obj_id})"
