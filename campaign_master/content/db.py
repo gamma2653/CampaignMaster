@@ -1,13 +1,11 @@
 from abc import abstractmethod
 from typing import Self
-from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import ForeignKey, select
 from sqlalchemy.orm import (
     declarative_base,
     Mapped,
     mapped_column,
     relationship,
-    declared_attr,
     Session,
 )
 from . import planning
@@ -86,12 +84,20 @@ class ObjectID(Base):
 
     @classmethod
     def from_pydantic(
-        cls, id_obj: "planning.ID", proto_user_id: int = 0, _session: Session | None = None
+        cls,
+        id_obj: "planning.ID",
+        proto_user_id: int = 0,
+        _session: Session | None = None,
     ) -> "Self":
-        """Create ObjectID from planning.ID."""
+        """
+        Create ObjectID from planning.ID.
+        Checks if the ID already exists; if not, creates a new one.
+        """
+
         # Query to see if it exists
         def perform(session):
             from . import api as content_api
+
             existing = content_api._retrieve_id(
                 prefix=id_obj.prefix,
                 numeric=id_obj.numeric,
@@ -99,10 +105,16 @@ class ObjectID(Base):
                 session=session,
             )
             if not existing:
+                logger.debug(
+                    "No existing ID found, creating new ObjectID for %s", id_obj
+                )
                 return content_api._generate_id(
                     prefix=id_obj.prefix, proto_user_id=proto_user_id, session=session
                 )
+            else:
+                logger.debug("Existing ID found: %s", existing)
             return existing
+
         if _session is None:
             with Session() as session:
                 return perform(session)
@@ -117,18 +129,18 @@ class ObjectBase(
 
     __pydantic_model__ = planning.Object
 
-    @classmethod
-    def _generate_id(cls, proto_user_id: int = 0) -> ObjectID:
-        from .api import generate_id
-        logger.debug(f"Generating ID for {cls.__name__} with prefix {cls.__pydantic_model__._default_prefix} and proto_user_id {proto_user_id}.")
-        return cls.from_pydantic(
-            cls.__pydantic_model__.model_validate({
-                "obj_id": generate_id(
-                    prefix=cls.__pydantic_model__._default_prefix,
-                    proto_user_id=proto_user_id,
-                )
-            })
-        )
+    # @classmethod
+    # def _generate_id(cls, proto_user_id: int = 0) -> ObjectID:
+    #     from .api import generate_id
+    #     logger.debug(f"Generating ID for {cls.__name__} with prefix {cls.__pydantic_model__._default_prefix} and proto_user_id {proto_user_id}.")
+    #     return cls.from_pydantic(
+    #         cls.__pydantic_model__.model_validate({
+    #             "obj_id": generate_id(
+    #                 prefix=cls.__pydantic_model__._default_prefix,
+    #                 proto_user_id=proto_user_id,
+    #             )
+    #         })
+    #     )
 
     """
     SQLModel representation of the base object in the planning system.
@@ -138,37 +150,54 @@ class ObjectBase(
         ForeignKey("object_id.id"),
         primary_key=True,
     )
-    
-    def __init__(self, **kwargs):
-        if 'id' not in kwargs:
-            kwargs['id'] = self._generate_id().id
-        super().__init__(**kwargs)
 
-    @declared_attr
-    def obj_id(cls) -> Mapped[ObjectID]:
-        return relationship("ObjectID", backref=cls.__tablename__, uselist=False)
+    # def __init__(self, **kwargs):
+    #     if 'id' not in kwargs:
+    #         kwargs['id'] = self._generate_id().id
+    #     super().__init__(**kwargs)
 
-    def to_pydantic(self) -> "planning.Object":
-        return planning.Object.model_validate({
-            "obj_id": self.obj_id.to_pydantic(),
-            **self.__pydantic_model__.model_validate(self).model_dump()
-        })
-        
+    # @declared_attr
+    # def obj_id(cls) -> Mapped[ObjectID]:
+    #     return relationship(
+    #         "ObjectID", backref=cls.__tablename__, uselist=False, foreign_keys=[cls.id]
+    #     )
+    def obj_id(self, session: Session):
+        obj_id = session.execute(select(ObjectID).where(ObjectID.id == self.id)).scalars().first()
+        if not obj_id:
+            raise ValueError(f"ObjectID with id {self.id} not found in DB. This is likely an orphaned object, or one created improperly.")
+        return obj_id
+
+    def to_pydantic(self, session: Session) -> "planning.Object":
+        obj = planning.Object.model_validate(
+            {
+                "obj_id": self.obj_id(session=session).to_pydantic(),
+                **self.__pydantic_model__.model_validate(self).model_dump(),
+            }
+        )
+        logger.debug("Converted to pydantic: %s %s", obj, type(obj))
+        return obj
 
     @classmethod
-    def from_pydantic(cls, obj: "planning.Object", proto_user_id: int = 0, _session: Session | None = None) -> "Self":
+    def from_pydantic(
+        cls,
+        obj: "planning.Object",
+        proto_user_id: int = 0,
+        _session: Session | None = None,
+    ) -> "Self":
         def perform(session: Session) -> "Self":
             return cls(
-                obj_id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session),
-                **cls.__pydantic_model__.model_validate(obj).model_dump(exclude={"obj_id"})
+                obj_id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ),
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}(obj_id={self.obj_id})>"
+        return f"<{self.__class__.__name__}(obj_id={self.id})>"
 
 
 class RuleComponent(Base):
@@ -194,13 +223,17 @@ class Rule(ObjectBase):
         "RuleComponent", backref="rule"
     )
 
-    def to_pydantic(self) -> "planning.Rule":
-        return planning.Rule(
-            _obj_id=self.obj_id.to_pydantic(),
+    def to_pydantic(self, session: Session) -> "planning.Rule":
+        obj_id = self.obj_id(session=session).to_pydantic()
+        logger.debug("Rule obj_id retrieved: %s", obj_id)
+        obj = planning.Rule(
+            _obj_id=obj_id,
             description=self.description,
             effect=self.effect,
             components=[comp.value for comp in self.components],
         )
+        # logger.debug("Converted to pydantic: %s %s", obj, type(obj))
+        return obj
 
     @classmethod
     def from_pydantic(cls, obj: "planning.Rule", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
@@ -208,8 +241,9 @@ class Rule(ObjectBase):
         # First get the ObjectID
         def perform(session: Session) -> "Self":
             from . import api as content_api
+
             # First find existing ID
-            print("Retrieving ID for Rule...")
+            # logger.debug("Retrieving ID for Rule... (%s)", obj.obj_id)
 
             obj_id_db = content_api._retrieve_id(
                 prefix=obj.obj_id.prefix,
@@ -218,29 +252,43 @@ class Rule(ObjectBase):
                 session=session,
             )
             if not obj_id_db:
-                # Create new
-                print("Generating new ID for Rule...")
-                obj_id_db = content_api._generate_id(
-                    prefix=obj.obj_id.prefix, proto_user_id=proto_user_id, session=session
-                )
+                # FIXME: This should not happen due to pydantic validation, log warning
+                # logger.warning("No ID found for Rule: %s", obj.obj_id)
+                # obj_id_db = content_api._generate_id(
+                #     prefix=obj.obj_id.prefix, proto_user_id=proto_user_id, session=session
+                # )
+                raise ValueError(f"No ID found for Rule: {obj.obj_id}")
+            # else:
+            #     logger.debug("Found existing ID for Rule: %s", obj_id_db)
             # Now check for existing Rule with this ID
             existing = (
-                session.execute(
-                    select(cls).where(cls.obj_id == obj_id_db)
-                ).scalars().first()
+                session.execute(select(cls).where(cls.id == obj_id_db.id))
+                .scalars()
+                .first()
             )
-            print(f"Existing Rule found: {existing}")
+            # logger.debug("Existing Rule found: %s", existing)
             if existing:
                 return existing
-            return cls(
+            # logger.debug("Creating new Rule from pydantic using ObjectID: %s", obj)
+            db_obj = cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 description=obj.description,
                 effect=obj.effect,
                 components=[RuleComponent(value=comp) for comp in obj.components],
             )
+            # logger.debug("Created Rule in DB: %s", db_obj)
+            # logger.debug("w/ obj_id: %s", db_obj.obj_id(session=session))
+            result = session.execute(select(ObjectID).where(ObjectID.id == db_obj.id))
+            # logger.debug("Retrieved ObjectID: %s", result.scalars().first())
+            return db_obj
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
+
 
 class ObjectiveComponent(Base):
     __tablename__ = "objective_component"
@@ -286,23 +334,30 @@ class Objective(ObjectBase):
         backref="dependent_objectives",
     )
 
-    def to_pydantic(self) -> "planning.Objective":
+    def to_pydantic(self, session: Session) -> "planning.Objective":
         return planning.Objective(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             description=self.description,
             components=[comp.value for comp in self.components],
             prerequisites=[
-                prereq.obj_id.to_pydantic() for prereq in self.prerequisites
+                prereq.obj_id(session=session).to_pydantic() for prereq in self.prerequisites
             ],
         )
 
     @classmethod
-    def from_pydantic(cls, obj: "planning.Objective", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Objective", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
@@ -311,6 +366,7 @@ class Objective(ObjectBase):
                 components=[ObjectiveComponent(value=comp) for comp in obj.components],
                 # Prerequisites handling may require session management; omitted for brevity.
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
@@ -331,36 +387,51 @@ class Point(ObjectBase):
         "Objective", foreign_keys="[Point.objective_id]", backref="points"
     )
 
-    def to_pydantic(self) -> "planning.Point":
+    def to_pydantic(self, session: Session) -> "planning.Point":
         return planning.Point(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
-            objective=self.objective.obj_id.to_pydantic() if self.objective else None,
+            objective=self.objective.obj_id(session=session).to_pydantic() if self.objective else None,
         )
-    
+
     @classmethod
-    def from_pydantic(cls, obj: "planning.Point", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Point", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             with Session() as session:
                 # Check for existing
                 existing = (
                     session.execute(
-                        select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                    ).scalars().first()
+                        select(cls).where(
+                            cls.id
+                            == ObjectID.from_pydantic(
+                                obj.obj_id,
+                                proto_user_id=proto_user_id,
+                                _session=session,
+                            ).id
+                        )
+                    )
+                    .scalars()
+                    .first()
                 )
                 if existing:
                     return existing
                 return cls(
                     name=obj.name,
                     description=obj.description,
-                    objective=ObjectID.from_pydantic(obj.objective, proto_user_id=proto_user_id, _session=session) if obj.objective else None,
+                    objective=(
+                        ObjectID.from_pydantic(
+                            obj.objective, proto_user_id=proto_user_id, _session=session
+                        )
+                        if obj.objective
+                        else None
+                    ),
                 )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
-        
 
 
 class Segment(ObjectBase):
@@ -383,35 +454,48 @@ class Segment(ObjectBase):
         "Point", foreign_keys="[Segment.end_id]", backref="segment_ends"
     )
 
-    def to_pydantic(self) -> "planning.Segment":
+    def to_pydantic(self, session: Session) -> "planning.Segment":
         return planning.Segment(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
-            start=self.start.to_pydantic(),
-            end=self.end.to_pydantic(),
+            start=self.start.to_pydantic(session=session),
+            end=self.end.to_pydantic(session=session),
         )
 
     @classmethod
-    def from_pydantic(cls, obj: "planning.Segment", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Segment", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
             return cls(
                 name=obj.name,
                 description=obj.description,
-                start=Point.from_pydantic(obj.start, proto_user_id=proto_user_id, _session=session),
-                end=Point.from_pydantic(obj.end, proto_user_id=proto_user_id, _session=session),
+                start=Point.from_pydantic(
+                    obj.start, proto_user_id=proto_user_id, _session=session
+                ),
+                end=Point.from_pydantic(
+                    obj.end, proto_user_id=proto_user_id, _session=session
+                ),
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
+
 
 class Arc(ObjectBase):
     __tablename__ = "arc"
@@ -424,34 +508,47 @@ class Arc(ObjectBase):
     description: Mapped[str] = mapped_column()
     segments: Mapped[list[Segment]] = relationship("Segment", backref="arc")
 
-    def to_pydantic(self) -> "planning.Arc":
+    def to_pydantic(self, session: Session) -> "planning.Arc":
         return planning.Arc(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
-            segments=[seg.to_pydantic() for seg in self.segments],
+            segments=[seg.to_pydantic(session=session) for seg in self.segments],
         )
 
-
     @classmethod
-    def from_pydantic(cls, obj: "planning.Arc", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Arc", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
             return cls(
                 name=obj.name,
                 description=obj.description,
-                segments=[Segment.from_pydantic(seg, proto_user_id=proto_user_id, _session=session) for seg in obj.segments],
+                segments=[
+                    Segment.from_pydantic(
+                        seg, proto_user_id=proto_user_id, _session=session
+                    )
+                    for seg in obj.segments
+                ],
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
+
 
 class ArcToCampaign(Base):
     __tablename__ = "campaign_arc"
@@ -498,9 +595,9 @@ class Item(ObjectBase):
     def properties(self, props: dict[str, str]):
         self._properties = [ItemProperty(key=k, value=v) for k, v in props.items()]
 
-    def to_pydantic(self) -> "planning.Item":
+    def to_pydantic(self, session: Session) -> "planning.Item":
         return planning.Item(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             type_=self.type_,
             description=self.description,
@@ -508,12 +605,19 @@ class Item(ObjectBase):
         )
 
     @classmethod
-    def from_pydantic(cls, obj: "planning.Item", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Item", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
@@ -523,10 +627,12 @@ class Item(ObjectBase):
                 description=obj.description,
                 properties=obj.properties,
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
+
 
 class CampaignItem(Base):
     __tablename__ = "campaign_item"
@@ -627,22 +733,30 @@ class Character(ObjectBase):
         "Item", secondary="character_inventory", backref="owners"
     )
 
-    def to_pydantic(self) -> "planning.Character":
+    def to_pydantic(self, session: Session) -> "planning.Character":
         return planning.Character(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             role=self.role,
             backstory=self.backstory,
             attributes=self.attributes,
             skills=self.skills,
         )
+
     @classmethod
-    def from_pydantic(cls, obj: "planning.Character", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Character", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
@@ -653,10 +767,12 @@ class Character(ObjectBase):
                 attributes=obj.attributes,
                 skills=obj.skills,
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
+
 
 class CharacterToCampaign(Base):
     __tablename__ = "campaign_character"
@@ -715,30 +831,51 @@ class Location(ObjectBase):
         secondaryjoin="Location.id==LocationNeighbor.neighbor_id",
         backref="neighbors",
     )
-    def to_pydantic(self) -> "planning.Location":
+
+    def to_pydantic(self, session: Session) -> "planning.Location":
         return planning.Location(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
-            coords=self.coords.to_pydantic() if self.coords else None,
-            neighboring_locations=[loc.obj_id.to_pydantic() for loc in self.neighbors],
+            coords=self.coords.to_pydantic(session=session) if self.coords else None,
+            neighboring_locations=[loc.obj_id.to_pydantic(session=session) for loc in self.neighbors],
         )
+
     @classmethod
-    def from_pydantic(cls, obj: "planning.Location", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.Location", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
             return cls(
                 name=obj.name,
                 description=obj.description,
-                coords=LocationCoord.from_pydantic(obj.coords, proto_user_id=proto_user_id, _session=session) if obj.coords else None,
-                neighboring_locations=[ObjectID.from_pydantic(loc, proto_user_id=proto_user_id, _session=session) for loc in obj.neighboring_locations],
+                coords=(
+                    LocationCoord.from_pydantic(
+                        obj.coords, proto_user_id=proto_user_id, _session=session
+                    )
+                    if obj.coords
+                    else None
+                ),
+                neighboring_locations=[
+                    ObjectID.from_pydantic(
+                        loc, proto_user_id=proto_user_id, _session=session
+                    )
+                    for loc in obj.neighboring_locations
+                ],
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
@@ -783,21 +920,29 @@ class CampaignPlan(ObjectBase):
         "Item", secondary="campaign_item", backref="campaign_plan"
     )
 
-    def to_pydantic(self) -> "planning.CampaignPlan":
+    def to_pydantic(self, session: Session) -> "planning.CampaignPlan":
         return planning.CampaignPlan(
-            _obj_id=self.obj_id.to_pydantic(),
+            _obj_id=self.obj_id(session=session).to_pydantic(),
             title=self.title,
             version=self.version,
             setting=self.setting,
             summary=self.summary,
         )
+
     @classmethod
-    def from_pydantic(cls, obj: "planning.CampaignPlan", proto_user_id: int = 0, _session: Session | None = None) -> "Self": # type: ignore[override]
+    def from_pydantic(cls, obj: "planning.CampaignPlan", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
-                    select(cls).where(cls.obj_id.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, _session=session).id)
-                ).scalars().first()
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, _session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
             )
             if existing:
                 return existing
@@ -807,12 +952,16 @@ class CampaignPlan(ObjectBase):
                 setting=obj.setting,
                 summary=obj.summary,
             )
+
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
 
-PydanticToSQLModel: dict[type[planning.Object] | type[planning.ID], type[ObjectBase] | type[ObjectID]] = {
+
+PydanticToSQLModel: dict[
+    type[planning.Object] | type[planning.ID], type[ObjectBase] | type[ObjectID]
+] = {
     planning.ID: ObjectID,
     planning.Object: ObjectBase,
     planning.Rule: Rule,
@@ -823,6 +972,5 @@ PydanticToSQLModel: dict[type[planning.Object] | type[planning.ID], type[ObjectB
     planning.Item: Item,
     planning.Character: Character,
     planning.Location: Location,
-    planning.CampaignPlan: CampaignPlan
+    planning.CampaignPlan: CampaignPlan,
 }
-

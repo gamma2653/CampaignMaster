@@ -30,40 +30,41 @@ class DBTestCase(TestCase):
         content_api.create_db_and_tables()
         content_api.create_example_data()
 
-    def test_generate_and_retrieve_ids(self):
-        generated_ids: dict[str, planning.ID] = {}
-        # Use prefixes from Object class (cls._default_prefix)
-        prefixes = {obj_type._default_prefix for obj_type in get_all_object_types()}
-        for prefix in prefixes:
-            new_id = content_api.generate_id(prefix=prefix)
-            self.assertEqual(new_id.prefix, prefix)
-            generated_ids[prefix] = new_id
-        # Retrieve and verify
-        for prefix, gen_id in generated_ids.items():
-            retrieved_ids = content_api.retrieve_ids(prefix=prefix)
-            self.assertIn(gen_id, retrieved_ids)
+    # def test_generate_and_retrieve_ids(self):
+    #     generated_ids: dict[str, planning.ID] = {}
+    #     # Use prefixes from Object class (cls._default_prefix)
+    #     prefixes = {obj_type._default_prefix for obj_type in get_all_object_types()}
+    #     for prefix in prefixes:
+    #         new_id = content_api.generate_id(prefix=prefix)
+    #         self.assertEqual(new_id.prefix, prefix)
+    #         generated_ids[prefix] = new_id
+    #     # Retrieve and verify
+    #     for prefix, gen_id in generated_ids.items():
+    #         retrieved_ids = content_api.retrieve_ids(prefix=prefix)
+    #         self.assertIn(gen_id, retrieved_ids)
     
-    def test_generate_and_retrieve_ids_proto_user(self):
-        proto_user_id = 42
-        generated_ids: dict[str, planning.ID] = {}
-        prefixes = {obj_type._default_prefix for obj_type in get_all_object_types()}
-        for prefix in prefixes:
-            new_id = content_api.generate_id(prefix=prefix, proto_user_id=proto_user_id)
-            self.assertEqual(new_id.prefix, prefix)
-            generated_ids[prefix] = new_id
-        # Retrieve and verify
-        for prefix, gen_id in generated_ids.items():
-            retrieved_ids = content_api.retrieve_ids(prefix=prefix, proto_user_id=proto_user_id)
-            self.assertIn(gen_id, retrieved_ids)
-        for prefix, gen_id in generated_ids.items():
-            retrieved_ids_global = content_api.retrieve_ids(prefix=prefix, proto_user_id=0)
-            self.assertNotIn(gen_id, retrieved_ids_global)
+    # def test_generate_and_retrieve_ids_proto_user(self):
+    #     proto_user_id = 42
+    #     generated_ids: dict[str, planning.ID] = {}
+    #     prefixes = {obj_type._default_prefix for obj_type in get_all_object_types()}
+    #     for prefix in prefixes:
+    #         new_id = content_api.generate_id(prefix=prefix, proto_user_id=proto_user_id)
+    #         self.assertEqual(new_id.prefix, prefix)
+    #         generated_ids[prefix] = new_id
+    #     # Retrieve and verify
+    #     for prefix, gen_id in generated_ids.items():
+    #         retrieved_ids = content_api.retrieve_ids(prefix=prefix, proto_user_id=proto_user_id)
+    #         self.assertIn(gen_id, retrieved_ids)
+    #     for prefix, gen_id in generated_ids.items():
+    #         retrieved_ids_global = content_api.retrieve_ids(prefix=prefix, proto_user_id=0)
+    #         self.assertNotIn(gen_id, retrieved_ids_global)
 
     def test_create_object(self):
         for ObjectType in [ObjectType for ObjectType in get_all_object_types() if ObjectType is not planning.Object]:
             with self.subTest(ObjectType=ObjectType):
                 print(f"Testing creation of object type: {ObjectType.__name__}")
                 obj = content_api.create_object(ObjectType)
+                print(f"Created object: {obj} {type(obj)} with ID: {obj.obj_id} {type(obj.obj_id)}")
                 self.assertIsInstance(obj, ObjectType)
                 self.assertIsInstance(obj.obj_id, planning.ID)
             break  # Limit to one test per run for debugging

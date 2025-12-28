@@ -1,6 +1,6 @@
 # Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
 import re
-from typing import Optional, ClassVar, Any, TYPE_CHECKING
+from typing import Optional, ClassVar, Any, TypeVar
 from pydantic import BaseModel, Field, field_validator, PrivateAttr, model_validator
 from ..util import get_basic_logger
 
@@ -70,6 +70,7 @@ class ID(BaseModel):
     def __hash__(self) -> int:
         return hash((self.prefix, self.numeric))
 
+T = TypeVar("T")
 
 class Object(BaseModel):
     """
@@ -77,28 +78,36 @@ class Object(BaseModel):
     """
 
     _obj_id: ID | None = None
+    _initialized: bool = PrivateAttr(False)
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
-    @model_validator(mode="before")
-    @classmethod
-    def try_coerce_id(cls, data: Any) -> Any:
-        # Lazy load generate_id to avoid circular imports
-        if isinstance(data, dict):
-            if not data.get("obj_id"):
-                from . import api as content_api
-                id_ = content_api.generate_id(prefix=cls._default_prefix)
-                print(f"Generated ID: {id_}")
-                return {**data, "obj_id": id_}
-            if isinstance(data.get("obj_id"), str):
-                return {**data, "obj_id": ID.from_str(data["obj_id"])}
-        return data
+    # @model_validator(mode="before")
+    # @classmethod
+    # def try_coerce_id(cls, data: Any) -> Any:
+    #     # Lazy load generate_id to avoid circular imports
+    #     if isinstance(data, dict):
+    #         if not data.get("obj_id"):
+    #             from . import api as content_api
+    #             id_ = content_api.generate_id(prefix=cls._default_prefix)
+    #             logger.debug(f"Generated ID: {id_}")
+    #             return {**data, "obj_id": id_}
+    #         if isinstance(data.get("obj_id"), str):
+    #             return {**data, "obj_id": ID.from_str(data["obj_id"])}
+    #     return data
     
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._initialized = True
+
     @property
     def obj_id(self) -> ID:
         if self._obj_id is None:
             # Generate on the fly if not set
+            if not self._initialized:
+                raise ValueError("Object ID is not set and object is not initialized.")
             from . import api as content_api
+            logger.debug(f"Generating first call ID for object of type {type(self).__name__}")
             self._obj_id = content_api.generate_id(prefix=self._default_prefix)
         return self._obj_id
     
