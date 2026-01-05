@@ -236,3 +236,6 @@ __marimo__/
 
 # tanstack
 .tanstack/
+
+# Claude Code
+.claude/
