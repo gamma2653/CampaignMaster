@@ -1,19 +1,17 @@
 # GUI application for managing tabletop RPG campaigns
 
-from typing import Optional, cast, Any, NamedTuple
+from typing import Any, NamedTuple, Optional, cast
 
-from ..content.planning import (
-    ID,
-    Object,
-    CampaignPlan,
-)
-from ..content import api as content_api, database
 from pydantic.fields import FieldInfo
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from PySide6 import QtWidgets, QtCore, QtGui
-
+from ..content import api as content_api
+from ..content import database
+from ..content.planning import ID, CampaignPlan, Object
 
 FieldPair = NamedTuple("FieldPair", [("field_name", str), ("field", QtWidgets.QWidget)])
+
+
 class ObjectListWidget(QtWidgets.QGroupBox):
     """
     A list view to display and manage a list of Pydantic model instances.
@@ -21,9 +19,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
     Spawns instances of PydanticForm to add/edit items.
     """
 
-    def __init__(
-        self, model: type[Object], parent: "Optional[ObjectForm]" = None
-    ):
+    def __init__(self, model: type[Object], parent: "Optional[ObjectForm]" = None):
         # TODO: localize and pluralize the title
         super().__init__(f"{model.__name__}s", parent)
         self.model = model
@@ -107,13 +103,13 @@ class ObjectListWidget(QtWidgets.QGroupBox):
             form.prompt_for_save = False
             form.close()
         return super().closeEvent(event)
-    
+
     def close_form(self) -> None:
         [form.close() for form in self.forms.values()]
-    
+
     def hide_form(self) -> None:
         [form.hide() for form in self.forms.values()]
-    
+
     def show_form(self) -> None:
         [form.show() for form in self.forms.values()]
 
@@ -134,7 +130,7 @@ class ObjectCreateWidget(QtWidgets.QWidget):
         layout.addWidget(self.label)
         layout.addWidget(self.button)
         self.setLayout(layout)
-    
+
     def update_label(self, obj: Object) -> None:
         self.label.setText(str(obj))
         self.button.setText(f"Edit {self.model.__name__}")
@@ -142,10 +138,10 @@ class ObjectCreateWidget(QtWidgets.QWidget):
     def close_form(self) -> None:
         self.form.prompt_for_save = False
         self.form.close()
-    
+
     def hide_form(self) -> None:
         self.form.hide()
-    
+
     def show_form(self) -> None:
         self.form.show()
 
@@ -164,7 +160,7 @@ class ObjectForm(QtWidgets.QWidget):
         if self._obj_id is None:
             raise ValueError("obj_id has not been set yet.")
         return self._obj_id
-    
+
     @obj_id.setter
     def obj_id(self, value: ID):
         self._obj_id = value
@@ -186,14 +182,14 @@ class ObjectForm(QtWidgets.QWidget):
         self._raw_content: dict[str, Any] = {}
         # self.obj_id = self.export_content().obj_id
         self.setWindowTitle(f"{self.model_name} Form")
-    
+
     @staticmethod
     def get_line_content(field: QtWidgets.QLineEdit) -> str:
         """
         Retrieve the current content of a QLineEdit field.
         """
         return field.text()
-    
+
     @staticmethod
     def get_object_content(field: ObjectCreateWidget) -> Object:
         """
@@ -232,7 +228,9 @@ class ObjectForm(QtWidgets.QWidget):
                 # Special case for obj_id
                 raw_content[field_name] = self.obj_id.model_dump()
             else:
-                retriever = self.TYPE_TO_RETRIEVER.get(type(field), ObjectForm.get_line_content)
+                retriever = self.TYPE_TO_RETRIEVER.get(
+                    type(field), ObjectForm.get_line_content
+                )
                 raw_content[field_name] = retriever(field)
             print(f"Retrieved field {field_name}: {raw_content[field_name]}")
         # Compile w/ existing content
@@ -377,9 +375,10 @@ class ObjectForm(QtWidgets.QWidget):
         form_instance.init_ui()
         return form_instance
 
-
     @classmethod
-    def new(cls, model: type[Object], parent: Optional[QtWidgets.QWidget] = None) -> "ObjectForm":
+    def new(
+        cls, model: type[Object], parent: Optional[QtWidgets.QWidget] = None
+    ) -> "ObjectForm":
         """
         Create a new PydanticForm for a given Pydantic model type.
         """
@@ -406,24 +405,26 @@ class ObjectForm(QtWidgets.QWidget):
                 return
         # Close any subforms
         for field in self.fields.values():
-            if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
+            if isinstance(field, ObjectCreateWidget) or isinstance(
+                field, ObjectListWidget
+            ):
                 field = cast(ObjectCreateWidget | ObjectListWidget, field)
                 field.hide_form()
 
         # Release ID
         # if not self.exists and self.obj_id is not None:
         #     content_api.ObjectID.release_id(self.obj_id)
-        
+
         # Execute normal close event
         return super().closeEvent(event)
 
     # def showEvent(self, event: QtGui.QShowEvent) -> None:
-        # Show fields that were hidden when the form was closed
-        # for field in self.fields.values():
-        #     if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
-        #         field = cast(ObjectCreateWidget | ObjectListWidget, field)
-        #         field.show_form()
-        # return super().showEvent(event)
+    # Show fields that were hidden when the form was closed
+    # for field in self.fields.values():
+    #     if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
+    #         field = cast(ObjectCreateWidget | ObjectListWidget, field)
+    #         field.show_form()
+    # return super().showEvent(event)
 
 
 class CampaignMasterPlanApp(QtWidgets.QMainWindow):

@@ -1,8 +1,8 @@
-import sys
-import os
-import logging
-import threading
 import contextlib
+import logging
+import os
+import sys
+import threading
 
 # TODO: Use settings.py logging config instead
 _DEFAULT_LEVEL = "INFO"
@@ -12,12 +12,12 @@ try:
 except KeyError:
     print(f"Invalid CM_LOG_LEVEL '{_CM_LOG_LEVEL}'")
     sys.exit(1)
-    
+
 
 def get_basic_formatter() -> logging.Formatter:
     return logging.Formatter(
         "[%(name)s:%(levelname)s](%(asctime)s):`%(message)s`",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
 
 
@@ -43,10 +43,12 @@ def get_basic_logger(name: str, level: int = CM_LOG_LEVEL) -> logging.Logger:
 # From my 2022 CUP Robotics work
 # https://github.com/cornell-cup/c1c0-scheduler/blob/archive/grpc-impl/c1c0_scheduler/utils.py
 
+
 class ReaderWriterSuite:
     """
     Standard Reader Writer
     """
+
     # Based on wikipedia:
     #   https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock
 

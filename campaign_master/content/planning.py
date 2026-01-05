@@ -1,7 +1,9 @@
 # Abstract content, such as the class definitions for Campaign, Character, Item, Location, etc.
 import re
-from typing import Optional, ClassVar, Any, TypeVar
-from pydantic import BaseModel, Field, field_validator, PrivateAttr, model_validator
+from typing import Any, ClassVar, Optional, TypeVar
+
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
+
 from ..util import get_basic_logger
 
 # To avoid circular imports
@@ -28,7 +30,7 @@ class ID(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.prefix}-{self.numeric:0{self._max_numeric_digits}d}"
-    
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ID):
             return self is other
@@ -70,7 +72,9 @@ class ID(BaseModel):
     def __hash__(self) -> int:
         return hash((self.prefix, self.numeric))
 
+
 T = TypeVar("T")
+
 
 class Object(BaseModel):
     """
@@ -112,7 +116,7 @@ class Object(BaseModel):
                 "Use content.api.create_object() to create objects with proper IDs."
             )
         return self._obj_id
-    
+
     @obj_id.setter
     def obj_id(self, value: ID | str) -> None:
         if isinstance(value, str):
@@ -284,9 +288,9 @@ class Location(Object):
     """
     A list of IDs of neighboring locations.
     """
-    coords: Optional[
-        tuple[float, float] | tuple[float, float, float]
-    ] = None  # (latitude, longitude[, altitude])
+    coords: Optional[tuple[float, float] | tuple[float, float, float]] = (
+        None  # (latitude, longitude[, altitude])
+    )
     """
     The geographical coordinates of the location in-universe.
     NOTE: It is up to the CampaignPlan to define the coordinate system, via a Rule.

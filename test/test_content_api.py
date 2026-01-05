@@ -1,17 +1,24 @@
 import sys
 from unittest import TestCase
+
 from PySide6 import QtWidgets
-from campaign_master.content import database, api as content_api, planning
+
+from campaign_master.content import api as content_api
+from campaign_master.content import database, planning
+
 
 def get_all_object_types() -> list[type[planning.Object]]:
     """Retrieve all subclasses of planning.Object."""
     object_types = []
+
     def recurse_subclasses(cls):
         for subclass in cls.__subclasses__():
             object_types.append(subclass)
             recurse_subclasses(subclass)
+
     recurse_subclasses(planning.Object)
     return [planning.Object] + object_types
+
 
 class ContentTestCase(TestCase):
 
@@ -20,7 +27,11 @@ class ContentTestCase(TestCase):
         taken_prefixes = set()
         for ObjectType in all_objects:
             prefix = ObjectType._default_prefix
-            self.assertNotIn(prefix, taken_prefixes, f"Duplicate prefix '{prefix}' found in {ObjectType.__name__}")
+            self.assertNotIn(
+                prefix,
+                taken_prefixes,
+                f"Duplicate prefix '{prefix}' found in {ObjectType.__name__}",
+            )
             taken_prefixes.add(prefix)
 
 
@@ -42,7 +53,7 @@ class DBTestCase(TestCase):
     #     for prefix, gen_id in generated_ids.items():
     #         retrieved_ids = content_api.retrieve_ids(prefix=prefix)
     #         self.assertIn(gen_id, retrieved_ids)
-    
+
     # def test_generate_and_retrieve_ids_proto_user(self):
     #     proto_user_id = 42
     #     generated_ids: dict[str, planning.ID] = {}
@@ -60,7 +71,11 @@ class DBTestCase(TestCase):
     #         self.assertNotIn(gen_id, retrieved_ids_global)
 
     def test_create_object(self):
-        for ObjectType in [ObjectType for ObjectType in get_all_object_types() if ObjectType is not planning.Object]:
+        for ObjectType in [
+            ObjectType
+            for ObjectType in get_all_object_types()
+            if ObjectType is not planning.Object
+        ]:
             with self.subTest(ObjectType=ObjectType):
                 obj = content_api.create_object(ObjectType)
                 self.assertIsInstance(obj, ObjectType)
@@ -74,5 +89,3 @@ if __name__ == "__main__":
         test_case.test_create_object()
     finally:
         test_case.tearDown()
-
-

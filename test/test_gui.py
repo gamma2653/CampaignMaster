@@ -1,11 +1,13 @@
 import sys
+
 # import pytest
 from unittest import TestCase
-from PySide6 import QtWidgets, QtTest, QtCore
+
+from PySide6 import QtCore, QtTest, QtWidgets
+
 from campaign_master.content import database as content_api
 from campaign_master.content.planning import CampaignPlan
 from campaign_master.gui.widgets.planning import CampaignPlanEdit
-
 
 # @pytest.fixture
 # def application():
@@ -41,8 +43,6 @@ class GUITestCase(TestCase):
         self.app = QtWidgets.QApplication(sys.argv)
         content_api.create_db_and_tables()
         content_api.create_example_data()
-    
+
     def tearDown(self) -> None:
         self.app.quit()
-
-    

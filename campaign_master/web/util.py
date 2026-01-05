@@ -1,6 +1,11 @@
 import subprocess
-from pydantic_core import PydanticUndefined  # HACK: Used to check for undefined defaults
+
+from pydantic_core import (  # HACK: Used to check for undefined defaults
+    PydanticUndefined,
+)
+
 from ..content import planning
+
 
 def get_required_fields(model: type[planning.Object]) -> list[str]:
     """
@@ -11,6 +16,7 @@ def get_required_fields(model: type[planning.Object]) -> list[str]:
         if field_info.default is PydanticUndefined:
             required_fields.append(field_name)
     return required_fields
+
 
 ANNO_TO_JS_TYPE: dict[type, str] = {
     str: "text",
@@ -34,7 +40,7 @@ def build():
     """
     print("Building web app...")
 
-    subprocess.run(['npm', 'install'], check=True, shell=True)
-    subprocess.run(['npm', 'run', 'build'], check=True, shell=True)
+    subprocess.run(["npm", "install"], check=True, shell=True)
+    subprocess.run(["npm", "run", "build"], check=True, shell=True)
     # subprocess.run(['npm', 'run', 'css'], check=True, shell=True)
     print("Web app built successfully.")

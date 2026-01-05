@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 # See campaign_master/content/settings.py for DB settings
 from ..content.settings import DBSettings
+
 
 class Settings(BaseSettings):
     #### Web server settings

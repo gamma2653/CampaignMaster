@@ -3,6 +3,6 @@ from pydantic import BaseModel
 
 from . import planning
 
+
 class Campaign(BaseModel):
     plan: planning.CampaignPlan
-

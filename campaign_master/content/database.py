@@ -1,8 +1,9 @@
-from .settings import GUISettings
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
+
 from ..util import get_basic_logger
 from .models import Base
+from .settings import GUISettings
 
 # from . import planning
 logger = get_basic_logger(__name__)
@@ -17,6 +18,7 @@ SessionLocal = sessionmaker(
     autoflush=False,
     autocommit=False,
 )
+
 
 def create_db_and_tables():
     Base.metadata.create_all(engine)

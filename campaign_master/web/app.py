@@ -1,17 +1,19 @@
-import fastapi
 import pathlib
-import uvicorn
-from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
-from ..content import database as content_api
+import fastapi
+import uvicorn
+from fastapi.staticfiles import StaticFiles
 
+from ..content import database as content_api
 from .settings import Settings
+
 # from .auth import router as auth_router, create_db_and_tables as create_auth_db_and_tables
 # from .api import router as api_router, create_db_and_tables as create_api_db_and_tables
 
 
 # Mount auth router
+
 
 @asynccontextmanager
 async def setter_and_cleaner(app: fastapi.FastAPI):
@@ -21,10 +23,12 @@ async def setter_and_cleaner(app: fastapi.FastAPI):
     yield
     # Cleanup resources here
 
+
 settings: Settings = Settings()
 engine = content_api.engine
 app = fastapi.FastAPI(lifespan=setter_and_cleaner)
 # app
+
 
 def initialize_app(settings_: Settings):
     """
@@ -36,14 +40,19 @@ def initialize_app(settings_: Settings):
 
     # Import and register API router
     from .api import router as api_router
+
     app.include_router(api_router, prefix="/api")
     # app.include_router(auth_router, prefix="/auth")
-    app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
+    app.mount(
+        "/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static"
+    )
     app.add_api_route("/", index, methods=["GET"])
     app.add_api_route("/{full_path:path}", spa_router, methods=["GET"])
 
 
-def run_dev(host: str | None = None, port: int | None = None, debug: bool | None = None):
+def run_dev(
+    host: str | None = None, port: int | None = None, debug: bool | None = None
+):
     """
     Runs the development server.
     """
@@ -55,7 +64,6 @@ def run_dev(host: str | None = None, port: int | None = None, debug: bool | None
         uvicorn.run(app, host=host, port=port, log_level="debug" if debug else "info")
     except Exception as e:
         print(f"Error starting development server: {e}")
-
 
 
 # Base case, first serve. Rest is handled by the frontend router.
@@ -76,4 +84,3 @@ async def spa_router(full_path: str):
         return fastapi.responses.FileResponse(pathlib.Path("dist/index.html"))
     except Exception as e:
         return fastapi.responses.PlainTextResponse(str(e), status_code=500)
-

@@ -1,15 +1,17 @@
 from abc import abstractmethod
 from typing import Self
+
 from sqlalchemy import ForeignKey, select
 from sqlalchemy.orm import (
-    declarative_base,
     Mapped,
+    Session,
+    declarative_base,
     mapped_column,
     relationship,
-    Session,
 )
-from . import planning
+
 from ..util import get_basic_logger
+from . import planning
 
 logger = get_basic_logger(__name__)
 
@@ -162,9 +164,15 @@ class ObjectBase(
     #         "ObjectID", backref=cls.__tablename__, uselist=False, foreign_keys=[cls.id]
     #     )
     def obj_id(self, session: Session):
-        obj_id = session.execute(select(ObjectID).where(ObjectID.id == self.id)).scalars().first()
+        obj_id = (
+            session.execute(select(ObjectID).where(ObjectID.id == self.id))
+            .scalars()
+            .first()
+        )
         if not obj_id:
-            raise ValueError(f"ObjectID with id {self.id} not found in DB. This is likely an orphaned object, or one created improperly.")
+            raise ValueError(
+                f"ObjectID with id {self.id} not found in DB. This is likely an orphaned object, or one created improperly."
+            )
         return obj_id
 
     def to_pydantic(self, session: Session) -> "planning.Object":
@@ -340,7 +348,8 @@ class Objective(ObjectBase):
             description=self.description,
             components=[comp.value for comp in self.components],
             prerequisites=[
-                prereq.obj_id(session=session).to_pydantic() for prereq in self.prerequisites
+                prereq.obj_id(session=session).to_pydantic()
+                for prereq in self.prerequisites
             ],
         )
 
@@ -392,7 +401,11 @@ class Point(ObjectBase):
             _obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
-            objective=self.objective.obj_id(session=session).to_pydantic() if self.objective else None,
+            objective=(
+                self.objective.obj_id(session=session).to_pydantic()
+                if self.objective
+                else None
+            ),
         )
 
     @classmethod
@@ -838,7 +851,9 @@ class Location(ObjectBase):
             name=self.name,
             description=self.description,
             coords=self.coords.to_pydantic(session=session) if self.coords else None,
-            neighboring_locations=[loc.obj_id.to_pydantic(session=session) for loc in self.neighbors],
+            neighboring_locations=[
+                loc.obj_id.to_pydantic(session=session) for loc in self.neighbors
+            ],
         )
 
     @classmethod

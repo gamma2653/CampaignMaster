@@ -1,6 +1,9 @@
 from typing import Optional, cast
+
 from PySide6 import QtWidgets
-from ...content import api as content_api, planning
+
+from ...content import api as content_api
+from ...content import planning
 
 
 class IDDisplay(QtWidgets.QLineEdit):
@@ -430,7 +433,12 @@ class MapEdit[K, V](QtWidgets.QWidget):
     A widget to edit a mapping of strings to strings.
     """
 
-    def __init__(self, map_: Optional[dict[K, V]] = None, k_v_labels: tuple[str, str] = ("Key", "Value"), parent=None):
+    def __init__(
+        self,
+        map_: Optional[dict[K, V]] = None,
+        k_v_labels: tuple[str, str] = ("Key", "Value"),
+        parent=None,
+    ):
         super().__init__(parent)
         self.map_ = map_ if map_ else {}
         self.k_v_labels = k_v_labels
@@ -580,7 +588,6 @@ class CharacterEdit(QtWidgets.QWidget):
         layout.addRow("Inventory:", self.inventory)
 
 
-
 class LocationEdit(QtWidgets.QWidget):
     """
     Contains a form to populate/edit a Location object.
@@ -685,12 +692,27 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         self.summary = QtWidgets.QTextEdit(
             self.campaign_plan.summary if self.campaign_plan else ""
         )
-        self.storypoints = ListEdit(planning.Arc, self.campaign_plan.storypoints if self.campaign_plan else [])
-        self.items = ListEdit(planning.Item, self.campaign_plan.items if self.campaign_plan else [])
-        self.rules = ListEdit(planning.Rule, self.campaign_plan.rules if self.campaign_plan else [])
-        self.objectives = ListEdit(planning.Objective, self.campaign_plan.objectives if self.campaign_plan else [])
-        self.characters = ListEdit(planning.Character, self.campaign_plan.characters if self.campaign_plan else [])
-        self.locations = ListEdit(planning.Location, self.campaign_plan.locations if self.campaign_plan else [])
+        self.storypoints = ListEdit(
+            planning.Arc, self.campaign_plan.storypoints if self.campaign_plan else []
+        )
+        self.items = ListEdit(
+            planning.Item, self.campaign_plan.items if self.campaign_plan else []
+        )
+        self.rules = ListEdit(
+            planning.Rule, self.campaign_plan.rules if self.campaign_plan else []
+        )
+        self.objectives = ListEdit(
+            planning.Objective,
+            self.campaign_plan.objectives if self.campaign_plan else [],
+        )
+        self.characters = ListEdit(
+            planning.Character,
+            self.campaign_plan.characters if self.campaign_plan else [],
+        )
+        self.locations = ListEdit(
+            planning.Location,
+            self.campaign_plan.locations if self.campaign_plan else [],
+        )
         # Further widgets for objectives, arcs, items, characters, locations can be added here.
 
         self.setLayout(layout)
