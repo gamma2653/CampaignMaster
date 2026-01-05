@@ -11,7 +11,7 @@ authors = [
 description = "A campaign management tool for tabletop RPGs."
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.14"
+python = ">=3.12,<3.14"
 tqdm = {version = "^4.67.1"}
 PySide6 = {version = "~=6.8.1.1"}
 PySide6-Essentials = {version = "~=6.8.1.1"}
