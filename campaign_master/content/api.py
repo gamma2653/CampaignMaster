@@ -1,42 +1,17 @@
 # from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from functools import wraps
 from typing import cast, Sequence, Callable, TypeVar, ParamSpec
-from sqlalchemy import create_engine, select, insert, update, delete
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import select, insert, update, delete
+from sqlalchemy.orm import Session
 from ..util import get_basic_logger
-from .settings import GUISettings
-from .db import Base, ObjectID, ObjectBase, PydanticToSQLModel
+from .database import SessionLocal
+from .models import ObjectID, ObjectBase, PydanticToSQLModel
 from . import planning
 
 # from . import planning
 logger = get_basic_logger(__name__)
 
 
-settings = GUISettings()
-engine = create_engine(
-    settings.db_settings.db_scheme, connect_args=settings.db_settings.db_connect_args
-)
-SessionLocal = sessionmaker(
-    bind=engine,
-    autoflush=False,
-    autocommit=False,
-)
-
-
-def create_db_and_tables():
-    Base.metadata.create_all(engine)
-
-
-def create_example_data():
-    """Create example data in the database for testing purposes."""
-    pass
-    # with SessionLocal() as session:
-    # Create a proto user
-    # proto_user = ProtoUser(username="example_user")
-    # session.add(proto_user)
-    # session.flush()
-
-    # Create some example IDs
 
 
 # TODO: Find more elegant way to type this
@@ -133,7 +108,7 @@ def retrieve_ids(
 ) -> list["planning.ID"]:
     """Retrieve all IDs for the specified user, optionally filtered by prefix."""
     session = cast(Session, session)  # for mypy
-    db_ids = _retrieve_ids(session, prefix, proto_user_id)
+    db_ids = _retrieve_ids(prefix=prefix, proto_user_id=proto_user_id, session=session)
     return [db_id.to_pydantic() for db_id in db_ids]
 
 
@@ -143,16 +118,23 @@ def _create_object(obj: planning.Object, session: Session | None = None, proto_u
     """Create a new object in the database."""
     sql_model = cast(type[ObjectBase], PydanticToSQLModel[type(obj)])
     # logger.debug(f"Object data: {obj}")
-    obj = sql_model.from_pydantic(obj, proto_user_id=proto_user_id, _session=session)
-    # logger.debug(f"Created object in DB: {obj}")
-    return obj
+    db_obj = sql_model.from_pydantic(obj, proto_user_id=proto_user_id, _session=session)
+    # logger.debug(f"Created object in DB: {db_obj}")
+    session.add(db_obj)
+    session.commit()
+    return db_obj
 
 
 @perform_w_session
 def create_object(type_: type[planning.Object], session: Session | None = None, proto_user_id: int = 0) -> planning.Object:
     """Create a new object of the specified type."""
     session = cast(Session, session)  # for mypy
-    return _create_object(type_(), proto_user_id=proto_user_id, session=session).to_pydantic(session=session)
+    # Generate a new ID first
+    new_id = _generate_id(prefix=type_._default_prefix, proto_user_id=proto_user_id, session=session)
+    # Create the Pydantic object with the generated ID
+    pydantic_obj = type_(obj_id=new_id.to_pydantic())
+    # Convert to SQLAlchemy and save
+    return _create_object(pydantic_obj, proto_user_id=proto_user_id, session=session).to_pydantic(session=session)
 
 @perform_w_session
 def _retrieve_object(
@@ -185,5 +167,92 @@ def retrieve_object(
     obj_id: planning.ID, session: Session | None = None, proto_user_id: int = 0
 ) -> planning.Object | None:
     """Retrieve an object by its ID."""
-    session = cast(Session, session)  # for mypy    
+    session = cast(Session, session)  # for mypy
     return _retrieve_object(obj_id, proto_user_id=proto_user_id, session=session)
+
+@perform_w_session
+def retrieve_objects(
+    obj_type: type[planning.Object],
+    session: Session | None = None,
+    proto_user_id: int = 0
+) -> list[planning.Object]:
+    """Retrieve all objects of a specific type."""
+    session = cast(Session, session)  # for mypy
+    sql_model = cast(type[ObjectBase], PydanticToSQLModel[obj_type])
+    prefix = obj_type._default_prefix
+
+    # Get all IDs for this type
+    db_ids = _retrieve_ids(prefix=prefix, proto_user_id=proto_user_id, session=session)
+
+    results = []
+    for db_id in db_ids:
+        db_obj = session.execute(
+            select(sql_model).where(sql_model.id == db_id.id)
+        ).scalars().first()
+        if db_obj:
+            results.append(db_obj.to_pydantic(session=session))
+
+    return results
+
+@perform_w_session
+def update_object(
+    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0
+) -> planning.Object:
+    """Update an existing object in the database."""
+    session = cast(Session, session)  # for mypy
+    sql_model = cast(type[ObjectBase], PydanticToSQLModel[type(obj)])
+
+    # Retrieve existing object
+    db_obj_id = _retrieve_id(
+        prefix=obj.obj_id.prefix,
+        numeric=obj.obj_id.numeric,
+        proto_user_id=proto_user_id,
+        session=session,
+    )
+
+    if not db_obj_id:
+        raise ValueError(f"Object with ID {obj.obj_id} not found")
+
+    # Get existing DB object
+    db_obj = session.execute(
+        select(sql_model).where(sql_model.id == db_obj_id.id)
+    ).scalars().first()
+
+    if not db_obj:
+        raise ValueError(f"Object with ID {obj.obj_id} not found")
+
+    # Update fields
+    db_obj.update_from_pydantic(obj, session=session)
+    session.commit()
+    session.refresh(db_obj)
+
+    return db_obj.to_pydantic(session=session)
+
+@perform_w_session
+def delete_object(
+    obj_id: planning.ID, session: Session | None = None, proto_user_id: int = 0
+) -> bool:
+    """Delete an object by its ID."""
+    session = cast(Session, session)  # for mypy
+    sql_model = PydanticToSQLModel[obj_id.__class__]
+
+    db_obj_id = _retrieve_id(
+        prefix=obj_id.prefix,
+        numeric=obj_id.numeric,
+        proto_user_id=proto_user_id,
+        session=session,
+    )
+
+    if not db_obj_id:
+        return False
+
+    db_obj = session.execute(
+        select(sql_model).where(sql_model.id == db_obj_id.id)
+    ).scalars().first()
+
+    if not db_obj:
+        return False
+
+    session.delete(db_obj)
+    session.commit()
+    return True

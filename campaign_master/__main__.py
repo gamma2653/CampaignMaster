@@ -24,7 +24,7 @@ if __name__ == "__main__":
         sys.exit(0)
     if known_args.gui:
         from PySide6 import QtWidgets
-        from campaign_master.content.api import create_db_and_tables, create_example_data
+        from campaign_master.content.database import create_db_and_tables, create_example_data
         create_db_and_tables()
         create_example_data()
         # from campaign_master.gui.old_app import CampaignMasterPlanApp

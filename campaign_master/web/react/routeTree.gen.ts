@@ -18,12 +18,15 @@ import { Route as CampaignExecuteIndexRouteImport } from './routes/campaign/exec
 import { Route as CampaignExecuteCamp_idRouteImport } from './routes/campaign/execute/$camp_id'
 import { Route as CampaignPlanCamp_idIndexRouteImport } from './routes/campaign/plan/$camp_id/index'
 import { Route as CampaignPlanCamp_idRuleIndexRouteImport } from './routes/campaign/plan/$camp_id/rule/index'
+import { Route as CampaignPlanCamp_idPointIndexRouteImport } from './routes/campaign/plan/$camp_id/point/index'
 import { Route as CampaignPlanCamp_idObjectiveIndexRouteImport } from './routes/campaign/plan/$camp_id/objective/index'
 import { Route as CampaignPlanCamp_idLocationIndexRouteImport } from './routes/campaign/plan/$camp_id/location/index'
 import { Route as CampaignPlanCamp_idItemIndexRouteImport } from './routes/campaign/plan/$camp_id/item/index'
 import { Route as CampaignPlanCamp_idCharacterIndexRouteImport } from './routes/campaign/plan/$camp_id/character/index'
 import { Route as CampaignPlanCamp_idArcIndexRouteImport } from './routes/campaign/plan/$camp_id/arc/index'
 import { Route as CampaignPlanCamp_idRuleRule_idIndexRouteImport } from './routes/campaign/plan/$camp_id/rule/$rule_id/index'
+import { Route as CampaignPlanCamp_idPointNewIndexRouteImport } from './routes/campaign/plan/$camp_id/point/new/index'
+import { Route as CampaignPlanCamp_idPointPoint_idIndexRouteImport } from './routes/campaign/plan/$camp_id/point/$point_id/index'
 import { Route as CampaignPlanCamp_idObjectiveObj_idIndexRouteImport } from './routes/campaign/plan/$camp_id/objective/$obj_id/index'
 import { Route as CampaignPlanCamp_idLocationLoc_idIndexRouteImport } from './routes/campaign/plan/$camp_id/location/$loc_id/index'
 import { Route as CampaignPlanCamp_idItemItem_idIndexRouteImport } from './routes/campaign/plan/$camp_id/item/$item_id/index'
@@ -78,6 +81,12 @@ const CampaignPlanCamp_idRuleIndexRoute =
     path: '/campaign/plan/$camp_id/rule/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CampaignPlanCamp_idPointIndexRoute =
+  CampaignPlanCamp_idPointIndexRouteImport.update({
+    id: '/campaign/plan/$camp_id/point/',
+    path: '/campaign/plan/$camp_id/point/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CampaignPlanCamp_idObjectiveIndexRoute =
   CampaignPlanCamp_idObjectiveIndexRouteImport.update({
     id: '/campaign/plan/$camp_id/objective/',
@@ -112,6 +121,18 @@ const CampaignPlanCamp_idRuleRule_idIndexRoute =
   CampaignPlanCamp_idRuleRule_idIndexRouteImport.update({
     id: '/campaign/plan/$camp_id/rule/$rule_id/',
     path: '/campaign/plan/$camp_id/rule/$rule_id/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CampaignPlanCamp_idPointNewIndexRoute =
+  CampaignPlanCamp_idPointNewIndexRouteImport.update({
+    id: '/campaign/plan/$camp_id/point/new/',
+    path: '/campaign/plan/$camp_id/point/new/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CampaignPlanCamp_idPointPoint_idIndexRoute =
+  CampaignPlanCamp_idPointPoint_idIndexRouteImport.update({
+    id: '/campaign/plan/$camp_id/point/$point_id/',
+    path: '/campaign/plan/$camp_id/point/$point_id/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const CampaignPlanCamp_idObjectiveObj_idIndexRoute =
@@ -184,12 +205,15 @@ export interface FileRoutesByFullPath {
   '/campaign/plan/$camp_id/item': typeof CampaignPlanCamp_idItemIndexRoute
   '/campaign/plan/$camp_id/location': typeof CampaignPlanCamp_idLocationIndexRoute
   '/campaign/plan/$camp_id/objective': typeof CampaignPlanCamp_idObjectiveIndexRoute
+  '/campaign/plan/$camp_id/point': typeof CampaignPlanCamp_idPointIndexRoute
   '/campaign/plan/$camp_id/rule': typeof CampaignPlanCamp_idRuleIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id': typeof CampaignPlanCamp_idArcArc_idIndexRoute
   '/campaign/plan/$camp_id/character/$char_id': typeof CampaignPlanCamp_idCharacterChar_idIndexRoute
   '/campaign/plan/$camp_id/item/$item_id': typeof CampaignPlanCamp_idItemItem_idIndexRoute
   '/campaign/plan/$camp_id/location/$loc_id': typeof CampaignPlanCamp_idLocationLoc_idIndexRoute
   '/campaign/plan/$camp_id/objective/$obj_id': typeof CampaignPlanCamp_idObjectiveObj_idIndexRoute
+  '/campaign/plan/$camp_id/point/$point_id': typeof CampaignPlanCamp_idPointPoint_idIndexRoute
+  '/campaign/plan/$camp_id/point/new': typeof CampaignPlanCamp_idPointNewIndexRoute
   '/campaign/plan/$camp_id/rule/$rule_id': typeof CampaignPlanCamp_idRuleRule_idIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/segment': typeof CampaignPlanCamp_idArcArc_idSegmentIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id': typeof CampaignPlanCamp_idArcArc_idSegmentSeg_idIndexRoute
@@ -209,12 +233,15 @@ export interface FileRoutesByTo {
   '/campaign/plan/$camp_id/item': typeof CampaignPlanCamp_idItemIndexRoute
   '/campaign/plan/$camp_id/location': typeof CampaignPlanCamp_idLocationIndexRoute
   '/campaign/plan/$camp_id/objective': typeof CampaignPlanCamp_idObjectiveIndexRoute
+  '/campaign/plan/$camp_id/point': typeof CampaignPlanCamp_idPointIndexRoute
   '/campaign/plan/$camp_id/rule': typeof CampaignPlanCamp_idRuleIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id': typeof CampaignPlanCamp_idArcArc_idIndexRoute
   '/campaign/plan/$camp_id/character/$char_id': typeof CampaignPlanCamp_idCharacterChar_idIndexRoute
   '/campaign/plan/$camp_id/item/$item_id': typeof CampaignPlanCamp_idItemItem_idIndexRoute
   '/campaign/plan/$camp_id/location/$loc_id': typeof CampaignPlanCamp_idLocationLoc_idIndexRoute
   '/campaign/plan/$camp_id/objective/$obj_id': typeof CampaignPlanCamp_idObjectiveObj_idIndexRoute
+  '/campaign/plan/$camp_id/point/$point_id': typeof CampaignPlanCamp_idPointPoint_idIndexRoute
+  '/campaign/plan/$camp_id/point/new': typeof CampaignPlanCamp_idPointNewIndexRoute
   '/campaign/plan/$camp_id/rule/$rule_id': typeof CampaignPlanCamp_idRuleRule_idIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/segment': typeof CampaignPlanCamp_idArcArc_idSegmentIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id': typeof CampaignPlanCamp_idArcArc_idSegmentSeg_idIndexRoute
@@ -235,12 +262,15 @@ export interface FileRoutesById {
   '/campaign/plan/$camp_id/item/': typeof CampaignPlanCamp_idItemIndexRoute
   '/campaign/plan/$camp_id/location/': typeof CampaignPlanCamp_idLocationIndexRoute
   '/campaign/plan/$camp_id/objective/': typeof CampaignPlanCamp_idObjectiveIndexRoute
+  '/campaign/plan/$camp_id/point/': typeof CampaignPlanCamp_idPointIndexRoute
   '/campaign/plan/$camp_id/rule/': typeof CampaignPlanCamp_idRuleIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/': typeof CampaignPlanCamp_idArcArc_idIndexRoute
   '/campaign/plan/$camp_id/character/$char_id/': typeof CampaignPlanCamp_idCharacterChar_idIndexRoute
   '/campaign/plan/$camp_id/item/$item_id/': typeof CampaignPlanCamp_idItemItem_idIndexRoute
   '/campaign/plan/$camp_id/location/$loc_id/': typeof CampaignPlanCamp_idLocationLoc_idIndexRoute
   '/campaign/plan/$camp_id/objective/$obj_id/': typeof CampaignPlanCamp_idObjectiveObj_idIndexRoute
+  '/campaign/plan/$camp_id/point/$point_id/': typeof CampaignPlanCamp_idPointPoint_idIndexRoute
+  '/campaign/plan/$camp_id/point/new/': typeof CampaignPlanCamp_idPointNewIndexRoute
   '/campaign/plan/$camp_id/rule/$rule_id/': typeof CampaignPlanCamp_idRuleRule_idIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/segment/': typeof CampaignPlanCamp_idArcArc_idSegmentIndexRoute
   '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id/': typeof CampaignPlanCamp_idArcArc_idSegmentSeg_idIndexRoute
@@ -262,12 +292,15 @@ export interface FileRouteTypes {
     | '/campaign/plan/$camp_id/item'
     | '/campaign/plan/$camp_id/location'
     | '/campaign/plan/$camp_id/objective'
+    | '/campaign/plan/$camp_id/point'
     | '/campaign/plan/$camp_id/rule'
     | '/campaign/plan/$camp_id/arc/$arc_id'
     | '/campaign/plan/$camp_id/character/$char_id'
     | '/campaign/plan/$camp_id/item/$item_id'
     | '/campaign/plan/$camp_id/location/$loc_id'
     | '/campaign/plan/$camp_id/objective/$obj_id'
+    | '/campaign/plan/$camp_id/point/$point_id'
+    | '/campaign/plan/$camp_id/point/new'
     | '/campaign/plan/$camp_id/rule/$rule_id'
     | '/campaign/plan/$camp_id/arc/$arc_id/segment'
     | '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id'
@@ -287,12 +320,15 @@ export interface FileRouteTypes {
     | '/campaign/plan/$camp_id/item'
     | '/campaign/plan/$camp_id/location'
     | '/campaign/plan/$camp_id/objective'
+    | '/campaign/plan/$camp_id/point'
     | '/campaign/plan/$camp_id/rule'
     | '/campaign/plan/$camp_id/arc/$arc_id'
     | '/campaign/plan/$camp_id/character/$char_id'
     | '/campaign/plan/$camp_id/item/$item_id'
     | '/campaign/plan/$camp_id/location/$loc_id'
     | '/campaign/plan/$camp_id/objective/$obj_id'
+    | '/campaign/plan/$camp_id/point/$point_id'
+    | '/campaign/plan/$camp_id/point/new'
     | '/campaign/plan/$camp_id/rule/$rule_id'
     | '/campaign/plan/$camp_id/arc/$arc_id/segment'
     | '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id'
@@ -312,12 +348,15 @@ export interface FileRouteTypes {
     | '/campaign/plan/$camp_id/item/'
     | '/campaign/plan/$camp_id/location/'
     | '/campaign/plan/$camp_id/objective/'
+    | '/campaign/plan/$camp_id/point/'
     | '/campaign/plan/$camp_id/rule/'
     | '/campaign/plan/$camp_id/arc/$arc_id/'
     | '/campaign/plan/$camp_id/character/$char_id/'
     | '/campaign/plan/$camp_id/item/$item_id/'
     | '/campaign/plan/$camp_id/location/$loc_id/'
     | '/campaign/plan/$camp_id/objective/$obj_id/'
+    | '/campaign/plan/$camp_id/point/$point_id/'
+    | '/campaign/plan/$camp_id/point/new/'
     | '/campaign/plan/$camp_id/rule/$rule_id/'
     | '/campaign/plan/$camp_id/arc/$arc_id/segment/'
     | '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id/'
@@ -338,12 +377,15 @@ export interface RootRouteChildren {
   CampaignPlanCamp_idItemIndexRoute: typeof CampaignPlanCamp_idItemIndexRoute
   CampaignPlanCamp_idLocationIndexRoute: typeof CampaignPlanCamp_idLocationIndexRoute
   CampaignPlanCamp_idObjectiveIndexRoute: typeof CampaignPlanCamp_idObjectiveIndexRoute
+  CampaignPlanCamp_idPointIndexRoute: typeof CampaignPlanCamp_idPointIndexRoute
   CampaignPlanCamp_idRuleIndexRoute: typeof CampaignPlanCamp_idRuleIndexRoute
   CampaignPlanCamp_idArcArc_idIndexRoute: typeof CampaignPlanCamp_idArcArc_idIndexRoute
   CampaignPlanCamp_idCharacterChar_idIndexRoute: typeof CampaignPlanCamp_idCharacterChar_idIndexRoute
   CampaignPlanCamp_idItemItem_idIndexRoute: typeof CampaignPlanCamp_idItemItem_idIndexRoute
   CampaignPlanCamp_idLocationLoc_idIndexRoute: typeof CampaignPlanCamp_idLocationLoc_idIndexRoute
   CampaignPlanCamp_idObjectiveObj_idIndexRoute: typeof CampaignPlanCamp_idObjectiveObj_idIndexRoute
+  CampaignPlanCamp_idPointPoint_idIndexRoute: typeof CampaignPlanCamp_idPointPoint_idIndexRoute
+  CampaignPlanCamp_idPointNewIndexRoute: typeof CampaignPlanCamp_idPointNewIndexRoute
   CampaignPlanCamp_idRuleRule_idIndexRoute: typeof CampaignPlanCamp_idRuleRule_idIndexRoute
   CampaignPlanCamp_idArcArc_idSegmentIndexRoute: typeof CampaignPlanCamp_idArcArc_idSegmentIndexRoute
   CampaignPlanCamp_idArcArc_idSegmentSeg_idIndexRoute: typeof CampaignPlanCamp_idArcArc_idSegmentSeg_idIndexRoute
@@ -409,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampaignPlanCamp_idRuleIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/campaign/plan/$camp_id/point/': {
+      id: '/campaign/plan/$camp_id/point/'
+      path: '/campaign/plan/$camp_id/point'
+      fullPath: '/campaign/plan/$camp_id/point'
+      preLoaderRoute: typeof CampaignPlanCamp_idPointIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/campaign/plan/$camp_id/objective/': {
       id: '/campaign/plan/$camp_id/objective/'
       path: '/campaign/plan/$camp_id/objective'
@@ -449,6 +498,20 @@ declare module '@tanstack/react-router' {
       path: '/campaign/plan/$camp_id/rule/$rule_id'
       fullPath: '/campaign/plan/$camp_id/rule/$rule_id'
       preLoaderRoute: typeof CampaignPlanCamp_idRuleRule_idIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaign/plan/$camp_id/point/new/': {
+      id: '/campaign/plan/$camp_id/point/new/'
+      path: '/campaign/plan/$camp_id/point/new'
+      fullPath: '/campaign/plan/$camp_id/point/new'
+      preLoaderRoute: typeof CampaignPlanCamp_idPointNewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaign/plan/$camp_id/point/$point_id/': {
+      id: '/campaign/plan/$camp_id/point/$point_id/'
+      path: '/campaign/plan/$camp_id/point/$point_id'
+      fullPath: '/campaign/plan/$camp_id/point/$point_id'
+      preLoaderRoute: typeof CampaignPlanCamp_idPointPoint_idIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campaign/plan/$camp_id/objective/$obj_id/': {
@@ -532,6 +595,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignPlanCamp_idLocationIndexRoute: CampaignPlanCamp_idLocationIndexRoute,
   CampaignPlanCamp_idObjectiveIndexRoute:
     CampaignPlanCamp_idObjectiveIndexRoute,
+  CampaignPlanCamp_idPointIndexRoute: CampaignPlanCamp_idPointIndexRoute,
   CampaignPlanCamp_idRuleIndexRoute: CampaignPlanCamp_idRuleIndexRoute,
   CampaignPlanCamp_idArcArc_idIndexRoute:
     CampaignPlanCamp_idArcArc_idIndexRoute,
@@ -543,6 +607,9 @@ const rootRouteChildren: RootRouteChildren = {
     CampaignPlanCamp_idLocationLoc_idIndexRoute,
   CampaignPlanCamp_idObjectiveObj_idIndexRoute:
     CampaignPlanCamp_idObjectiveObj_idIndexRoute,
+  CampaignPlanCamp_idPointPoint_idIndexRoute:
+    CampaignPlanCamp_idPointPoint_idIndexRoute,
+  CampaignPlanCamp_idPointNewIndexRoute: CampaignPlanCamp_idPointNewIndexRoute,
   CampaignPlanCamp_idRuleRule_idIndexRoute:
     CampaignPlanCamp_idRuleRule_idIndexRoute,
   CampaignPlanCamp_idArcArc_idSegmentIndexRoute:

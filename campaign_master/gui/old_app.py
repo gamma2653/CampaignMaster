@@ -7,7 +7,7 @@ from ..content.planning import (
     Object,
     CampaignPlan,
 )
-from ..content import api as content_api
+from ..content import api as content_api, database
 from pydantic.fields import FieldInfo
 
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -211,8 +211,8 @@ class ObjectForm(QtWidgets.QWidget):
         for i in range(field.list_widget.count()):
             item_widget = field.list_widget.item(i)
             item_id = item_widget.data(QtCore.Qt.ItemDataRole.UserRole)
-            if item_id and item_id in field.forms:
-                item_form = field.forms[item_id]
+            if item_id and str(item_id) in field.forms:
+                item_form = field.forms[str(item_id)]
                 items.append(item_form.export_content())
         return items
 
@@ -436,7 +436,7 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_form: Optional[ObjectForm] = None
 
-        content_api.create_db_and_tables()
+        database.create_db_and_tables()
         self.setup_ui()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:

@@ -96,7 +96,7 @@ class ObjectID(Base):
 
         # Query to see if it exists
         def perform(session):
-            from . import database as content_api
+            from . import api as content_api
 
             existing = content_api._retrieve_id(
                 prefix=id_obj.prefix,
@@ -227,7 +227,7 @@ class Rule(ObjectBase):
         obj_id = self.obj_id(session=session).to_pydantic()
         logger.debug("Rule obj_id retrieved: %s", obj_id)
         obj = planning.Rule(
-            _obj_id=obj_id,
+            obj_id=obj_id,
             description=self.description,
             effect=self.effect,
             components=[comp.value for comp in self.components],
@@ -240,7 +240,7 @@ class Rule(ObjectBase):
         # check for existing
         # First get the ObjectID
         def perform(session: Session) -> "Self":
-            from . import database as content_api
+            from . import api as content_api
 
             # First find existing ID
             # logger.debug("Retrieving ID for Rule... (%s)", obj.obj_id)
@@ -336,7 +336,7 @@ class Objective(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Objective":
         return planning.Objective(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             description=self.description,
             components=[comp.value for comp in self.components],
             prerequisites=[
@@ -362,6 +362,9 @@ class Objective(ObjectBase):
             if existing:
                 return existing
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 description=obj.description,
                 components=[ObjectiveComponent(value=comp) for comp in obj.components],
                 # Prerequisites handling may require session management; omitted for brevity.
@@ -389,7 +392,7 @@ class Point(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Point":
         return planning.Point(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
             objective=self.objective.obj_id(session=session).to_pydantic() if self.objective else None,
@@ -398,40 +401,59 @@ class Point(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Point", proto_user_id: int = 0, _session: Session | None = None) -> "Self":  # type: ignore[override]
         def perform(session: Session) -> "Self":
-            with Session() as session:
-                # Check for existing
-                existing = (
-                    session.execute(
-                        select(cls).where(
-                            cls.id
-                            == ObjectID.from_pydantic(
-                                obj.obj_id,
-                                proto_user_id=proto_user_id,
-                                _session=session,
-                            ).id
-                        )
+            # Check for existing
+            existing = (
+                session.execute(
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id,
+                            proto_user_id=proto_user_id,
+                            _session=session,
+                        ).id
                     )
-                    .scalars()
-                    .first()
                 )
-                if existing:
-                    return existing
-                return cls(
-                    name=obj.name,
-                    description=obj.description,
-                    objective=(
-                        ObjectID.from_pydantic(
-                            obj.objective, proto_user_id=proto_user_id, _session=session
-                        )
-                        if obj.objective
-                        else None
-                    ),
-                )
+                .scalars()
+                .first()
+            )
+            if existing:
+                return existing
+            return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
+                name=obj.name,
+                description=obj.description,
+                objective=(
+                    ObjectID.from_pydantic(
+                        obj.objective, proto_user_id=proto_user_id, _session=session
+                    )
+                    if obj.objective
+                    else None
+                ),
+            )
 
         if _session is None:
             with Session() as session:
                 return perform(session)
         return perform(_session)
+
+    def update_from_pydantic(self, obj: "planning.Point", session: Session) -> None:
+        """Update this Point's fields from a Pydantic Point model."""
+        self.name = obj.name
+        self.description = obj.description
+
+        if obj.objective:
+            # Find the objective by ID
+            obj_id = ObjectID.from_pydantic(obj.objective, proto_user_id=0, _session=session)
+            objective = session.execute(
+                select(Objective).where(Objective.id == obj_id.id)
+            ).scalars().first()
+            self.objective = objective
+            self.objective_id = objective.id if objective else None
+        else:
+            self.objective = None
+            self.objective_id = None
 
 
 class Segment(ObjectBase):
@@ -441,26 +463,26 @@ class Segment(ObjectBase):
     SQLModel representation of a Segment in the planning system.
     Inherits from planning.Segment.
     """
-    arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"))
+    arc_id: Mapped[int | None] = mapped_column(ForeignKey("arc.id"), nullable=True)
     name: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
     # Point data
-    start_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
-    start: Mapped[Point] = relationship(
+    start_id: Mapped[int | None] = mapped_column(ForeignKey("point.id"), nullable=True)
+    start: Mapped[Point | None] = relationship(
         "Point", foreign_keys="[Segment.start_id]", backref="segment_starts"
     )
-    end_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
-    end: Mapped[Point] = relationship(
+    end_id: Mapped[int | None] = mapped_column(ForeignKey("point.id"), nullable=True)
+    end: Mapped[Point | None] = relationship(
         "Point", foreign_keys="[Segment.end_id]", backref="segment_ends"
     )
 
     def to_pydantic(self, session: Session) -> "planning.Segment":
         return planning.Segment(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
-            start=self.start.to_pydantic(session=session),
-            end=self.end.to_pydantic(session=session),
+            start=self.start.obj_id(session=session).to_pydantic() if self.start else planning.ID(prefix="P", numeric=0),
+            end=self.end.obj_id(session=session).to_pydantic() if self.end else planning.ID(prefix="P", numeric=0),
         )
 
     @classmethod
@@ -480,15 +502,22 @@ class Segment(ObjectBase):
             )
             if existing:
                 return existing
+            # Try to find the start and end points in the database
+            start_obj_id = ObjectID.from_pydantic(
+                obj.start, proto_user_id=proto_user_id, _session=session
+            )
+            end_obj_id = ObjectID.from_pydantic(
+                obj.end, proto_user_id=proto_user_id, _session=session
+            )
+
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 name=obj.name,
                 description=obj.description,
-                start=Point.from_pydantic(
-                    obj.start, proto_user_id=proto_user_id, _session=session
-                ),
-                end=Point.from_pydantic(
-                    obj.end, proto_user_id=proto_user_id, _session=session
-                ),
+                start_id=start_obj_id.id if start_obj_id.numeric != 0 else None,
+                end_id=end_obj_id.id if end_obj_id.numeric != 0 else None,
             )
 
         if _session is None:
@@ -510,7 +539,7 @@ class Arc(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Arc":
         return planning.Arc(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
             segments=[seg.to_pydantic(session=session) for seg in self.segments],
@@ -534,6 +563,9 @@ class Arc(ObjectBase):
             if existing:
                 return existing
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 name=obj.name,
                 description=obj.description,
                 segments=[
@@ -597,7 +629,7 @@ class Item(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Item":
         return planning.Item(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             type_=self.type_,
             description=self.description,
@@ -622,6 +654,9 @@ class Item(ObjectBase):
             if existing:
                 return existing
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 name=obj.name,
                 type_=obj.type_,
                 description=obj.description,
@@ -735,7 +770,7 @@ class Character(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Character":
         return planning.Character(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             role=self.role,
             backstory=self.backstory,
@@ -761,6 +796,9 @@ class Character(ObjectBase):
             if existing:
                 return existing
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 name=obj.name,
                 role=obj.role,
                 backstory=obj.backstory,
@@ -834,7 +872,7 @@ class Location(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Location":
         return planning.Location(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             name=self.name,
             description=self.description,
             coords=self.coords.to_pydantic(session=session) if self.coords else None,
@@ -859,6 +897,9 @@ class Location(ObjectBase):
             if existing:
                 return existing
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 name=obj.name,
                 description=obj.description,
                 coords=(
@@ -922,7 +963,7 @@ class CampaignPlan(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.CampaignPlan":
         return planning.CampaignPlan(
-            _obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),
             title=self.title,
             version=self.version,
             setting=self.setting,
@@ -947,6 +988,9 @@ class CampaignPlan(ObjectBase):
             if existing:
                 return existing
             return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, _session=session
+                ).id,
                 title=obj.title,
                 version=obj.version,
                 setting=obj.setting,

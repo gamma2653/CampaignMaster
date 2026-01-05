@@ -1,7 +1,7 @@
 import sys
 from unittest import TestCase
 from PySide6 import QtWidgets
-from campaign_master.content import planning, api as content_api
+from campaign_master.content import database, api as content_api, planning
 
 def get_all_object_types() -> list[type[planning.Object]]:
     """Retrieve all subclasses of planning.Object."""
@@ -27,8 +27,8 @@ class ContentTestCase(TestCase):
 class DBTestCase(TestCase):
 
     def setUp(self) -> None:
-        content_api.create_db_and_tables()
-        content_api.create_example_data()
+        database.create_db_and_tables()
+        database.create_example_data()
 
     # def test_generate_and_retrieve_ids(self):
     #     generated_ids: dict[str, planning.ID] = {}
@@ -62,12 +62,9 @@ class DBTestCase(TestCase):
     def test_create_object(self):
         for ObjectType in [ObjectType for ObjectType in get_all_object_types() if ObjectType is not planning.Object]:
             with self.subTest(ObjectType=ObjectType):
-                print(f"Testing creation of object type: {ObjectType.__name__}")
                 obj = content_api.create_object(ObjectType)
-                print(f"Created object: {obj} {type(obj)} with ID: {obj.obj_id} {type(obj.obj_id)}")
                 self.assertIsInstance(obj, ObjectType)
                 self.assertIsInstance(obj.obj_id, planning.ID)
-            break  # Limit to one test per run for debugging
 
 
 if __name__ == "__main__":

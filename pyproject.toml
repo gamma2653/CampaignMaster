@@ -26,13 +26,17 @@ black="^24.10.0"
 isort="^5.13.2"
 
 
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+
 [tool.isort]
 profile = "black"
 
-[tool.pytest]
-testpaths = [
-    "./tests/*"
-]
-pythonpath = [
-    ".",
+[tool.pytest.ini_options]
+testpaths = ["test"]
+pythonpath = ["."]
+addopts = "-v --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

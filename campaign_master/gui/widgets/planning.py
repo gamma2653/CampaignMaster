@@ -1,6 +1,6 @@
 from typing import Optional, cast
 from PySide6 import QtWidgets
-from ...content import planning, api as content_api
+from ...content import api as content_api, planning
 
 
 class IDDisplay(QtWidgets.QLineEdit):
@@ -218,9 +218,12 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
         object_select_dialog.setLayout(dialog_layout)
 
         if object_select_dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-            selected_item = object_select.get_selected_object()
-            self.list_widget.addItem(str(selected_item))
-            self.objects.append(selected_item)
+            selected_id = object_select.get_selected_object()
+            # Retrieve the full object from the database using the ID
+            obj = content_api.retrieve_object(selected_id)
+            if obj:
+                self.list_widget.addItem(str(selected_id))
+                self.objects.append(obj)
 
     def remove_object(self):
         selected_items_widgets = self.list_widget.selectedItems()
@@ -230,6 +233,10 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
             item = self.objects[self.list_widget.row(item_widget)]
             self.objects.remove(item)
             self.list_widget.takeItem(self.list_widget.row(item_widget))
+
+    def get_objects(self) -> list[T]:
+        """Return the list of objects."""
+        return self.objects
 
 
 class RuleEdit(QtWidgets.QWidget):
@@ -292,10 +299,9 @@ class ObjectiveEdit(QtWidgets.QWidget):
         self.components = StrListEdit(
             self.objective.components if self.objective else []
         )
-        # self.prerequisites = IDListEdit(
-        #     planning.Objective, self.objective.prerequisites if self.objective else []
-        # )
-        self.prerequisites = ListEdit(planning.Objective, self.objective.prerequisites if self.objective else [])
+        self.prerequisites = IDListEdit(
+            planning.Objective, self.objective.prerequisites if self.objective else []
+        )
 
         self.setLayout(layout)
         self.update_layout()
@@ -552,14 +558,12 @@ class CharacterEdit(QtWidgets.QWidget):
             self.character.attributes if self.character else {}
         )
         self.skills = MapEdit[str, int](self.character.skills if self.character else {})
-        # self.storylines = IDListEdit(
-        #     planning.Arc, self.character.storylines if self.character else []
-        # )
-        self.storylines = ListEdit(planning.Arc, self.character.storylines if self.character else [])
-        # self.inventory = IDListEdit(
-        #     planning.Item, self.character.inventory if self.character else []
-        # )
-        self.inventory = ListEdit(planning.Item, self.character.inventory if self.character else [])
+        self.storylines = IDListEdit(
+            planning.Arc, self.character.storylines if self.character else []
+        )
+        self.inventory = IDListEdit(
+            planning.Item, self.character.inventory if self.character else []
+        )
 
         self.setLayout(layout)
         self.update_layout()
@@ -607,11 +611,10 @@ class LocationEdit(QtWidgets.QWidget):
         self.description = QtWidgets.QTextEdit(
             self.location.description if self.location else ""
         )
-        # self.neighboring_locations = IDListEdit(
-        #     planning.Location,
-        #     self.location.neighboring_locations if self.location else [],
-        # )
-        self.neighboring_locations = ListEdit(planning.Location, self.location.neighboring_locations if self.location else [])
+        self.neighboring_locations = IDListEdit(
+            planning.Location,
+            self.location.neighboring_locations if self.location else [],
+        )
         self._latitude = QtWidgets.QLineEdit(
             str(self.location.coords[0])
             if self.location and self.location.coords
@@ -682,17 +685,11 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         self.summary = QtWidgets.QTextEdit(
             self.campaign_plan.summary if self.campaign_plan else ""
         )
-        # self.storylines
-        # self.storypoints = IDListEdit(planning.Arc, self.campaign_plan.storypoints if self.campaign_plan else [])
         self.storypoints = ListEdit(planning.Arc, self.campaign_plan.storypoints if self.campaign_plan else [])
-        # self.items =
         self.items = ListEdit(planning.Item, self.campaign_plan.items if self.campaign_plan else [])
-        # self.rules =
-        # self.objectives = IDListEdit(planning.Objective, self.campaign_plan.objectives if self.campaign_plan else [])
+        self.rules = ListEdit(planning.Rule, self.campaign_plan.rules if self.campaign_plan else [])
         self.objectives = ListEdit(planning.Objective, self.campaign_plan.objectives if self.campaign_plan else [])
-        # self.characters =
         self.characters = ListEdit(planning.Character, self.campaign_plan.characters if self.campaign_plan else [])
-        # self.locations =
         self.locations = ListEdit(planning.Location, self.campaign_plan.locations if self.campaign_plan else [])
         # Further widgets for objectives, arcs, items, characters, locations can be added here.
 
@@ -708,7 +705,7 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         layout.addRow("Summary:", self.summary)
         layout.addRow("Storypoints:", self.storypoints)
         layout.addRow("Items:", self.items)
-        # layout.addRow("Rules:", self.rules)
-        # layout.addRow("Objectives:", self.objectives)
-        # layout.addRow("Characters:", self.characters)
-        # layout.addRow("Locations:", self.locations)
+        layout.addRow("Rules:", self.rules)
+        layout.addRow("Objectives:", self.objectives)
+        layout.addRow("Characters:", self.characters)
+        layout.addRow("Locations:", self.locations)

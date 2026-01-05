@@ -2,7 +2,7 @@ import sys
 # import pytest
 from unittest import TestCase
 from PySide6 import QtWidgets, QtTest, QtCore
-from campaign_master.content import api as content_api
+from campaign_master.content import database as content_api
 from campaign_master.content.planning import CampaignPlan
 from campaign_master.gui.widgets.planning import CampaignPlanEdit
 

@@ -77,8 +77,8 @@ class Object(BaseModel):
     Base class for all objects in the campaign planning system.
     """
 
-    _obj_id: ID | None = None
-    _initialized: bool = PrivateAttr(False)
+    _obj_id: ID | None = PrivateAttr(default=None)
+    _initialized: bool = PrivateAttr(default=False)
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
@@ -95,20 +95,22 @@ class Object(BaseModel):
     #         if isinstance(data.get("obj_id"), str):
     #             return {**data, "obj_id": ID.from_str(data["obj_id"])}
     #     return data
-    
+
     def __init__(self, **data):
+        # Extract obj_id if present before calling super().__init__
+        obj_id_value = data.pop("obj_id", None)
         super().__init__(**data)
+        if obj_id_value is not None:
+            self.obj_id = obj_id_value
         self._initialized = True
 
     @property
     def obj_id(self) -> ID:
         if self._obj_id is None:
-            # Generate on the fly if not set
-            if not self._initialized:
-                raise ValueError("Object ID is not set and object is not initialized.")
-            from . import api as content_api
-            logger.debug(f"Generating first call ID for object of type {type(self).__name__}")
-            self._obj_id = content_api.generate_id(prefix=self._default_prefix)
+            raise ValueError(
+                f"Object ID is not set for {type(self).__name__}. "
+                "Use content.api.create_object() to create objects with proper IDs."
+            )
         return self._obj_id
     
     @obj_id.setter
@@ -190,13 +192,13 @@ class Segment(Object):
     A textual description of the story segment.
     """
     # Poetically, the start and end are always defined. (non-optional)
-    start: Point
+    start: ID = Field(default_factory=lambda: ID(prefix="P", numeric=0))
     """
-    The starting point of the segment.
+    The starting point of the segment (reference by ID).
     """
-    end: Point
+    end: ID = Field(default_factory=lambda: ID(prefix="P", numeric=0))
     """
-    The ending point of the segment.
+    The ending point of the segment (reference by ID).
     """
 
 
@@ -284,7 +286,7 @@ class Location(Object):
     """
     coords: Optional[
         tuple[float, float] | tuple[float, float, float]
-    ]  # (latitude, longitude[, altitude])
+    ] = None  # (latitude, longitude[, altitude])
     """
     The geographical coordinates of the location in-universe.
     NOTE: It is up to the CampaignPlan to define the coordinate system, via a Rule.
