@@ -707,8 +707,13 @@ class CharacterEdit(QtWidgets.QWidget):
         """Export the form data as a Character object."""
         # Note: MapEdit.get_map() returns dict[str, str], but we need dict[str, int] for attributes and skills
         # Converting the values to int
-        attributes_dict = {k: int(v) if v.isdigit() else 0 for k, v in self.attributes.get_map().items()}
-        skills_dict = {k: int(v) if v.isdigit() else 0 for k, v in self.skills.get_map().items()}
+        attributes_dict = {
+            k: int(v) if v.isdigit() else 0
+            for k, v in self.attributes.get_map().items()
+        }
+        skills_dict = {
+            k: int(v) if v.isdigit() else 0 for k, v in self.skills.get_map().items()
+        }
 
         return planning.Character(
             obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),

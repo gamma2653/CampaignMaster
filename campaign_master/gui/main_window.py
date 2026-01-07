@@ -143,7 +143,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                 self.current_editor = editor
             except Exception as e:
                 QtWidgets.QMessageBox.critical(
-                    self, "Error Loading Campaign", f"Failed to load campaign:\n{str(e)}"
+                    self,
+                    "Error Loading Campaign",
+                    f"Failed to load campaign:\n{str(e)}",
                 )
 
     def save_campaign(self):
