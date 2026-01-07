@@ -51,12 +51,10 @@ if __name__ == "__main__":
 
         create_db_and_tables()
         create_example_data()
-        # from campaign_master.gui.old_app import CampaignMasterPlanApp
-        from campaign_master.gui.widgets.planning import CampaignPlanEdit
+        from campaign_master.gui.main_window import CampaignMasterWindow
 
         app = QtWidgets.QApplication(sys.argv)
-        # window = CampaignMasterPlanApp()
-        window = CampaignPlanEdit()
+        window = CampaignMasterWindow()
         window.show()
         app.exec()
 

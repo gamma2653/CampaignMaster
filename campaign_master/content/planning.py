@@ -307,7 +307,8 @@ class CampaignPlan(Object):
     version: str = ""
     setting: str = ""
     summary: str = ""
-    storypoints: list[Arc] = []
+    storypoints: list[Point] = []
+    storyline: list[Arc] = []
     characters: list[Character] = []
     locations: list[Location] = []
     items: list[Item] = []

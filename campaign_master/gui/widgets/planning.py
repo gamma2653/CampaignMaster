@@ -693,7 +693,10 @@ class CampaignPlanEdit(QtWidgets.QWidget):
             self.campaign_plan.summary if self.campaign_plan else ""
         )
         self.storypoints = ListEdit(
-            planning.Arc, self.campaign_plan.storypoints if self.campaign_plan else []
+            planning.Point, self.campaign_plan.storypoints if self.campaign_plan else []
+        )
+        self.storyline = ListEdit(
+            planning.Arc, self.campaign_plan.storyline if self.campaign_plan else []
         )
         self.items = ListEdit(
             planning.Item, self.campaign_plan.items if self.campaign_plan else []
@@ -725,7 +728,8 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         layout.addRow("Version:", self.version)
         layout.addRow("Setting:", self.setting)
         layout.addRow("Summary:", self.summary)
-        layout.addRow("Storypoints:", self.storypoints)
+        layout.addRow("Story Points:", self.storypoints)
+        layout.addRow("Storyline Arcs:", self.storyline)
         layout.addRow("Items:", self.items)
         layout.addRow("Rules:", self.rules)
         layout.addRow("Objectives:", self.objectives)

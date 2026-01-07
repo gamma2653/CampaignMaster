@@ -618,6 +618,17 @@ class ArcToCampaign(Base):
     arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"), primary_key=True)
 
 
+class PointToCampaign(Base):
+    __tablename__ = "campaign_point"
+    """
+    Association table for CampaignPlan and their Points (Storypoints).
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    point_id: Mapped[int] = mapped_column(ForeignKey("point.id"), primary_key=True)
+
+
 class ItemProperty(Base):
     __tablename__ = "item_properties"
     """
@@ -975,8 +986,11 @@ class CampaignPlan(ObjectBase):
     setting: Mapped[str] = mapped_column()
     summary: Mapped[str] = mapped_column()
     # These relationships may be unnecessary, depending on how we load the full plan.
-    storypoints: Mapped[list[Arc]] = relationship(
-        "Arc", secondary="campaign_arc", backref="campaign_plan"
+    storypoints: Mapped[list[Point]] = relationship(
+        "Point", secondary="campaign_point", backref="campaign_plan_points"
+    )
+    storyline: Mapped[list[Arc]] = relationship(
+        "Arc", secondary="campaign_arc", backref="campaign_plan_arcs"
     )
     characters: Mapped[list[Character]] = relationship(
         "Character", secondary="campaign_character", backref="campaign_plan"
@@ -995,6 +1009,8 @@ class CampaignPlan(ObjectBase):
             version=self.version,
             setting=self.setting,
             summary=self.summary,
+            storypoints=[pt.to_pydantic(session=session) for pt in self.storypoints],
+            storyline=[arc.to_pydantic(session=session) for arc in self.storyline],
         )
 
     @classmethod
@@ -1014,7 +1030,7 @@ class CampaignPlan(ObjectBase):
             )
             if existing:
                 return existing
-            return cls(
+            campaign_plan = cls(
                 id=ObjectID.from_pydantic(
                     obj.obj_id, proto_user_id=proto_user_id, _session=session
                 ).id,
@@ -1023,6 +1039,15 @@ class CampaignPlan(ObjectBase):
                 setting=obj.setting,
                 summary=obj.summary,
             )
+            # Populate storypoints relationship
+            for point in obj.storypoints:
+                point_obj = Point.from_pydantic(point, proto_user_id, _session=session)
+                campaign_plan.storypoints.append(point_obj)
+            # Populate storyline relationship
+            for arc in obj.storyline:
+                arc_obj = Arc.from_pydantic(arc, proto_user_id, _session=session)
+                campaign_plan.storyline.append(arc_obj)
+            return campaign_plan
 
         if _session is None:
             with Session() as session:
