@@ -431,19 +431,20 @@ class Point(ObjectBase):
             )
             if existing:
                 return existing
+            # Get the objective_id if an objective is specified
+            objective_obj_id = None
+            if obj.objective:
+                objective_obj_id = ObjectID.from_pydantic(
+                    obj.objective, proto_user_id=proto_user_id, _session=session
+                )
+
             return cls(
                 id=ObjectID.from_pydantic(
                     obj.obj_id, proto_user_id=proto_user_id, _session=session
                 ).id,
                 name=obj.name,
                 description=obj.description,
-                objective=(
-                    ObjectID.from_pydantic(
-                        obj.objective, proto_user_id=proto_user_id, _session=session
-                    )
-                    if obj.objective
-                    else None
-                ),
+                objective_id=objective_obj_id.id if objective_obj_id else None,
             )
 
         if _session is None:
@@ -461,15 +462,8 @@ class Point(ObjectBase):
             obj_id = ObjectID.from_pydantic(
                 obj.objective, proto_user_id=0, _session=session
             )
-            objective = (
-                session.execute(select(Objective).where(Objective.id == obj_id.id))
-                .scalars()
-                .first()
-            )
-            self.objective = objective
-            self.objective_id = objective.id if objective else None
+            self.objective_id = obj_id.id
         else:
-            self.objective = None
             self.objective_id = None
 
 
