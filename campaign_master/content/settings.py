@@ -7,7 +7,7 @@ class DBSettings(BaseSettings):
     Settings for the database connection.
     """
 
-    db_scheme: str = "sqlite:///:memory:"
+    db_scheme: str = "sqlite:///campaignmaster.db"
     db_connect_args: dict = {"check_same_thread": False}  # For SQLite
 
     model_config = SettingsConfigDict(env_prefix="DB_")

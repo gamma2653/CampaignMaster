@@ -6,6 +6,7 @@ Provides navigation, menu system, and manages the overall application structure.
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from campaign_master.content import api as content_api
 from campaign_master.content import planning
 from campaign_master.gui.widgets.planning import CampaignPlanEdit
 
@@ -26,8 +27,46 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         self.current_editor = None
 
         # Setup UI components
-        self.setup_welcome_screen()
+        self.setup_toolbar()
         self.setup_menu_bar()
+        self.setup_welcome_screen()
+
+    def setup_toolbar(self):
+        """Create toolbar with quick access buttons."""
+        toolbar = self.addToolBar("Main Toolbar")
+        toolbar.setMovable(False)
+
+        # New campaign button
+        new_action = QtGui.QAction("New", self)
+        new_action.setToolTip("Create new campaign (Ctrl+N)")
+        new_action.setShortcut("Ctrl+N")
+        new_action.triggered.connect(self.new_campaign)
+        toolbar.addAction(new_action)
+
+        # Load campaign button
+        load_action = QtGui.QAction("Load", self)
+        load_action.setToolTip("Load campaign from JSON (Ctrl+O)")
+        load_action.setShortcut("Ctrl+O")
+        load_action.triggered.connect(self.load_campaign)
+        toolbar.addAction(load_action)
+
+        # Save to database button
+        self.save_action = QtGui.QAction("Save", self)
+        self.save_action.setToolTip("Save campaign to database (Ctrl+S)")
+        self.save_action.setShortcut("Ctrl+S")
+        self.save_action.triggered.connect(self.save_campaign)
+        self.save_action.setEnabled(False)  # Disabled until campaign opened
+        toolbar.addAction(self.save_action)
+
+        # Export to JSON button
+        self.export_action = QtGui.QAction("Export", self)
+        self.export_action.setToolTip("Export campaign to JSON (Ctrl+Shift+S)")
+        self.export_action.setShortcut("Ctrl+Shift+S")
+        self.export_action.triggered.connect(self.export_campaign)
+        self.export_action.setEnabled(False)  # Disabled until campaign opened
+        toolbar.addAction(self.export_action)
+
+        toolbar.addSeparator()
 
     def setup_menu_bar(self):
         """Create menu bar with File, Edit, Help menus."""
@@ -46,10 +85,15 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         load_action.triggered.connect(self.load_campaign)
         file_menu.addAction(load_action)
 
-        save_action = QtGui.QAction("&Save Campaign", self)
+        save_action = QtGui.QAction("&Save to Database", self)
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save_campaign)
         file_menu.addAction(save_action)
+
+        export_action = QtGui.QAction("&Export to JSON...", self)
+        export_action.setShortcut("Ctrl+Shift+S")
+        export_action.triggered.connect(self.export_campaign)
+        file_menu.addAction(export_action)
 
         file_menu.addSeparator()
 
@@ -128,6 +172,10 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         self.central_widget.setCurrentWidget(editor)
         self.current_editor = editor
 
+        # Enable save/export actions
+        self.save_action.setEnabled(True)
+        self.export_action.setEnabled(True)
+
     def load_campaign(self):
         """Load campaign from JSON file."""
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -141,13 +189,46 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                 self.central_widget.addWidget(editor)
                 self.central_widget.setCurrentWidget(editor)
                 self.current_editor = editor
+
+                # Enable save/export actions
+                self.save_action.setEnabled(True)
+                self.export_action.setEnabled(True)
             except Exception as e:
                 QtWidgets.QMessageBox.critical(
                     self, "Error Loading Campaign", f"Failed to load campaign:\n{str(e)}"
                 )
 
     def save_campaign(self):
-        """Save current campaign to JSON file."""
+        """Save current campaign to database."""
+        if not hasattr(self, "current_editor") or self.current_editor is None:
+            QtWidgets.QMessageBox.warning(
+                self, "No Campaign", "No campaign is currently open."
+            )
+            return
+
+        try:
+            # Export campaign data from editor
+            campaign = self.current_editor.export_content()
+
+            # Save to database (proto_user_id=0 for GUI mode)
+            if self.current_editor.campaign_plan is not None:
+                content_api.update_object(campaign, proto_user_id=0)
+                message = "Campaign saved to database successfully."
+            else:
+                content_api._create_object(campaign, proto_user_id=0)
+                message = "Campaign created in database successfully."
+                self.current_editor.campaign_plan = campaign
+
+            QtWidgets.QMessageBox.information(self, "Save Successful", message)
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self, "Error Saving Campaign",
+                f"Failed to save campaign to database:\n{str(e)}"
+            )
+
+    def export_campaign(self):
+        """Export current campaign to JSON file."""
         if not hasattr(self, "current_editor") or self.current_editor is None:
             QtWidgets.QMessageBox.warning(
                 self, "No Campaign", "No campaign is currently open."
@@ -155,25 +236,31 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             return
 
         file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save Campaign", "", "JSON Files (*.json)"
+            self, "Export Campaign", "", "JSON Files (*.json)"
         )
+
         if file_path:
             try:
-                # TODO: Extract campaign data from editor
-                # For now, show a message that this feature is not yet implemented
+                # Ensure .json extension
+                if not file_path.endswith('.json'):
+                    file_path += '.json'
+
+                # Export campaign data from editor
+                campaign = self.current_editor.export_content()
+
+                # Write to JSON file
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(campaign.model_dump_json(indent=2))
+
                 QtWidgets.QMessageBox.information(
-                    self,
-                    "Save Not Implemented",
-                    "Saving campaigns is not yet fully implemented.\n"
-                    "This feature will be added in a future update.",
+                    self, "Export Successful",
+                    f"Campaign exported to:\n{file_path}"
                 )
-                # Future implementation:
-                # campaign = self.current_editor.get_campaign()
-                # with open(file_path, 'w') as f:
-                #     f.write(campaign.model_dump_json(indent=2))
+
             except Exception as e:
                 QtWidgets.QMessageBox.critical(
-                    self, "Error Saving Campaign", f"Failed to save campaign:\n{str(e)}"
+                    self, "Error Exporting Campaign",
+                    f"Failed to export campaign:\n{str(e)}"
                 )
 
     def show_about(self):

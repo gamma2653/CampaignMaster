@@ -199,13 +199,85 @@ class Character(Object):
     inventory: list[Item]  # Don't do this!
 ```
 
-### Session Parameter Convention
-Functions that interact with the database accept optional `_session` parameter. If not provided, `@perform_w_session` decorator creates one.
+### Session Management
 
+**Critical Pattern**: All database operations use proper session management with automatic error handling and transaction control.
+
+#### Basic Principles
+
+1. **Automatic Sessions**: All API functions create sessions automatically via the `@perform_w_session` decorator
+2. **Error Handling**: Database errors trigger automatic rollback of the transaction
+3. **Transaction Boundaries**: Top-level API functions commit by default, internal helpers don't
+4. **Manual Transactions**: Use the `transaction()` context manager for multi-step operations
+5. **Parameter Name**: All functions use `session` (not `_session`) for consistency
+
+#### Usage Patterns
+
+**Simple Operation (Automatic Session)**
 ```python
-def my_function(obj_id: str, proto_user_id: int, _session: Session | None = None):
-    # Function will work with or without explicit session
-    pass
+from campaign_master.content import api as content_api
+
+# Session created, committed, and closed automatically
+rule = content_api.create_object(planning.Rule, proto_user_id=0)
+```
+
+**Manual Transaction (Multiple Operations)**
+```python
+from campaign_master.content.database import transaction
+
+with transaction() as session:
+    # All operations in same transaction
+    rule = content_api.create_object(
+        planning.Rule, session=session, auto_commit=False
+    )
+    character = content_api.create_object(
+        planning.Character, session=session, auto_commit=False
+    )
+    # Both committed together at end of with block
+```
+
+**Error Handling**
+```python
+from sqlalchemy.exc import SQLAlchemyError
+
+try:
+    obj = content_api.create_object(planning.Rule)
+except SQLAlchemyError as e:
+    # Error automatically rolled back by decorator
+    logger.error(f"Database error: {e}")
+```
+
+#### When Adding New API Functions
+
+1. Use `@perform_w_session` decorator
+2. Accept optional `session` parameter (NOT `_session`)
+3. Set `auto_commit=False` for internal helpers (prefix with `_`)
+4. Set `auto_commit=True` (default) for public API functions
+5. Don't call `session.commit()` directly - let decorator handle it
+6. Let decorator handle rollback on errors
+
+**Example: Internal Helper**
+```python
+@perform_w_session
+def _internal_helper(
+    obj_id: str, session: Session | None = None,
+    auto_commit: bool = False  # Default False for helpers
+) -> SomeType:
+    # Do work, no manual commit
+    return result
+```
+
+**Example: Public API Function**
+```python
+@perform_w_session
+def public_function(
+    obj_id: str, session: Session | None = None,
+    auto_commit: bool = True  # Default True for public API
+) -> SomeType:
+    # Call helpers with auto_commit=False
+    result = _internal_helper(obj_id, session=session, auto_commit=False)
+    # Decorator handles commit
+    return result
 ```
 
 ### GUI Widget Generation

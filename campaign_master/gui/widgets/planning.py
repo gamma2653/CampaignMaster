@@ -881,8 +881,26 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         )
         # Further widgets for objectives, arcs, items, characters, locations can be added here.
 
+        # Add save button row
+        button_layout = QtWidgets.QHBoxLayout()
+
+        self.save_button = QtWidgets.QPushButton("Save to Database")
+        self.save_button.setToolTip("Save campaign to database (Ctrl+S)")
+        self.save_button.clicked.connect(self.save_to_database)
+        button_layout.addWidget(self.save_button)
+
+        self.export_button = QtWidgets.QPushButton("Export to JSON")
+        self.export_button.setToolTip("Export campaign to JSON file")
+        self.export_button.clicked.connect(self.export_to_json)
+        button_layout.addWidget(self.export_button)
+
+        button_layout.addStretch()  # Push buttons to left
+
         self.setLayout(layout)
         self.update_layout()
+
+        # Add button row to form
+        layout.addRow("", button_layout)
 
     def update_layout(self):
         layout = cast(QtWidgets.QFormLayout, self.layout())
@@ -898,3 +916,32 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         layout.addRow("Objectives:", self.objectives)
         layout.addRow("Characters:", self.characters)
         layout.addRow("Locations:", self.locations)
+
+    def export_content(self) -> planning.CampaignPlan:
+        """Export the form data as a CampaignPlan object."""
+        return planning.CampaignPlan(
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            title=self.title.text(),
+            version=self.version.toPlainText(),
+            setting=self.setting.toPlainText(),
+            summary=self.summary.toPlainText(),
+            storypoints=self.storypoints.get_objects(),
+            storyline=self.storyline.get_objects(),
+            items=self.items.get_objects(),
+            rules=self.rules.get_objects(),
+            objectives=self.objectives.get_objects(),
+            characters=self.characters.get_objects(),
+            locations=self.locations.get_objects(),
+        )
+
+    def save_to_database(self):
+        """Handle save button click - delegate to main window."""
+        main_window = self.window()
+        if hasattr(main_window, 'save_campaign'):
+            main_window.save_campaign()
+
+    def export_to_json(self):
+        """Handle export button click - delegate to main window."""
+        main_window = self.window()
+        if hasattr(main_window, 'export_campaign'):
+            main_window.export_campaign()

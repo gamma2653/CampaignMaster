@@ -20,28 +20,60 @@ P = ParamSpec("P")
 
 
 def perform_w_session(f: Callable[P, T]) -> Callable[P, T]:
+    """
+    Decorator providing automatic session management with error handling.
+
+    - Creates session if not provided
+    - Handles exceptions with automatic rollback
+    - Commits only if auto_commit=True (default for top-level functions)
+    - Tracks session ownership to avoid double-close
+    """
     @wraps(f)
     def wrapped(*args: P.args, **kwargs: P.kwargs):
         session = kwargs.get("session", None)
-        if session is None:
-            with SessionLocal() as session_:
-                logger.debug(
-                    "(%s) Performing operation with new session (%s)",
-                    "perform_w_session",
-                    f.__name__,
-                )
-                kwargs["session"] = session_
-                return f(*args, **kwargs)  # process, then close context
-        return f(*args, **kwargs)
+        auto_commit = kwargs.pop("auto_commit", True)
+        owns_session = session is None
+
+        if owns_session:
+            session = SessionLocal()
+            kwargs["session"] = session
+
+        try:
+            result = f(*args, **kwargs)
+
+            # Only commit if we own the session AND auto_commit is True
+            if owns_session and auto_commit:
+                session.commit()
+                logger.debug(f"({f.__name__}) Transaction committed")
+
+            return result
+
+        except Exception as e:
+            # Only rollback if we own the session
+            if owns_session:
+                session.rollback()
+                logger.error(f"({f.__name__}) Transaction rolled back: {e}")
+            raise
+
+        finally:
+            # Only close if we own the session
+            if owns_session:
+                session.close()
 
     return wrapped
 
 
 @perform_w_session
 def _generate_id(
-    prefix: str, session: Session | None = None, proto_user_id: int = 0
+    prefix: str, session: Session | None = None, proto_user_id: int = 0,
+    auto_commit: bool = False
 ) -> "ObjectID":
-    """Generate a new unique ID with the given prefix for the specified user."""
+    """
+    Generate a new unique ID with the given prefix for the specified user.
+
+    Note: This is an internal helper that does NOT commit by default.
+    The caller is responsible for committing the transaction.
+    """
     session = cast(Session, session)  # for mypy
     prior_obj_id = (
         session.execute(
@@ -63,7 +95,8 @@ def _generate_id(
         proto_user_id=proto_user_id,
     )
     session.add(new_obj_id)
-    session.commit()
+    session.flush()  # Flush to make ID available in this transaction
+    # REMOVED: session.commit() - Let caller handle commit
     return new_obj_id
 
 
@@ -131,35 +164,52 @@ def retrieve_ids(
 
 @perform_w_session
 def _create_object(
-    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0
+    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0,
+    auto_commit: bool = False
 ) -> "ObjectBase":
+    """
+    Create a new object in the database.
+
+    Note: This is an internal helper that does NOT commit by default.
+    The caller is responsible for committing the transaction.
+    """
     session = cast(Session, session)  # for mypy
-    """Create a new object in the database."""
     sql_model = cast(type[ObjectBase], PydanticToSQLModel[type(obj)])
     # logger.debug(f"Object data: {obj}")
-    db_obj = sql_model.from_pydantic(obj, proto_user_id=proto_user_id, _session=session)
+    db_obj = sql_model.from_pydantic(obj, proto_user_id=proto_user_id, session=session)
     # logger.debug(f"Created object in DB: {db_obj}")
     session.add(db_obj)
-    session.commit()
+    session.flush()  # Flush to make object available in this transaction
+    # REMOVED: session.commit() - Let caller handle commit
     return db_obj
 
 
 @perform_w_session
 def create_object(
-    type_: type[planning.Object], session: Session | None = None, proto_user_id: int = 0
+    type_: type[planning.Object], session: Session | None = None, proto_user_id: int = 0,
+    auto_commit: bool = True
 ) -> planning.Object:
-    """Create a new object of the specified type."""
+    """
+    Create a new object of the specified type.
+
+    This is a top-level API function that commits the transaction by default.
+    Pass auto_commit=False when using within a larger transaction context.
+    """
     session = cast(Session, session)  # for mypy
-    # Generate a new ID first
+    # Generate a new ID first (won't commit due to auto_commit=False)
     new_id = _generate_id(
-        prefix=type_._default_prefix, proto_user_id=proto_user_id, session=session
+        prefix=type_._default_prefix, proto_user_id=proto_user_id,
+        session=session, auto_commit=False
     )
     # Create the Pydantic object with the generated ID
     pydantic_obj = type_(obj_id=new_id.to_pydantic())
-    # Convert to SQLAlchemy and save
-    return _create_object(
-        pydantic_obj, proto_user_id=proto_user_id, session=session
-    ).to_pydantic(session=session)
+    # Convert to SQLAlchemy and save (won't commit due to auto_commit=False)
+    db_obj = _create_object(
+        pydantic_obj, proto_user_id=proto_user_id,
+        session=session, auto_commit=False
+    )
+    # Commit happens in decorator (if auto_commit=True and owns session)
+    return db_obj.to_pydantic(session=session)
 
 
 @perform_w_session
@@ -225,9 +275,15 @@ def retrieve_objects(
 
 @perform_w_session
 def update_object(
-    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0
+    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0,
+    auto_commit: bool = True
 ) -> planning.Object:
-    """Update an existing object in the database."""
+    """
+    Update an existing object in the database.
+
+    This is a top-level API function that commits the transaction by default.
+    Pass auto_commit=False when using within a larger transaction context.
+    """
     session = cast(Session, session)  # for mypy
     sql_model = cast(type[ObjectBase], PydanticToSQLModel[type(obj)])
 
@@ -254,7 +310,7 @@ def update_object(
 
     # Update fields
     db_obj.update_from_pydantic(obj, session=session)
-    session.commit()
+    # REMOVED: session.commit() - Let decorator handle commit
     session.refresh(db_obj)
 
     return db_obj.to_pydantic(session=session)
@@ -262,9 +318,15 @@ def update_object(
 
 @perform_w_session
 def delete_object(
-    obj_id: planning.ID, session: Session | None = None, proto_user_id: int = 0
+    obj_id: planning.ID, session: Session | None = None, proto_user_id: int = 0,
+    auto_commit: bool = True
 ) -> bool:
-    """Delete an object by its ID."""
+    """
+    Delete an object by its ID.
+
+    This is a top-level API function that commits the transaction by default.
+    Pass auto_commit=False when using within a larger transaction context.
+    """
     session = cast(Session, session)  # for mypy
     sql_model = PydanticToSQLModel[obj_id.__class__]
 
@@ -288,5 +350,5 @@ def delete_object(
         return False
 
     session.delete(db_obj)
-    session.commit()
+    # REMOVED: session.commit() - Let decorator handle commit
     return True

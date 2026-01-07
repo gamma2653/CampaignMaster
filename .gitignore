@@ -79,6 +79,12 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# CampaignMaster database
+campaignmaster.db
+campaignmaster.db-journal
+campaignmaster.db-wal
+campaignmaster.db-shm
+
 # Flask stuff:
 instance/
 .webassets-cache
