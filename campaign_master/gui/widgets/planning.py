@@ -1,9 +1,118 @@
 from typing import Optional, cast
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...content import api as content_api
 from ...content import planning
+from ..themes import ThemedWidget
+
+
+class CollapsibleSection(QtWidgets.QWidget):
+    """A collapsible section widget with a header and expandable content."""
+
+    def __init__(
+        self,
+        title: str = "",
+        border_color: str = "#555555",
+        bg_color: str = "#1a341a",
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.border_color = border_color
+        self.bg_color = bg_color
+        self.is_collapsed = False
+        self.init_ui(title)
+
+    def init_ui(self, title: str):
+        """Initialize the UI components."""
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # Create header button
+        self.header_button = QtWidgets.QPushButton(title)
+        self.header_button.setCheckable(True)
+        self.header_button.setChecked(True)  # Start expanded
+        self.header_button.clicked.connect(self.toggle_collapse)
+
+        # Style the header button
+        self.header_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.bg_color};
+                border: 2px solid {self.border_color};
+                border-radius: 8px;
+                color: #ffffff;
+                font-size: 16px;
+                font-weight: 600;
+                text-align: left;
+                padding: 12px 16px;
+                min-height: 20px;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.05);
+            }}
+            QPushButton:checked {{
+                border-bottom-left-radius: 0px;
+                border-bottom-right-radius: 0px;
+            }}
+        """)
+
+        # Create content widget
+        self.content_widget = QtWidgets.QWidget()
+        self.content_layout = QtWidgets.QVBoxLayout()
+        self.content_layout.setContentsMargins(16, 16, 16, 16)
+        self.content_widget.setLayout(self.content_layout)
+
+        # Style the content widget
+        self.content_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {self.bg_color};
+                border: 2px solid {self.border_color};
+                border-top: none;
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+                padding: 8px;
+            }}
+        """)
+
+        main_layout.addWidget(self.header_button)
+        main_layout.addWidget(self.content_widget)
+
+        self.setLayout(main_layout)
+
+        # Start expanded
+        self.content_widget.setVisible(True)
+
+        # Update arrow indicator
+        self.update_arrow()
+
+    def set_content(self, widget: QtWidgets.QWidget):
+        """Set the content widget for this section."""
+        # Clear existing content
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            if item.widget():
+                item.widget().setParent(None)
+
+        # Add new content
+        self.content_layout.addWidget(widget)
+
+    def toggle_collapse(self):
+        """Toggle the collapsed state."""
+        self.is_collapsed = not self.header_button.isChecked()
+        self.content_widget.setVisible(not self.is_collapsed)
+        self.update_arrow()
+
+    def update_arrow(self):
+        """Update the arrow indicator based on collapsed state."""
+        arrow = "▼" if not self.is_collapsed else "▶"
+        current_text = self.header_button.text()
+
+        # Remove existing arrow if present
+        if current_text.startswith("▼ ") or current_text.startswith("▶ "):
+            current_text = current_text[2:]
+
+        self.header_button.setText(f"{arrow} {current_text}")
 
 
 class IDDisplay(QtWidgets.QLineEdit):
@@ -289,7 +398,7 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
         return self.objects
 
 
-class RuleEdit(QtWidgets.QWidget):
+class RuleEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit a Rule object.
 
@@ -304,7 +413,10 @@ class RuleEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Rule, "Rule")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(planning.Rule, self.rule.obj_id if self.rule else None)
         self.description = QtWidgets.QTextEdit(
             self.rule.description if self.rule else ""
@@ -312,15 +424,16 @@ class RuleEdit(QtWidgets.QWidget):
         self.effect = QtWidgets.QTextEdit(self.rule.effect if self.rule else "")
         self.components = StrListEdit(self.rule.components if self.rule else [])
 
-        self.setLayout(layout)
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Effect:", self.effect)
-        layout.addRow("Components:", self.components)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Effect:", self.effect)
+        self.form_layout.addRow("Components:", self.components)
 
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
@@ -332,7 +445,7 @@ class RuleEdit(QtWidgets.QWidget):
         )
 
 
-class ObjectiveEdit(QtWidgets.QWidget):
+class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit an Objective object.
 
@@ -348,7 +461,10 @@ class ObjectiveEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Objective, "Objective")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(
             planning.Objective, self.objective.obj_id if self.objective else None
         )
@@ -362,15 +478,16 @@ class ObjectiveEdit(QtWidgets.QWidget):
             planning.Objective, self.objective.prerequisites if self.objective else []
         )
 
-        self.setLayout(layout)
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Components:", self.components)
-        layout.addRow("Prerequisites:", self.prerequisites)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Components:", self.components)
+        self.form_layout.addRow("Prerequisites:", self.prerequisites)
 
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
@@ -382,7 +499,7 @@ class ObjectiveEdit(QtWidgets.QWidget):
         )
 
 
-class PointEdit(QtWidgets.QWidget):
+class PointEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit a Point object.
 
@@ -398,7 +515,10 @@ class PointEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Point, "Story Point")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(
             planning.Point, self.point.obj_id if self.point else None
         )
@@ -407,15 +527,17 @@ class PointEdit(QtWidgets.QWidget):
             self.point.description if self.point else ""
         )
         self.objective = IDSelect(planning.Objective)
-        self.setLayout(layout)
+
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Name:", self.name)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Objective ID:", self.objective)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Name:", self.name)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Objective ID:", self.objective)
 
     def export_content(self) -> planning.Point:
         """Export the form data as a Point object."""
@@ -432,7 +554,7 @@ class PointEdit(QtWidgets.QWidget):
         )
 
 
-class SegmentEdit(QtWidgets.QWidget):
+class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit a Segment object.
 
@@ -449,7 +571,10 @@ class SegmentEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Segment, "Segment")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(
             planning.Segment, self.segment.obj_id if self.segment else None
         )
@@ -459,16 +584,18 @@ class SegmentEdit(QtWidgets.QWidget):
         )
         self.start = PointEdit(self.segment.start if self.segment else None)
         self.end = PointEdit(self.segment.end if self.segment else None)
-        self.setLayout(layout)
+
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Name:", self.name)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Start Point:", self.start)
-        layout.addRow("End Point:", self.end)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Name:", self.name)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Start Point:", self.start)
+        self.form_layout.addRow("End Point:", self.end)
 
     def export_content(self) -> planning.Segment:
         """Export the form data as a Segment object."""
@@ -486,7 +613,7 @@ class SegmentEdit(QtWidgets.QWidget):
         )
 
 
-class ArcEdit(QtWidgets.QWidget):
+class ArcEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit an Arc object.
 
@@ -502,7 +629,10 @@ class ArcEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Arc, "Story Arc")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(planning.Arc, self.arc.obj_id if self.arc else None)
         self.name = QtWidgets.QLineEdit(self.arc.name if self.arc else "")
         self.description = QtWidgets.QTextEdit(self.arc.description if self.arc else "")
@@ -511,15 +641,17 @@ class ArcEdit(QtWidgets.QWidget):
             for segment in self.arc.segments:
                 item = QtWidgets.QListWidgetItem(segment.name)
                 self.segments.addItem(item)
-        self.setLayout(layout)
+
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Name:", self.name)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Segments:", self.segments)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Name:", self.name)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Segments:", self.segments)
 
     def export_content(self) -> planning.Arc:
         """Export the form data as an Arc object."""
@@ -606,7 +738,7 @@ class MapEdit[K, V](QtWidgets.QWidget):
         return result
 
 
-class ItemEdit(QtWidgets.QWidget):
+class ItemEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit an Item object.
 
@@ -622,7 +754,10 @@ class ItemEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Item, "Item")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(planning.Item, self.item.obj_id if self.item else None)
         self.name = QtWidgets.QLineEdit(self.item.name if self.item else "")
         self.type_ = QtWidgets.QLineEdit(self.item.type_ if self.item else "")
@@ -631,16 +766,17 @@ class ItemEdit(QtWidgets.QWidget):
         )
         self.properties = MapEdit[str, str](self.item.properties if self.item else {})
 
-        self.setLayout(layout)
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Name:", self.name)
-        layout.addRow("Type:", self.type_)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Properties:", self.properties)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Name:", self.name)
+        self.form_layout.addRow("Type:", self.type_)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Properties:", self.properties)
 
     def export_content(self) -> planning.Item:
         """Export the form data as an Item object."""
@@ -653,7 +789,7 @@ class ItemEdit(QtWidgets.QWidget):
         )
 
 
-class CharacterEdit(QtWidgets.QWidget):
+class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit a Character object.
 
@@ -669,7 +805,10 @@ class CharacterEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Character, "Character")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(
             planning.Character, self.character.obj_id if self.character else None
         )
@@ -689,19 +828,20 @@ class CharacterEdit(QtWidgets.QWidget):
             planning.Item, self.character.inventory if self.character else []
         )
 
-        self.setLayout(layout)
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Name:", self.name)
-        layout.addRow("Role:", self.role)
-        layout.addRow("Backstory:", self.backstory)
-        layout.addRow("Attributes:", self.attributes)
-        layout.addRow("Skills:", self.skills)
-        layout.addRow("Storylines:", self.storylines)
-        layout.addRow("Inventory:", self.inventory)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Name:", self.name)
+        self.form_layout.addRow("Role:", self.role)
+        self.form_layout.addRow("Backstory:", self.backstory)
+        self.form_layout.addRow("Attributes:", self.attributes)
+        self.form_layout.addRow("Skills:", self.skills)
+        self.form_layout.addRow("Storylines:", self.storylines)
+        self.form_layout.addRow("Inventory:", self.inventory)
 
     def export_content(self) -> planning.Character:
         """Export the form data as a Character object."""
@@ -722,7 +862,7 @@ class CharacterEdit(QtWidgets.QWidget):
         )
 
 
-class LocationEdit(QtWidgets.QWidget):
+class LocationEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit a Location object.
 
@@ -744,7 +884,10 @@ class LocationEdit(QtWidgets.QWidget):
         return None
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        container = self.create_themed_container(planning.Location, "Location")
+        self.form_layout = QtWidgets.QFormLayout()
+
         self.obj_id = IDDisplay(
             planning.Location, self.location.obj_id if self.location else None
         )
@@ -772,18 +915,19 @@ class LocationEdit(QtWidgets.QWidget):
             else ""
         )
 
-        self.setLayout(layout)
+        container.setLayout(self.form_layout)
+        main_layout.addWidget(container)
+        self.setLayout(main_layout)
         self.update_layout()
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Name:", self.name)
-        layout.addRow("Description:", self.description)
-        layout.addRow("Neighboring Locations:", self.neighboring_locations)
-        layout.addRow("Latitude:", self._latitude)
-        layout.addRow("Longitude:", self._longitude)
-        layout.addRow("Altitude (optional):", self._altitude)
+        self.form_layout.addRow("ID:", self.obj_id)
+        self.form_layout.addRow("Name:", self.name)
+        self.form_layout.addRow("Description:", self.description)
+        self.form_layout.addRow("Neighboring Locations:", self.neighboring_locations)
+        self.form_layout.addRow("Latitude:", self._latitude)
+        self.form_layout.addRow("Longitude:", self._longitude)
+        self.form_layout.addRow("Altitude (optional):", self._altitude)
 
     def export_content(self) -> planning.Location:
         """Export the form data as a Location object."""
@@ -815,7 +959,7 @@ class LocationEdit(QtWidgets.QWidget):
         )
 
 
-class CampaignPlanEdit(QtWidgets.QWidget):
+class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     """
     Contains a form to populate/edit a CampaignPlan object.
 
@@ -837,8 +981,39 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QFormLayout()
+        from ..themes.colors import get_colors_for_type
 
+        # Main scroll area
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+
+        # Content widget for scroll area
+        content_widget = QtWidgets.QWidget()
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setSpacing(16)
+
+        # Metadata section (non-collapsible)
+        metadata_group = QtWidgets.QGroupBox("Campaign Metadata")
+        border_color, bg_color = get_colors_for_type(planning.CampaignPlan)
+        metadata_group.setStyleSheet(f"""
+            QGroupBox {{
+                border: 2px solid {border_color};
+                border-radius: 8px;
+                background-color: {bg_color};
+                padding: 16px;
+                margin-top: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                color: #ffffff;
+            }}
+            QGroupBox::title {{
+                color: #ffffff;
+                padding: 0 8px;
+            }}
+        """)
+
+        metadata_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(
             planning.CampaignPlan,
             self.campaign_plan.obj_id if self.campaign_plan else None,
@@ -849,12 +1024,25 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         self.version = QtWidgets.QTextEdit(
             self.campaign_plan.version if self.campaign_plan else ""
         )
+        self.version.setMaximumHeight(60)
         self.setting = QtWidgets.QTextEdit(
             self.campaign_plan.setting if self.campaign_plan else ""
         )
+        self.setting.setMaximumHeight(80)
         self.summary = QtWidgets.QTextEdit(
             self.campaign_plan.summary if self.campaign_plan else ""
         )
+        self.summary.setMaximumHeight(100)
+
+        metadata_layout.addRow("ID:", self.obj_id)
+        metadata_layout.addRow("Title:", self.title)
+        metadata_layout.addRow("Version:", self.version)
+        metadata_layout.addRow("Setting:", self.setting)
+        metadata_layout.addRow("Summary:", self.summary)
+        metadata_group.setLayout(metadata_layout)
+        main_layout.addWidget(metadata_group)
+
+        # Create list widgets
         self.storypoints = ListEdit(
             planning.Point, self.campaign_plan.storypoints if self.campaign_plan else []
         )
@@ -879,11 +1067,26 @@ class CampaignPlanEdit(QtWidgets.QWidget):
             planning.Location,
             self.campaign_plan.locations if self.campaign_plan else [],
         )
-        # Further widgets for objectives, arcs, items, characters, locations can be added here.
 
-        # Add save button row
+        # Create collapsible sections with color coding
+        sections = [
+            ("Story Points", self.storypoints, planning.Point),
+            ("Storyline Arcs", self.storyline, planning.Arc),
+            ("Rules", self.rules, planning.Rule),
+            ("Objectives", self.objectives, planning.Objective),
+            ("Characters", self.characters, planning.Character),
+            ("Items", self.items, planning.Item),
+            ("Locations", self.locations, planning.Location),
+        ]
+
+        for title, widget, obj_type in sections:
+            border_color, bg_color = get_colors_for_type(obj_type)
+            section = CollapsibleSection(title, border_color, bg_color)
+            section.set_content(widget)
+            main_layout.addWidget(section)
+
+        # Add save/export buttons
         button_layout = QtWidgets.QHBoxLayout()
-
         self.save_button = QtWidgets.QPushButton("Save to Database")
         self.save_button.setToolTip("Save campaign to database (Ctrl+S)")
         self.save_button.clicked.connect(self.save_to_database)
@@ -894,28 +1097,23 @@ class CampaignPlanEdit(QtWidgets.QWidget):
         self.export_button.clicked.connect(self.export_to_json)
         button_layout.addWidget(self.export_button)
 
-        button_layout.addStretch()  # Push buttons to left
+        button_layout.addStretch()
+        main_layout.addLayout(button_layout)
 
-        self.setLayout(layout)
-        self.update_layout()
+        main_layout.addStretch()
 
-        # Add button row to form
-        layout.addRow("", button_layout)
+        content_widget.setLayout(main_layout)
+        scroll_area.setWidget(content_widget)
+
+        # Set scroll area as main widget
+        final_layout = QtWidgets.QVBoxLayout()
+        final_layout.setContentsMargins(0, 0, 0, 0)
+        final_layout.addWidget(scroll_area)
+        self.setLayout(final_layout)
 
     def update_layout(self):
-        layout = cast(QtWidgets.QFormLayout, self.layout())
-        layout.addRow("ID:", self.obj_id)
-        layout.addRow("Title:", self.title)
-        layout.addRow("Version:", self.version)
-        layout.addRow("Setting:", self.setting)
-        layout.addRow("Summary:", self.summary)
-        layout.addRow("Story Points:", self.storypoints)
-        layout.addRow("Storyline Arcs:", self.storyline)
-        layout.addRow("Items:", self.items)
-        layout.addRow("Rules:", self.rules)
-        layout.addRow("Objectives:", self.objectives)
-        layout.addRow("Characters:", self.characters)
-        layout.addRow("Locations:", self.locations)
+        # No longer needed - layout is set up in init_ui
+        pass
 
     def export_content(self) -> planning.CampaignPlan:
         """Export the form data as a CampaignPlan object."""

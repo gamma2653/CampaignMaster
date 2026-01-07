@@ -145,6 +145,12 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         new_btn = QtWidgets.QPushButton("Create New Campaign")
         new_btn.setMinimumWidth(200)
         new_btn.setMinimumHeight(40)
+        new_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                font-weight: 600;
+            }
+        """)
         new_btn.clicked.connect(self.new_campaign)
         button_layout.addWidget(new_btn)
 
@@ -153,6 +159,12 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         load_btn = QtWidgets.QPushButton("Load Existing Campaign")
         load_btn.setMinimumWidth(200)
         load_btn.setMinimumHeight(40)
+        load_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 16px;
+                font-weight: 600;
+            }
+        """)
         load_btn.clicked.connect(self.load_campaign)
         button_layout.addWidget(load_btn)
 

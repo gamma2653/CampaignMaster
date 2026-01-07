@@ -52,8 +52,14 @@ if __name__ == "__main__":
         create_db_and_tables()
         create_example_data()
         from campaign_master.gui.main_window import CampaignMasterWindow
+        from campaign_master.gui.themes import ThemeManager
 
         app = QtWidgets.QApplication(sys.argv)
+
+        # Initialize dark theme
+        theme_manager = ThemeManager(app)
+        theme_manager.load_theme()
+
         window = CampaignMasterWindow()
         window.show()
         app.exec()
