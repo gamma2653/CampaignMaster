@@ -74,6 +74,19 @@ class ThemedWidget:
         """
         border_color, bg_color = get_colors_for_type(obj_type)
 
+        # Create a darker input background for better contrast
+        # Parse the bg_color hex and darken it by ~30%
+        bg_int = int(bg_color.lstrip('#'), 16)
+        r = (bg_int >> 16) & 0xFF
+        g = (bg_int >> 8) & 0xFF
+        b = bg_int & 0xFF
+
+        # Darken by multiplying by 0.6
+        input_r = int(r * 0.6)
+        input_g = int(g * 0.6)
+        input_b = int(b * 0.6)
+        input_bg = f"#{input_r:02x}{input_g:02x}{input_b:02x}"
+
         stylesheet = f"""
             QWidget {{
                 background-color: {bg_color};
@@ -95,6 +108,92 @@ class ThemedWidget:
                 border: 1px solid {border_color};
                 border-radius: 4px;
                 background-color: {bg_color};
+            }}
+            QLineEdit, QTextEdit, QPlainTextEdit {{
+                background-color: {input_bg};
+                color: #ffffff;
+                border: 1px solid {border_color};
+                border-radius: 4px;
+                padding: 10px 8px;
+                font-size: 14px;
+                min-height: 18px;
+                selection-background-color: rgba(255, 255, 255, 0.2);
+                selection-color: #ffffff;
+            }}
+            QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
+                border: 2px solid {border_color};
+                background-color: {input_bg};
+            }}
+            QLineEdit:read-only {{
+                background-color: {input_bg};
+                color: #a0a0a0;
+                border: 1px solid rgba(85, 85, 85, 0.5);
+            }}
+            QComboBox {{
+                background-color: {input_bg};
+                color: #ffffff;
+                border: 1px solid {border_color};
+                border-radius: 4px;
+                padding: 10px 8px;
+                padding-right: 28px;
+                font-size: 14px;
+                min-height: 18px;
+            }}
+            QComboBox:hover {{
+                border: 2px solid {border_color};
+                padding: 9px 7px;
+                padding-right: 27px;
+            }}
+            QComboBox:focus {{
+                border: 2px solid {border_color};
+                padding: 9px 7px;
+                padding-right: 27px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {input_bg};
+                color: #ffffff;
+                border: 1px solid {border_color};
+                selection-background-color: rgba(255, 255, 255, 0.2);
+                selection-color: #ffffff;
+            }}
+            QSpinBox, QDoubleSpinBox {{
+                background-color: {input_bg};
+                color: #ffffff;
+                border: 1px solid {border_color};
+                border-radius: 4px;
+                padding: 10px 8px;
+                font-size: 14px;
+                min-height: 18px;
+            }}
+            QSpinBox:focus, QDoubleSpinBox:focus {{
+                border: 2px solid {border_color};
+                padding: 9px 7px;
+            }}
+            QListWidget {{
+                background-color: {input_bg};
+                color: #ffffff;
+                border: 1px solid {border_color};
+                border-radius: 4px;
+            }}
+            QTableWidget {{
+                background-color: {input_bg};
+                color: #ffffff;
+                border: 1px solid {border_color};
+                border-radius: 4px;
+                gridline-color: {border_color};
+            }}
+            QTableWidget::item {{
+                padding: 8px;
+                border: none;
+            }}
+            QHeaderView::section {{
+                background-color: {bg_color};
+                color: #ffffff;
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid {border_color};
+                border-right: 1px solid {border_color};
+                font-weight: 600;
             }}
         """
         widget.setStyleSheet(stylesheet)
