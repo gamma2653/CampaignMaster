@@ -159,12 +159,14 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         new_btn = QtWidgets.QPushButton("Create New Campaign")
         new_btn.setMinimumWidth(200)
         new_btn.setMinimumHeight(40)
-        new_btn.setStyleSheet("""
+        new_btn.setStyleSheet(
+            """
             QPushButton {
                 font-size: 16px;
                 font-weight: 600;
             }
-        """)
+        """
+        )
         new_btn.clicked.connect(self.new_campaign)
         button_layout.addWidget(new_btn)
 
@@ -173,12 +175,14 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         load_btn = QtWidgets.QPushButton("Load from Database")
         load_btn.setMinimumWidth(200)
         load_btn.setMinimumHeight(40)
-        load_btn.setStyleSheet("""
+        load_btn.setStyleSheet(
+            """
             QPushButton {
                 font-size: 16px;
                 font-weight: 600;
             }
-        """)
+        """
+        )
         load_btn.clicked.connect(self.load_campaign)
         button_layout.addWidget(load_btn)
 
@@ -187,12 +191,14 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         import_btn = QtWidgets.QPushButton("Import from JSON")
         import_btn.setMinimumWidth(200)
         import_btn.setMinimumHeight(40)
-        import_btn.setStyleSheet("""
+        import_btn.setStyleSheet(
+            """
             QPushButton {
                 font-size: 16px;
                 font-weight: 600;
             }
-        """)
+        """
+        )
         import_btn.clicked.connect(self.import_campaign)
         button_layout.addWidget(import_btn)
 
@@ -244,12 +250,15 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         """Load campaign from database."""
         try:
             # Retrieve all campaigns from database
-            campaigns = content_api.retrieve_objects(planning.CampaignPlan, proto_user_id=0)
+            campaigns = content_api.retrieve_objects(
+                planning.CampaignPlan, proto_user_id=0
+            )
 
             if not campaigns:
                 QtWidgets.QMessageBox.information(
-                    self, "No Campaigns",
-                    "No campaigns found in the database.\n\nCreate a new campaign or import one from a JSON file."
+                    self,
+                    "No Campaigns",
+                    "No campaigns found in the database.\n\nCreate a new campaign or import one from a JSON file.",
                 )
                 return
 
@@ -268,7 +277,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             # Campaign list
             list_widget = QtWidgets.QListWidget()
             for campaign in campaigns:
-                item_text = f"{campaign.title or 'Untitled Campaign'} (ID: {campaign.obj_id})"
+                item_text = (
+                    f"{campaign.title or 'Untitled Campaign'} (ID: {campaign.obj_id})"
+                )
                 if campaign.summary:
                     item_text += f"\n  {campaign.summary[:100]}{'...' if len(campaign.summary) > 100 else ''}"
                 item = QtWidgets.QListWidgetItem(item_text)
@@ -280,8 +291,8 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
 
             # Buttons
             button_box = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.StandardButton.Ok |
-                QtWidgets.QDialogButtonBox.StandardButton.Cancel
+                QtWidgets.QDialogButtonBox.StandardButton.Ok
+                | QtWidgets.QDialogButtonBox.StandardButton.Cancel
             )
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
@@ -305,8 +316,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
 
         except Exception as e:
             QtWidgets.QMessageBox.critical(
-                self, "Error Loading Campaign",
-                f"Failed to load campaigns from database:\n{str(e)}"
+                self,
+                "Error Loading Campaign",
+                f"Failed to load campaigns from database:\n{str(e)}",
             )
 
     def save_campaign(self):
@@ -334,8 +346,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
 
         except Exception as e:
             QtWidgets.QMessageBox.critical(
-                self, "Error Saving Campaign",
-                f"Failed to save campaign to database:\n{str(e)}"
+                self,
+                "Error Saving Campaign",
+                f"Failed to save campaign to database:\n{str(e)}",
             )
 
     def export_campaign(self):
@@ -353,25 +366,25 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         if file_path:
             try:
                 # Ensure .json extension
-                if not file_path.endswith('.json'):
-                    file_path += '.json'
+                if not file_path.endswith(".json"):
+                    file_path += ".json"
 
                 # Export campaign data from editor
                 campaign = self.current_editor.export_content()
 
                 # Write to JSON file
-                with open(file_path, 'w', encoding='utf-8') as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(campaign.model_dump_json(indent=2))
 
                 QtWidgets.QMessageBox.information(
-                    self, "Export Successful",
-                    f"Campaign exported to:\n{file_path}"
+                    self, "Export Successful", f"Campaign exported to:\n{file_path}"
                 )
 
             except Exception as e:
                 QtWidgets.QMessageBox.critical(
-                    self, "Error Exporting Campaign",
-                    f"Failed to export campaign:\n{str(e)}"
+                    self,
+                    "Error Exporting Campaign",
+                    f"Failed to export campaign:\n{str(e)}",
                 )
 
     def show_about(self):

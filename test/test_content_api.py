@@ -40,6 +40,7 @@ class DBTestCase(TestCase):
     def setUp(self) -> None:
         # Drop all tables and recreate for test isolation
         from campaign_master.content.models import Base
+
         Base.metadata.drop_all(database.engine)
         database.create_db_and_tables()
         database.create_example_data()
