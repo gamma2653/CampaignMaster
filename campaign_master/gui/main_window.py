@@ -278,13 +278,63 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             list_widget.setCurrentRow(0)
             layout.addWidget(list_widget)
 
+            # Delete handler function
+            def delete_selected_campaign():
+                current_item = list_widget.currentItem()
+                if not current_item:
+                    return
+
+                campaign = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
+
+                # Confirmation dialog
+                reply = QtWidgets.QMessageBox.question(
+                    dialog,
+                    "Confirm Deletion",
+                    f"Are you sure you want to delete '{campaign.title or 'Untitled Campaign'}'?\n\n"
+                    "This action cannot be undone.",
+                    QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+                    QtWidgets.QMessageBox.StandardButton.No
+                )
+
+                if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                    try:
+                        # Delete from database
+                        content_api.delete_object(campaign.obj_id, proto_user_id=0)
+
+                        # Remove from list
+                        list_widget.takeItem(list_widget.row(current_item))
+
+                        # Check if list is empty
+                        if list_widget.count() == 0:
+                            QtWidgets.QMessageBox.information(
+                                dialog, "No Campaigns",
+                                "No campaigns found in the database."
+                            )
+                            dialog.reject()
+
+                    except Exception as e:
+                        QtWidgets.QMessageBox.critical(
+                            dialog, "Delete Failed",
+                            f"Failed to delete campaign: {str(e)}"
+                        )
+
+            # Update delete button state based on selection
+            def update_delete_button():
+                delete_button.setEnabled(list_widget.currentItem() is not None)
+
             # Buttons
             button_box = QtWidgets.QDialogButtonBox(
                 QtWidgets.QDialogButtonBox.StandardButton.Ok |
                 QtWidgets.QDialogButtonBox.StandardButton.Cancel
             )
+            delete_button = QtWidgets.QPushButton("Delete")
+            button_box.addButton(delete_button, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
+
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
+            delete_button.clicked.connect(delete_selected_campaign)
+            list_widget.itemSelectionChanged.connect(update_delete_button)
+
             layout.addWidget(button_box)
 
             dialog.setLayout(layout)
