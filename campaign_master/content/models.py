@@ -1031,6 +1031,30 @@ class CampaignLocation(Base):
     )
 
 
+class CampaignRule(Base):
+    __tablename__ = "campaign_rule"
+    """
+    Association table for CampaignPlan and their Rules.
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    rule_id: Mapped[int] = mapped_column(ForeignKey("rule.id"), primary_key=True)
+
+
+class CampaignObjective(Base):
+    __tablename__ = "campaign_objective"
+    """
+    Association table for CampaignPlan and their Objectives.
+    """
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaign_plan.id"), primary_key=True
+    )
+    objective_id: Mapped[int] = mapped_column(
+        ForeignKey("objective.id"), primary_key=True
+    )
+
+
 class CampaignPlan(ObjectBase):
     __tablename__ = "campaign_plan"
     __pydantic_model__ = planning.CampaignPlan
@@ -1058,6 +1082,12 @@ class CampaignPlan(ObjectBase):
     items: Mapped[list[Item]] = relationship(
         "Item", secondary="campaign_item", backref="campaign_plan"
     )
+    rules: Mapped[list[Rule]] = relationship(
+        "Rule", secondary="campaign_rule", backref="campaign_plan"
+    )
+    objectives: Mapped[list[Objective]] = relationship(
+        "Objective", secondary="campaign_objective", backref="campaign_plan"
+    )
 
     def to_pydantic(self, session: Session) -> "planning.CampaignPlan":
         return planning.CampaignPlan(
@@ -1068,6 +1098,11 @@ class CampaignPlan(ObjectBase):
             summary=self.summary,
             storypoints=[pt.to_pydantic(session=session) for pt in self.storypoints],
             storyline=[arc.to_pydantic(session=session) for arc in self.storyline],
+            characters=[char.to_pydantic(session=session) for char in self.characters],
+            locations=[loc.to_pydantic(session=session) for loc in self.locations],
+            items=[item.to_pydantic(session=session) for item in self.items],
+            rules=[rule.to_pydantic(session=session) for rule in self.rules],
+            objectives=[obj.to_pydantic(session=session) for obj in self.objectives],
         )
 
     @classmethod
@@ -1105,6 +1140,26 @@ class CampaignPlan(ObjectBase):
             for arc in obj.storyline:
                 arc_obj = Arc.from_pydantic(arc, proto_user_id, session=session)
                 campaign_plan.storyline.append(arc_obj)
+            # Populate characters relationship
+            for char in obj.characters:
+                char_obj = Character.from_pydantic(char, proto_user_id, session=session)
+                campaign_plan.characters.append(char_obj)
+            # Populate locations relationship
+            for loc in obj.locations:
+                loc_obj = Location.from_pydantic(loc, proto_user_id, session=session)
+                campaign_plan.locations.append(loc_obj)
+            # Populate items relationship
+            for item in obj.items:
+                item_obj = Item.from_pydantic(item, proto_user_id, session=session)
+                campaign_plan.items.append(item_obj)
+            # Populate rules relationship
+            for rule in obj.rules:
+                rule_obj = Rule.from_pydantic(rule, proto_user_id, session=session)
+                campaign_plan.rules.append(rule_obj)
+            # Populate objectives relationship
+            for objective in obj.objectives:
+                obj_db = Objective.from_pydantic(objective, proto_user_id, session=session)
+                campaign_plan.objectives.append(obj_db)
             return campaign_plan
 
         if session is None:
