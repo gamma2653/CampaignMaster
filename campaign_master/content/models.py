@@ -1126,6 +1126,62 @@ class CampaignPlan(ObjectBase):
             objectives=[obj.to_pydantic(session=session) for obj in self.objectives],
         )
 
+    def update_from_pydantic(self, obj: "planning.CampaignPlan", session: Session) -> None:
+        """Update this CampaignPlan's fields from a Pydantic CampaignPlan model."""
+        # Update scalar fields
+        self.title = obj.title
+        self.version = obj.version
+        self.setting = obj.setting
+        self.summary = obj.summary
+
+        # Update relationships - clear and repopulate
+        # Get proto_user_id from the ObjectID
+        proto_user_id = self.obj_id(session=session).proto_user_id
+
+        # Clear existing relationships
+        self.storypoints.clear()
+        self.storyline.clear()
+        self.characters.clear()
+        self.locations.clear()
+        self.items.clear()
+        self.rules.clear()
+        self.objectives.clear()
+
+        # Repopulate storypoints
+        for point in obj.storypoints:
+            point_obj = Point.from_pydantic(point, proto_user_id, session=session)
+            self.storypoints.append(point_obj)
+
+        # Repopulate storyline
+        for arc in obj.storyline:
+            arc_obj = Arc.from_pydantic(arc, proto_user_id, session=session)
+            self.storyline.append(arc_obj)
+
+        # Repopulate characters
+        for char in obj.characters:
+            char_obj = Character.from_pydantic(char, proto_user_id, session=session)
+            self.characters.append(char_obj)
+
+        # Repopulate locations
+        for loc in obj.locations:
+            loc_obj = Location.from_pydantic(loc, proto_user_id, session=session)
+            self.locations.append(loc_obj)
+
+        # Repopulate items
+        for item in obj.items:
+            item_obj = Item.from_pydantic(item, proto_user_id, session=session)
+            self.items.append(item_obj)
+
+        # Repopulate rules
+        for rule in obj.rules:
+            rule_obj = Rule.from_pydantic(rule, proto_user_id, session=session)
+            self.rules.append(rule_obj)
+
+        # Repopulate objectives
+        for objective in obj.objectives:
+            obj_db = Objective.from_pydantic(objective, proto_user_id, session=session)
+            self.objectives.append(obj_db)
+
     @classmethod
     def from_pydantic(cls, obj: "planning.CampaignPlan", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""

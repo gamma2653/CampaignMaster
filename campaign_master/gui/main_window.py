@@ -27,50 +27,59 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         self.current_editor = None
 
         # Setup UI components
+        self.setup_actions()
         self.setup_toolbar()
         self.setup_menu_bar()
         self.setup_welcome_screen()
+
+    def setup_actions(self):
+        """Create actions that will be used in both toolbar and menu."""
+        # New campaign action
+        self.new_action = QtGui.QAction("New", self)
+        self.new_action.setToolTip("Create new campaign (Ctrl+N)")
+        self.new_action.setShortcut("Ctrl+N")
+        self.new_action.triggered.connect(self.new_campaign)
+
+        # Load campaign from database action
+        self.load_action = QtGui.QAction("Load", self)
+        self.load_action.setToolTip("Load campaign from database (Ctrl+O)")
+        self.load_action.setShortcut("Ctrl+O")
+        self.load_action.triggered.connect(self.load_campaign)
+
+        # Import campaign from JSON action
+        self.import_action = QtGui.QAction("Import", self)
+        self.import_action.setToolTip("Import campaign from JSON (Ctrl+I)")
+        self.import_action.setShortcut("Ctrl+I")
+        self.import_action.triggered.connect(self.import_campaign)
+
+        # Save to database action
+        self.save_action = QtGui.QAction("Save", self)
+        self.save_action.setToolTip("Save campaign to database (Ctrl+S)")
+        self.save_action.setShortcut("Ctrl+S")
+        self.save_action.triggered.connect(self.save_campaign)
+        self.save_action.setEnabled(False)  # Disabled until campaign opened
+
+        # Export to JSON action
+        self.export_action = QtGui.QAction("Export", self)
+        self.export_action.setToolTip("Export campaign to JSON (Ctrl+Shift+S)")
+        self.export_action.setShortcut("Ctrl+Shift+S")
+        self.export_action.triggered.connect(self.export_campaign)
+        self.export_action.setEnabled(False)  # Disabled until campaign opened
+
+        # Exit action
+        self.exit_action = QtGui.QAction("E&xit", self)
+        self.exit_action.setShortcut("Ctrl+Q")
+        self.exit_action.triggered.connect(self.close)
 
     def setup_toolbar(self):
         """Create toolbar with quick access buttons."""
         toolbar = self.addToolBar("Main Toolbar")
         toolbar.setMovable(False)
 
-        # New campaign button
-        new_action = QtGui.QAction("New", self)
-        new_action.setToolTip("Create new campaign (Ctrl+N)")
-        new_action.setShortcut("Ctrl+N")
-        new_action.triggered.connect(self.new_campaign)
-        toolbar.addAction(new_action)
-
-        # Load campaign from database button
-        load_action = QtGui.QAction("Load", self)
-        load_action.setToolTip("Load campaign from database (Ctrl+O)")
-        load_action.setShortcut("Ctrl+O")
-        load_action.triggered.connect(self.load_campaign)
-        toolbar.addAction(load_action)
-
-        # Import campaign from JSON button
-        import_action = QtGui.QAction("Import", self)
-        import_action.setToolTip("Import campaign from JSON (Ctrl+I)")
-        import_action.setShortcut("Ctrl+I")
-        import_action.triggered.connect(self.import_campaign)
-        toolbar.addAction(import_action)
-
-        # Save to database button
-        self.save_action = QtGui.QAction("Save", self)
-        self.save_action.setToolTip("Save campaign to database (Ctrl+S)")
-        self.save_action.setShortcut("Ctrl+S")
-        self.save_action.triggered.connect(self.save_campaign)
-        self.save_action.setEnabled(False)  # Disabled until campaign opened
+        toolbar.addAction(self.new_action)
+        toolbar.addAction(self.load_action)
+        toolbar.addAction(self.import_action)
         toolbar.addAction(self.save_action)
-
-        # Export to JSON button
-        self.export_action = QtGui.QAction("Export", self)
-        self.export_action.setToolTip("Export campaign to JSON (Ctrl+Shift+S)")
-        self.export_action.setShortcut("Ctrl+Shift+S")
-        self.export_action.triggered.connect(self.export_campaign)
-        self.export_action.setEnabled(False)  # Disabled until campaign opened
         toolbar.addAction(self.export_action)
 
         toolbar.addSeparator()
@@ -82,39 +91,27 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         # File menu
         file_menu = menubar.addMenu("&File")
 
-        new_action = QtGui.QAction("&New Campaign", self)
-        new_action.setShortcut("Ctrl+N")
-        new_action.triggered.connect(self.new_campaign)
-        file_menu.addAction(new_action)
+        # Update text for menu context (actions are shared with toolbar)
+        self.new_action.setText("&New Campaign")
+        file_menu.addAction(self.new_action)
 
-        load_action = QtGui.QAction("&Load Campaign from Database", self)
-        load_action.setShortcut("Ctrl+O")
-        load_action.triggered.connect(self.load_campaign)
-        file_menu.addAction(load_action)
+        self.load_action.setText("&Load Campaign from Database")
+        file_menu.addAction(self.load_action)
 
-        import_action = QtGui.QAction("&Import Campaign from JSON...", self)
-        import_action.setShortcut("Ctrl+I")
-        import_action.triggered.connect(self.import_campaign)
-        file_menu.addAction(import_action)
+        self.import_action.setText("&Import Campaign from JSON...")
+        file_menu.addAction(self.import_action)
 
         file_menu.addSeparator()
 
-        save_action = QtGui.QAction("&Save to Database", self)
-        save_action.setShortcut("Ctrl+S")
-        save_action.triggered.connect(self.save_campaign)
-        file_menu.addAction(save_action)
+        self.save_action.setText("&Save to Database")
+        file_menu.addAction(self.save_action)
 
-        export_action = QtGui.QAction("&Export to JSON...", self)
-        export_action.setShortcut("Ctrl+Shift+S")
-        export_action.triggered.connect(self.export_campaign)
-        file_menu.addAction(export_action)
+        self.export_action.setText("&Export to JSON...")
+        file_menu.addAction(self.export_action)
 
         file_menu.addSeparator()
 
-        exit_action = QtGui.QAction("E&xit", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+        file_menu.addAction(self.exit_action)
 
         # Edit menu
         edit_menu = menubar.addMenu("&Edit")
