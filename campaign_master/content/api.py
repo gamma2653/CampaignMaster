@@ -28,6 +28,7 @@ def perform_w_session(f: Callable[P, T]) -> Callable[P, T]:
     - Commits only if auto_commit=True (default for top-level functions)
     - Tracks session ownership to avoid double-close
     """
+
     @wraps(f)
     def wrapped(*args: P.args, **kwargs: P.kwargs):
         session = kwargs.get("session", None)
@@ -65,8 +66,10 @@ def perform_w_session(f: Callable[P, T]) -> Callable[P, T]:
 
 @perform_w_session
 def _generate_id(
-    prefix: str, session: Session | None = None, proto_user_id: int = 0,
-    auto_commit: bool = False
+    prefix: str,
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = False,
 ) -> "ObjectID":
     """
     Generate a new unique ID with the given prefix for the specified user.
@@ -164,8 +167,10 @@ def retrieve_ids(
 
 @perform_w_session
 def _create_object(
-    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0,
-    auto_commit: bool = False
+    obj: planning.Object,
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = False,
 ) -> "ObjectBase":
     """
     Create a new object in the database.
@@ -186,8 +191,10 @@ def _create_object(
 
 @perform_w_session
 def create_object(
-    type_: type[planning.Object], session: Session | None = None, proto_user_id: int = 0,
-    auto_commit: bool = True
+    type_: type[planning.Object],
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = True,
 ) -> planning.Object:
     """
     Create a new object of the specified type.
@@ -198,15 +205,16 @@ def create_object(
     session = cast(Session, session)  # for mypy
     # Generate a new ID first (won't commit due to auto_commit=False)
     new_id = _generate_id(
-        prefix=type_._default_prefix, proto_user_id=proto_user_id,
-        session=session, auto_commit=False
+        prefix=type_._default_prefix,
+        proto_user_id=proto_user_id,
+        session=session,
+        auto_commit=False,
     )
     # Create the Pydantic object with the generated ID
     pydantic_obj = type_(obj_id=new_id.to_pydantic())
     # Convert to SQLAlchemy and save (won't commit due to auto_commit=False)
     db_obj = _create_object(
-        pydantic_obj, proto_user_id=proto_user_id,
-        session=session, auto_commit=False
+        pydantic_obj, proto_user_id=proto_user_id, session=session, auto_commit=False
     )
     # Commit happens in decorator (if auto_commit=True and owns session)
     return db_obj.to_pydantic(session=session)
@@ -275,8 +283,10 @@ def retrieve_objects(
 
 @perform_w_session
 def update_object(
-    obj: planning.Object, session: Session | None = None, proto_user_id: int = 0,
-    auto_commit: bool = True
+    obj: planning.Object,
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = True,
 ) -> planning.Object:
     """
     Update an existing object in the database.
@@ -318,8 +328,10 @@ def update_object(
 
 @perform_w_session
 def delete_object(
-    obj_id: planning.ID, session: Session | None = None, proto_user_id: int = 0,
-    auto_commit: bool = True
+    obj_id: planning.ID,
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = True,
 ) -> bool:
     """
     Delete an object by its ID.

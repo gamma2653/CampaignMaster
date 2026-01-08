@@ -114,8 +114,10 @@ class ObjectID(Base):
                     "No existing ID found, creating new ObjectID for %s", id_obj
                 )
                 return content_api._generate_id(
-                    prefix=id_obj.prefix, proto_user_id=proto_user_id,
-                    session=session, auto_commit=False
+                    prefix=id_obj.prefix,
+                    proto_user_id=proto_user_id,
+                    session=session,
+                    auto_commit=False,
                 )
             else:
                 logger.debug("Existing ID found: %s", existing)
@@ -123,6 +125,7 @@ class ObjectID(Base):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -202,6 +205,7 @@ class ObjectBase(
         session: Session | None = None,
     ) -> "Self":
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             return cls(
                 obj_id=ObjectID.from_pydantic(
@@ -211,6 +215,7 @@ class ObjectBase(
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -261,6 +266,7 @@ class Rule(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Rule", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         # check for existing
         # First get the ObjectID
         def perform(session: Session) -> "Self":
@@ -310,6 +316,7 @@ class Rule(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -377,6 +384,7 @@ class Objective(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Objective", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -403,6 +411,7 @@ class Objective(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -441,6 +450,7 @@ class Point(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Point", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             # Check for existing
             existing = (
@@ -477,6 +487,7 @@ class Point(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -540,6 +551,7 @@ class Segment(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Segment", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -575,6 +587,7 @@ class Segment(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -606,6 +619,7 @@ class Arc(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Arc", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -637,6 +651,7 @@ class Arc(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -714,6 +729,7 @@ class Item(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Item", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -741,6 +757,7 @@ class Item(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -862,6 +879,7 @@ class Character(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Character", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -890,6 +908,7 @@ class Character(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -971,6 +990,7 @@ class Location(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.Location", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -1009,6 +1029,7 @@ class Location(ObjectBase):
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)
@@ -1108,6 +1129,7 @@ class CampaignPlan(ObjectBase):
     @classmethod
     def from_pydantic(cls, obj: "planning.CampaignPlan", proto_user_id: int = 0, session: Session | None = None) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
+
         def perform(session: Session) -> "Self":
             existing = (
                 session.execute(
@@ -1158,12 +1180,15 @@ class CampaignPlan(ObjectBase):
                 campaign_plan.rules.append(rule_obj)
             # Populate objectives relationship
             for objective in obj.objectives:
-                obj_db = Objective.from_pydantic(objective, proto_user_id, session=session)
+                obj_db = Objective.from_pydantic(
+                    objective, proto_user_id, session=session
+                )
                 campaign_plan.objectives.append(obj_db)
             return campaign_plan
 
         if session is None:
             from .database import SessionLocal
+
             with SessionLocal() as session:
                 try:
                     return perform(session)

@@ -36,7 +36,8 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.header_button.clicked.connect(self.toggle_collapse)
 
         # Style the header button
-        self.header_button.setStyleSheet(f"""
+        self.header_button.setStyleSheet(
+            f"""
             QPushButton {{
                 background-color: {self.bg_color};
                 border: 2px solid {self.border_color};
@@ -55,7 +56,8 @@ class CollapsibleSection(QtWidgets.QWidget):
                 border-bottom-left-radius: 0px;
                 border-bottom-right-radius: 0px;
             }}
-        """)
+        """
+        )
 
         # Create content widget
         self.content_widget = QtWidgets.QWidget()
@@ -64,7 +66,8 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.content_widget.setLayout(self.content_layout)
 
         # Style the content widget
-        self.content_widget.setStyleSheet(f"""
+        self.content_widget.setStyleSheet(
+            f"""
             QWidget {{
                 background-color: {self.bg_color};
                 border: 2px solid {self.border_color};
@@ -73,7 +76,8 @@ class CollapsibleSection(QtWidgets.QWidget):
                 border-bottom-right-radius: 8px;
                 padding: 8px;
             }}
-        """)
+        """
+        )
 
         main_layout.addWidget(self.header_button)
         main_layout.addWidget(self.content_widget)
@@ -1001,7 +1005,8 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         # Metadata section (non-collapsible)
         metadata_group = QtWidgets.QGroupBox("Campaign Metadata")
         border_color, bg_color = get_colors_for_type(planning.CampaignPlan)
-        metadata_group.setStyleSheet(f"""
+        metadata_group.setStyleSheet(
+            f"""
             QGroupBox {{
                 border: 2px solid {border_color};
                 border-radius: 8px;
@@ -1016,7 +1021,8 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
                 color: #ffffff;
                 padding: 0 8px;
             }}
-        """)
+        """
+        )
 
         metadata_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(
@@ -1140,11 +1146,11 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def save_to_database(self):
         """Handle save button click - delegate to main window."""
         main_window = self.window()
-        if hasattr(main_window, 'save_campaign'):
+        if hasattr(main_window, "save_campaign"):
             main_window.save_campaign()
 
     def export_to_json(self):
         """Handle export button click - delegate to main window."""
         main_window = self.window()
-        if hasattr(main_window, 'export_campaign'):
+        if hasattr(main_window, "export_campaign"):
             main_window.export_campaign()
