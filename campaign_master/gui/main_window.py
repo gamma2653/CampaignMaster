@@ -300,8 +300,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                     "Confirm Deletion",
                     f"Are you sure you want to delete '{campaign.title or 'Untitled Campaign'}'?\n\n"
                     "This action cannot be undone.",
-                    QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
-                    QtWidgets.QMessageBox.StandardButton.No
+                    QtWidgets.QMessageBox.StandardButton.Yes
+                    | QtWidgets.QMessageBox.StandardButton.No,
+                    QtWidgets.QMessageBox.StandardButton.No,
                 )
 
                 if reply == QtWidgets.QMessageBox.StandardButton.Yes:
@@ -315,15 +316,17 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                         # Check if list is empty
                         if list_widget.count() == 0:
                             QtWidgets.QMessageBox.information(
-                                dialog, "No Campaigns",
-                                "No campaigns found in the database."
+                                dialog,
+                                "No Campaigns",
+                                "No campaigns found in the database.",
                             )
                             dialog.reject()
 
                     except Exception as e:
                         QtWidgets.QMessageBox.critical(
-                            dialog, "Delete Failed",
-                            f"Failed to delete campaign: {str(e)}"
+                            dialog,
+                            "Delete Failed",
+                            f"Failed to delete campaign: {str(e)}",
                         )
 
             # Update delete button state based on selection
@@ -336,7 +339,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                 | QtWidgets.QDialogButtonBox.StandardButton.Cancel
             )
             delete_button = QtWidgets.QPushButton("Delete")
-            button_box.addButton(delete_button, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
+            button_box.addButton(
+                delete_button, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole
+            )
 
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
