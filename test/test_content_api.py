@@ -1,7 +1,4 @@
-import sys
 from unittest import TestCase
-
-from PySide6 import QtWidgets
 
 from campaign_master.content import api as content_api
 from campaign_master.content import database, planning
@@ -45,34 +42,6 @@ class DBTestCase(TestCase):
         database.create_db_and_tables()
         database.create_example_data()
 
-    # def test_generate_and_retrieve_ids(self):
-    #     generated_ids: dict[str, planning.ID] = {}
-    #     # Use prefixes from Object class (cls._default_prefix)
-    #     prefixes = {obj_type._default_prefix for obj_type in get_all_object_types()}
-    #     for prefix in prefixes:
-    #         new_id = content_api.generate_id(prefix=prefix)
-    #         self.assertEqual(new_id.prefix, prefix)
-    #         generated_ids[prefix] = new_id
-    #     # Retrieve and verify
-    #     for prefix, gen_id in generated_ids.items():
-    #         retrieved_ids = content_api.retrieve_ids(prefix=prefix)
-    #         self.assertIn(gen_id, retrieved_ids)
-
-    # def test_generate_and_retrieve_ids_proto_user(self):
-    #     proto_user_id = 42
-    #     generated_ids: dict[str, planning.ID] = {}
-    #     prefixes = {obj_type._default_prefix for obj_type in get_all_object_types()}
-    #     for prefix in prefixes:
-    #         new_id = content_api.generate_id(prefix=prefix, proto_user_id=proto_user_id)
-    #         self.assertEqual(new_id.prefix, prefix)
-    #         generated_ids[prefix] = new_id
-    #     # Retrieve and verify
-    #     for prefix, gen_id in generated_ids.items():
-    #         retrieved_ids = content_api.retrieve_ids(prefix=prefix, proto_user_id=proto_user_id)
-    #         self.assertIn(gen_id, retrieved_ids)
-    #     for prefix, gen_id in generated_ids.items():
-    #         retrieved_ids_global = content_api.retrieve_ids(prefix=prefix, proto_user_id=0)
-    #         self.assertNotIn(gen_id, retrieved_ids_global)
 
     def test_transaction_rollback(self):
         """Test that failed transactions roll back properly."""
@@ -100,8 +69,9 @@ class DBTestCase(TestCase):
 
         # Verify object was created with valid ID
         self.assertIsNotNone(rule.obj_id)
-        self.assertEqual(rule.obj_id.prefix, "R")
-        self.assertGreater(rule.obj_id.numeric, 0)
+        if rule.obj_id is not None:
+            self.assertEqual(rule.obj_id.prefix, "R")
+            self.assertGreater(rule.obj_id.numeric, 0)
 
         # Verify we can retrieve all rules and find our rule
         all_rules = content_api.retrieve_objects(planning.Rule)
@@ -146,6 +116,9 @@ class DBTestCase(TestCase):
 
         # Create and delete an object
         rule = content_api.create_object(planning.Rule)
+        self.assertIsNotNone(rule.obj_id)
+        if rule.obj_id is None:
+            return
         result = content_api.delete_object(rule.obj_id)
         self.assertTrue(result)
 

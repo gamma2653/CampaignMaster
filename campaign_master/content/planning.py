@@ -81,50 +81,26 @@ class Object(BaseModel):
     Base class for all objects in the campaign planning system.
     """
 
-    _obj_id: ID | None = PrivateAttr(default=None)
-    _initialized: bool = PrivateAttr(default=False)
+    obj_id: ID | None = Field(default=None, exclude=True)
+    """
+    The unique identifier for this object. Set via content.api.create_object().
+    Excluded from serialization - managed separately.
+    """
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
-    # @model_validator(mode="before")
-    # @classmethod
-    # def try_coerce_id(cls, data: Any) -> Any:
-    #     # Lazy load generate_id to avoid circular imports
-    #     if isinstance(data, dict):
-    #         if not data.get("obj_id"):
-    #             from . import api as content_api
-    #             id_ = content_api.generate_id(prefix=cls._default_prefix)
-    #             logger.debug(f"Generated ID: {id_}")
-    #             return {**data, "obj_id": id_}
-    #         if isinstance(data.get("obj_id"), str):
-    #             return {**data, "obj_id": ID.from_str(data["obj_id"])}
-    #     return data
-
-    def __init__(self, **data):
-        # Extract obj_id if present before calling super().__init__
-        obj_id_value = data.pop("obj_id", None)
-        super().__init__(**data)
-        if obj_id_value is not None:
-            self.obj_id = obj_id_value
-        self._initialized = True
-
-    @property
-    def obj_id(self) -> ID:
-        if self._obj_id is None:
-            raise ValueError(
-                f"Object ID is not set for {type(self).__name__}. "
-                "Use content.api.create_object() to create objects with proper IDs."
-            )
-        return self._obj_id
-
-    @obj_id.setter
-    def obj_id(self, value: ID | str) -> None:
-        if isinstance(value, str):
-            value = ID.from_str(value)
-        self._obj_id = value
+    @field_validator("obj_id", mode="before")
+    @classmethod
+    def coerce_obj_id(cls, v: Any) -> ID | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return ID.from_str(v)
+        return v
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.obj_id})"
+        id_str = str(self.obj_id) if self.obj_id else "no-id"
+        return f"{self.__class__.__name__}({id_str})"
 
 
 class Rule(Object):
