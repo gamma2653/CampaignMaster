@@ -310,16 +310,17 @@ class AITextEdit(QtWidgets.QTextEdit):
         logger.debug("AI completion response received")
         self._loading = False
         self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
-
         if not response or response.finish_reason == "error":
             if response and response.error_message:
                 logger.warning("Completion error: %s", response.error_message)
             return
+        logger.debug("AI completion finished with reason: %s", response.finish_reason)
 
         if not response.text.strip():
             return
 
         self.completionReceived.emit(response.text)
+        logger.debug("Showing completion popup")
         self._show_completion_popup(response.text)
 
     def _show_completion_popup(self, text: str):

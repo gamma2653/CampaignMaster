@@ -209,10 +209,10 @@ class AgentSettingsDialog(QtWidgets.QDialog):
 
     def load_agents(self):
         """Load agents from database."""
-        self._agents = content_api.retrieve_objects(
+        self._agents = cast(list[planning.AgentConfig], content_api.retrieve_objects(
             planning.AgentConfig,
             proto_user_id=self._proto_user_id,
-        )
+        ))
 
         self.agent_list.clear()
         for agent in self._agents:
@@ -221,7 +221,8 @@ class AgentSettingsDialog(QtWidgets.QDialog):
             if agent.is_default:
                 item.setText(f"{agent.name or '(unnamed)'} (default)")
             if not agent.is_enabled:
-                item.setForeground(QtWidgets.QApplication.palette().disabled().text())
+                palette = QtWidgets.QApplication.palette()
+                item.setForeground(palette.text())
             self.agent_list.addItem(item)
 
     def on_agent_selected(self):
@@ -333,8 +334,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
 
         if reply == QtWidgets.QMessageBox.StandardButton.Yes:
             content_api.delete_object(
-                planning.AgentConfig,
-                str(self._current_agent.obj_id),
+                cast(planning.ID, self._current_agent.obj_id),
                 proto_user_id=self._proto_user_id,
             )
             self._current_agent = None

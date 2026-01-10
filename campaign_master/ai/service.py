@@ -7,7 +7,9 @@ provider instantiation, and completion request routing.
 
 import os
 from threading import Lock
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, cast
+
+from PySide6.QtCore import QObject, QThread, Signal, Qt
 
 from ..content import api as content_api
 from ..content import planning
@@ -17,6 +19,33 @@ from .providers import get_provider
 from .providers.base import BaseProvider
 
 logger = get_basic_logger(__name__)
+
+
+class CompletionWorker(QObject):
+    """Worker for performing AI completions in a background thread."""
+
+    finished = Signal(object)
+
+    def __init__(self, service: "AICompletionService", prompt: str, context: dict):
+        super().__init__()
+        self._service = service
+        self._prompt = prompt
+        self._context = context
+
+    def run(self):
+        """Execute the completion request."""
+        try:
+            result = self._service.complete(self._prompt, self._context)
+            self.finished.emit(result)
+        except Exception as e:
+            logger.error("Worker thread error: %s", e)
+            self.finished.emit(
+                CompletionResponse(
+                    text="",
+                    finish_reason="error",
+                    error_message=str(e),
+                )
+            )
 
 
 class AICompletionService:
@@ -79,6 +108,7 @@ class AICompletionService:
                 planning.AgentConfig,
                 proto_user_id=self._proto_user_id,
             )
+            agents = cast(list[planning.AgentConfig], agents)
 
             if not agents:
                 logger.debug("No agent configurations found in database")
@@ -152,10 +182,10 @@ class AICompletionService:
         """
         try:
             agent = content_api.retrieve_object(
-                planning.AgentConfig,
-                agent_id,
+                planning.ID.from_str(agent_id),
                 proto_user_id=self._proto_user_id,
             )
+            agent = cast(planning.AgentConfig | None, agent)
             if agent and agent.is_enabled:
                 self._set_active_agent(agent)
                 return True
@@ -167,10 +197,10 @@ class AICompletionService:
     def get_all_agents(self) -> list[planning.AgentConfig]:
         """Get all configured agents."""
         try:
-            return content_api.retrieve_objects(
+            return cast(list[planning.AgentConfig], content_api.retrieve_objects(
                 planning.AgentConfig,
                 proto_user_id=self._proto_user_id,
-            )
+            ))
         except Exception as e:
             logger.error("Error retrieving agents: %s", e)
             return []
@@ -203,17 +233,21 @@ class AICompletionService:
             if not self.load_default_agent():
                 logger.warning("No AI agent configured for completion")
                 return None
+        default_agent = cast(planning.AgentConfig, self._default_agent)
+        provider = cast(BaseProvider, self._provider)
 
         request = CompletionRequest(
             prompt=prompt,
             context=context or {},
-            max_tokens=max_tokens or self._default_agent.max_tokens,
-            temperature=temperature or self._default_agent.temperature,
-            system_prompt=self._default_agent.system_prompt,
+            max_tokens=max_tokens or default_agent.max_tokens,
+            temperature=temperature or default_agent.temperature,
+            system_prompt=default_agent.system_prompt,
         )
-
+        logger.debug("Sending completion request to provider %s", default_agent.provider_type)
         try:
-            return self._provider.complete(request)
+            response = provider.complete(request)
+            logger.debug("Received completion response: %s", response.text[:50])
+            return response
         except Exception as e:
             logger.error("Completion error: %s", e)
             return CompletionResponse(
@@ -247,17 +281,20 @@ class AICompletionService:
         if not self._provider or not self._default_agent:
             if not self.load_default_agent():
                 return None
+        provider = cast(BaseProvider, self._provider)
+        default_agent = cast(planning.AgentConfig, self._default_agent)
+
 
         request = CompletionRequest(
             prompt=prompt,
             context=context or {},
-            max_tokens=max_tokens or self._default_agent.max_tokens,
-            temperature=temperature or self._default_agent.temperature,
-            system_prompt=self._default_agent.system_prompt,
+            max_tokens=max_tokens or default_agent.max_tokens,
+            temperature=temperature or default_agent.temperature,
+            system_prompt=default_agent.system_prompt,
         )
 
         try:
-            return self._provider.complete_streaming(request)
+            return provider.complete_streaming(request)
         except Exception as e:
             logger.error("Streaming completion error: %s", e)
             return None
@@ -280,34 +317,8 @@ class AICompletionService:
             context: Optional context dictionary
             callback: Function to call with the completion result
         """
-        from PySide6.QtCore import QThread, Signal, QObject, Qt
-
-        service = self  # Capture reference for nested class
-
-        class CompletionWorker(QObject):
-            finished = Signal(object)
-
-            def __init__(self, prompt, context):
-                super().__init__()
-                self.prompt = prompt
-                self.context = context
-
-            def run(self):
-                try:
-                    result = service.complete(self.prompt, self.context)
-                    self.finished.emit(result)
-                except Exception as e:
-                    logger.error("Worker thread error: %s", e)
-                    self.finished.emit(
-                        CompletionResponse(
-                            text="",
-                            finish_reason="error",
-                            error_message=str(e),
-                        )
-                    )
-
-        # Create worker thread
-        worker = CompletionWorker(prompt, context)
+        # Create worker and thread
+        worker = CompletionWorker(self, prompt, context or {})
         thread = QThread()
         worker.moveToThread(thread)
 
@@ -316,23 +327,27 @@ class AICompletionService:
         self._active_workers.append(worker_entry)
 
         def cleanup():
-            """Remove worker from active list after completion."""
+            """Remove worker from active list after thread has finished."""
+            logger.debug("Cleaning up AI completion worker")
             try:
                 self._active_workers.remove(worker_entry)
             except ValueError:
                 pass  # Already removed
 
-        # Connect signals
-        thread.started.connect(worker.run)
-        worker.finished.connect(thread.quit)
-        worker.finished.connect(cleanup)
-        worker.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-
+        # Connect signals - callback first to ensure it runs before cleanup
         if callback:
             worker.finished.connect(callback, Qt.ConnectionType.QueuedConnection)
 
+        thread.started.connect(worker.run)
+        worker.finished.connect(thread.quit)  # Tell thread event loop to stop
+
+        # Only clean up after thread has actually finished running
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(cleanup)
+        thread.finished.connect(thread.deleteLater)
+
         # Start the thread
+        logger.debug("Starting AI completion worker thread")
         thread.start()
 
     def test_connection(
