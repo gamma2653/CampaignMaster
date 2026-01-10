@@ -320,7 +320,8 @@ def update_object(
 
     # Update fields
     db_obj.update_from_pydantic(obj, session=session)
-    # REMOVED: session.commit() - Let decorator handle commit
+    # Flush to persist changes before refresh (commit handled by decorator)
+    session.flush()
     session.refresh(db_obj)
 
     return db_obj.to_pydantic(session=session)

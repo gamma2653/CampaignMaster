@@ -273,6 +273,54 @@ class Location(Object):
     """
 
 
+class AgentConfig(Object):
+    """
+    Configuration for an AI completion agent.
+
+    Stores the settings for connecting to an AI provider (Anthropic, OpenAI, Ollama)
+    and the parameters for text completion requests.
+    """
+
+    _default_prefix: ClassVar[str] = "AG"
+
+    name: str = ""
+    """User-friendly name for this agent configuration."""
+
+    provider_type: str = ""
+    """The AI provider type: 'anthropic', 'openai', or 'ollama'."""
+
+    api_key: str = ""
+    """
+    API key for cloud providers.
+    Can be the actual key or an environment variable reference like '$ANTHROPIC_API_KEY'.
+    """
+
+    base_url: str = ""
+    """
+    Base URL for API calls.
+    Required for Ollama (e.g., 'http://localhost:11434').
+    Optional override for cloud providers.
+    """
+
+    model: str = ""
+    """Model identifier (e.g., 'claude-sonnet-4-20250514', 'gpt-4o', 'llama3.1')."""
+
+    max_tokens: int = 500
+    """Maximum tokens to generate in completion responses."""
+
+    temperature: float = 0.7
+    """Sampling temperature (0.0 = deterministic, 1.0+ = creative)."""
+
+    is_default: bool = False
+    """Whether this is the default agent for AI completions."""
+
+    is_enabled: bool = True
+    """Whether this agent is currently enabled and available for use."""
+
+    system_prompt: str = ""
+    """Optional custom system prompt to append to the default TTRPG context."""
+
+
 class CampaignPlan(Object):
     """
     A class to represent a campaign plan, loaded from a JSON file.
@@ -302,6 +350,7 @@ ALL_OBJECT_TYPES: list[type[Object]] = [
     Character,
     Location,
     CampaignPlan,
+    AgentConfig,
 ]
 
 PREFIX_TO_OBJECT_TYPE = {

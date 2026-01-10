@@ -7,8 +7,10 @@ from typing import cast
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from campaign_master.ai import AICompletionService
 from campaign_master.content import api as content_api
 from campaign_master.content import planning
+from campaign_master.gui.dialogs import AgentSettingsDialog
 from campaign_master.gui.widgets.planning import CampaignPlanEdit
 
 
@@ -66,6 +68,16 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         self.exit_action.setShortcut("Ctrl+Q")
         self.exit_action.triggered.connect(self.close)
 
+        # Agent actions
+        self.configure_agents_action = QtGui.QAction("&Configure Agents...", self)
+        self.configure_agents_action.setShortcut("Ctrl+Shift+A")
+        self.configure_agents_action.triggered.connect(self.show_agent_settings)
+
+        self.enable_ai_action = QtGui.QAction("&Enable AI Completions", self)
+        self.enable_ai_action.setCheckable(True)
+        self.enable_ai_action.setChecked(True)
+        self.enable_ai_action.triggered.connect(self.toggle_ai_completions)
+
     def setup_menu_bar(self):
         """Create menu bar with File, Edit, Help menus."""
         menubar = self.menuBar()
@@ -86,6 +98,18 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         # Edit menu
         edit_menu = menubar.addMenu("&Edit")
         # Future: Add edit operations
+
+        # Agents menu
+        agents_menu = menubar.addMenu("&Agents")
+        agents_menu.addAction(self.configure_agents_action)
+        agents_menu.addSeparator()
+
+        # Default agent submenu (populated dynamically)
+        self.default_agent_menu = agents_menu.addMenu("Set &Default Agent")
+        self.update_default_agent_menu()
+
+        agents_menu.addSeparator()
+        agents_menu.addAction(self.enable_ai_action)
 
         # Help menu
         help_menu = menubar.addMenu("&Help")
@@ -420,3 +444,65 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             "Supports campaign planning and execution in both\n"
             "GUI and web modes.",
         )
+
+    def show_agent_settings(self):
+        """Open the agent configuration dialog."""
+        dialog = AgentSettingsDialog(self)
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            self.update_default_agent_menu()
+
+    def toggle_ai_completions(self, enabled: bool):
+        """Enable or disable AI completions."""
+        AICompletionService.instance().set_enabled(enabled)
+
+    def update_default_agent_menu(self):
+        """Update the default agent submenu from database."""
+        self.default_agent_menu.clear()
+
+        try:
+            agents = content_api.retrieve_objects(
+                planning.AgentConfig, proto_user_id=0
+            )
+
+            if not agents:
+                no_agents_action = QtGui.QAction("(No agents configured)", self)
+                no_agents_action.setEnabled(False)
+                self.default_agent_menu.addAction(no_agents_action)
+                return
+
+            action_group = QtGui.QActionGroup(self)
+            action_group.setExclusive(True)
+
+            for agent in agents:
+                if agent.is_enabled:
+                    action = QtGui.QAction(agent.name or "(unnamed)", self)
+                    action.setCheckable(True)
+                    action.setChecked(agent.is_default)
+                    action.setData(str(agent.obj_id))
+                    action.triggered.connect(
+                        lambda checked, agent_id=str(agent.obj_id): self.set_default_agent(
+                            agent_id
+                        )
+                    )
+                    action_group.addAction(action)
+                    self.default_agent_menu.addAction(action)
+
+        except Exception:
+            pass  # Silently fail if database not ready
+
+    def set_default_agent(self, agent_id: str):
+        """Set a specific agent as the default."""
+        service = AICompletionService.instance()
+        if service.set_default_agent_by_id(agent_id):
+            # Update is_default flags in database
+            try:
+                agents = content_api.retrieve_objects(
+                    planning.AgentConfig, proto_user_id=0
+                )
+                for agent in agents:
+                    should_be_default = str(agent.obj_id) == agent_id
+                    if agent.is_default != should_be_default:
+                        agent.is_default = should_be_default
+                        content_api.update_object(agent, proto_user_id=0)
+            except Exception:
+                pass

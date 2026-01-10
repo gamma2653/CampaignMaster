@@ -1,10 +1,11 @@
-from typing import Optional, cast
+from typing import Any, Optional, cast
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...content import api as content_api
 from ...content import planning
 from ..themes import ThemedWidget
+from .ai_widgets import AILineEdit, AITextEdit
 
 
 class CollapsibleSection(QtWidgets.QWidget):
@@ -422,16 +423,32 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
         self.form_layout = QtWidgets.QFormLayout()
 
         self.obj_id = IDDisplay(planning.Rule, self.rule.obj_id if self.rule else None)
-        self.description = QtWidgets.QTextEdit(
-            self.rule.description if self.rule else ""
+        self.description = AITextEdit(
+            self.rule.description if self.rule else "",
+            field_name="description",
+            entity_type="Rule",
+            entity_context_func=self._get_entity_context,
         )
-        self.effect = QtWidgets.QTextEdit(self.rule.effect if self.rule else "")
+        self.effect = AITextEdit(
+            self.rule.effect if self.rule else "",
+            field_name="effect",
+            entity_type="Rule",
+            entity_context_func=self._get_entity_context,
+        )
         self.components = StrListEdit(self.rule.components if self.rule else [])
 
         container.setLayout(self.form_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
         self.update_layout()
+
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        return {
+            "description": self.description.toPlainText(),
+            "effect": self.effect.toPlainText(),
+            "components": self.components.get_items(),
+        }
 
     def update_layout(self):
         self.form_layout.addRow("ID:", self.obj_id)
@@ -763,10 +780,23 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
         self.form_layout = QtWidgets.QFormLayout()
 
         self.obj_id = IDDisplay(planning.Item, self.item.obj_id if self.item else None)
-        self.name = QtWidgets.QLineEdit(self.item.name if self.item else "")
-        self.type_ = QtWidgets.QLineEdit(self.item.type_ if self.item else "")
-        self.description = QtWidgets.QTextEdit(
-            self.item.description if self.item else ""
+        self.name = AILineEdit(
+            self.item.name if self.item else "",
+            field_name="name",
+            entity_type="Item",
+            entity_context_func=self._get_entity_context,
+        )
+        self.type_ = AILineEdit(
+            self.item.type_ if self.item else "",
+            field_name="type",
+            entity_type="Item",
+            entity_context_func=self._get_entity_context,
+        )
+        self.description = AITextEdit(
+            self.item.description if self.item else "",
+            field_name="description",
+            entity_type="Item",
+            entity_context_func=self._get_entity_context,
         )
         self.properties = MapEdit[str, str](self.item.properties if self.item else {})
 
@@ -792,6 +822,14 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
             properties=self.properties.get_map(),
         )
 
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        return {
+            "name": self.name.text(),
+            "type": self.type_.text(),
+            "description": self.description.toPlainText(),
+        }
+
 
 class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
     """
@@ -816,10 +854,23 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         self.obj_id = IDDisplay(
             planning.Character, self.character.obj_id if self.character else None
         )
-        self.name = QtWidgets.QLineEdit(self.character.name if self.character else "")
-        self.role = QtWidgets.QLineEdit(self.character.role if self.character else "")
-        self.backstory = QtWidgets.QTextEdit(
-            self.character.backstory if self.character else ""
+        self.name = AILineEdit(
+            self.character.name if self.character else "",
+            field_name="name",
+            entity_type="Character",
+            entity_context_func=self._get_entity_context,
+        )
+        self.role = AILineEdit(
+            self.character.role if self.character else "",
+            field_name="role",
+            entity_type="Character",
+            entity_context_func=self._get_entity_context,
+        )
+        self.backstory = AITextEdit(
+            self.character.backstory if self.character else "",
+            field_name="backstory",
+            entity_type="Character",
+            entity_context_func=self._get_entity_context,
         )
         self.attributes = MapEdit[str, int](
             self.character.attributes if self.character else {}
@@ -870,6 +921,14 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
             inventory=self.inventory.get_ids(),
         )
 
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        return {
+            "name": self.name.text(),
+            "role": self.role.text(),
+            "backstory": self.backstory.toPlainText(),
+        }
+
 
 class LocationEdit(QtWidgets.QWidget, ThemedWidget):
     """
@@ -900,9 +959,17 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
         self.obj_id = IDDisplay(
             planning.Location, self.location.obj_id if self.location else None
         )
-        self.name = QtWidgets.QLineEdit(self.location.name if self.location else "")
-        self.description = QtWidgets.QTextEdit(
-            self.location.description if self.location else ""
+        self.name = AILineEdit(
+            self.location.name if self.location else "",
+            field_name="name",
+            entity_type="Location",
+            entity_context_func=self._get_entity_context,
+        )
+        self.description = AITextEdit(
+            self.location.description if self.location else "",
+            field_name="description",
+            entity_type="Location",
+            entity_context_func=self._get_entity_context,
         )
         self.neighboring_locations = IDListEdit(
             planning.Location,
@@ -966,6 +1033,13 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
             neighboring_locations=self.neighboring_locations.get_ids(),
             coords=coords,
         )
+
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        return {
+            "name": self.name.text(),
+            "description": self.description.toPlainText(),
+        }
 
 
 class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):

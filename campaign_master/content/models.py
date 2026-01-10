@@ -1254,6 +1254,101 @@ class CampaignPlan(ObjectBase):
         return perform(session)
 
 
+class AgentConfig(ObjectBase):
+    __tablename__ = "agent_config"
+    __pydantic_model__ = planning.AgentConfig
+    """
+    SQLAlchemy model for AI agent configuration.
+    Stores settings for AI completion providers.
+    """
+    name: Mapped[str] = mapped_column(default="")
+    provider_type: Mapped[str] = mapped_column(default="")
+    api_key: Mapped[str] = mapped_column(default="")
+    base_url: Mapped[str] = mapped_column(default="")
+    model: Mapped[str] = mapped_column(default="")
+    max_tokens: Mapped[int] = mapped_column(default=500)
+    temperature: Mapped[float] = mapped_column(default=0.7)
+    is_default: Mapped[bool] = mapped_column(default=False)
+    is_enabled: Mapped[bool] = mapped_column(default=True)
+    system_prompt: Mapped[str] = mapped_column(default="")
+
+    def to_pydantic(self, session: Session) -> "planning.AgentConfig":
+        return planning.AgentConfig(
+            obj_id=self.obj_id(session=session).to_pydantic(),
+            name=self.name,
+            provider_type=self.provider_type,
+            api_key=self.api_key,
+            base_url=self.base_url,
+            model=self.model,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            is_default=self.is_default,
+            is_enabled=self.is_enabled,
+            system_prompt=self.system_prompt,
+        )
+
+    @classmethod
+    def from_pydantic(
+        cls, obj: "planning.AgentConfig", proto_user_id: int = 0, session: Session | None = None
+    ) -> "Self":  # type: ignore[override]
+        """Create from pydantic. Does NOT commit - caller handles that."""
+
+        def perform(session: Session) -> "Self":
+            existing = (
+                session.execute(
+                    select(cls).where(
+                        cls.id
+                        == ObjectID.from_pydantic(
+                            obj.obj_id, proto_user_id=proto_user_id, session=session
+                        ).id
+                    )
+                )
+                .scalars()
+                .first()
+            )
+            if existing:
+                return existing
+            return cls(
+                id=ObjectID.from_pydantic(
+                    obj.obj_id, proto_user_id=proto_user_id, session=session
+                ).id,
+                name=obj.name,
+                provider_type=obj.provider_type,
+                api_key=obj.api_key,
+                base_url=obj.base_url,
+                model=obj.model,
+                max_tokens=obj.max_tokens,
+                temperature=obj.temperature,
+                is_default=obj.is_default,
+                is_enabled=obj.is_enabled,
+                system_prompt=obj.system_prompt,
+            )
+
+        if session is None:
+            from .database import SessionLocal
+
+            with SessionLocal() as session:
+                try:
+                    return perform(session)
+                except Exception as e:
+                    session.rollback()
+                    raise
+        return perform(session)
+
+    def update_from_pydantic(self, obj: "planning.AgentConfig", session: Session) -> None:
+        """Update this AgentConfig's fields from a Pydantic model."""
+        self.name = obj.name
+        self.provider_type = obj.provider_type
+        self.api_key = obj.api_key
+        self.base_url = obj.base_url
+        self.model = obj.model
+        self.max_tokens = obj.max_tokens
+        self.temperature = obj.temperature
+        self.is_default = obj.is_default
+        self.is_enabled = obj.is_enabled
+        self.system_prompt = obj.system_prompt
+
+
 PydanticToSQLModel: dict[
     type[planning.Object] | type[planning.ID], type[ObjectBase] | type[ObjectID]
 ] = {
@@ -1268,4 +1363,5 @@ PydanticToSQLModel: dict[
     planning.Character: Character,
     planning.Location: Location,
     planning.CampaignPlan: CampaignPlan,
+    planning.AgentConfig: AgentConfig,
 }
