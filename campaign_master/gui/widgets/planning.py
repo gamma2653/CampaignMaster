@@ -489,6 +489,7 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         for object_ in self.objects:
             self.list_widget.addItem(str(object_.obj_id))
         self.list_widget.setMinimumHeight(50)
+        self.list_widget.itemDoubleClicked.connect(self.edit_object)
 
         # Buttons in container
         button_container = QtWidgets.QWidget()
@@ -590,6 +591,55 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
             item = self.objects[self.list_widget.row(item_widget)]
             self.objects.remove(item)
             self.list_widget.takeItem(self.list_widget.row(item_widget))
+
+    def edit_object(self, item: QtWidgets.QListWidgetItem):
+        """Open the edit dialog for the double-clicked item."""
+        row = self.list_widget.row(item)
+        obj = self.objects[row]
+
+        edit_widget_map = {
+            planning.Point: "PointEdit",
+            planning.Rule: "RuleEdit",
+            planning.Objective: "ObjectiveEdit",
+            planning.Segment: "SegmentEdit",
+            planning.Arc: "ArcEdit",
+            planning.Item: "ItemEdit",
+            planning.Character: "CharacterEdit",
+            planning.Location: "LocationEdit",
+        }
+
+        edit_widget_class_name = edit_widget_map.get(self.model_type)
+        if not edit_widget_class_name:
+            return
+
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f"Edit {self.model_type.__name__}")
+        dialog_layout = QtWidgets.QVBoxLayout()
+
+        # Pass the existing object to the edit widget to pre-populate the form
+        edit_widget_class = globals()[edit_widget_class_name]
+        edit_widget = edit_widget_class(obj, parent=dialog)
+        dialog_layout.addWidget(edit_widget)
+
+        button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        dialog_layout.addWidget(button_box)
+
+        dialog.setLayout(dialog_layout)
+
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            # Export the updated form data
+            form_data = edit_widget.export_content()
+            # Update the object in the database
+            content_api.update_object(form_data, proto_user_id=0)
+            # Update in our local list
+            self.objects[row] = cast(T, form_data)
+            # Update the list item display
+            item.setText(str(form_data.obj_id))
 
     def get_objects(self) -> list[T]:
         """Return the list of objects."""
