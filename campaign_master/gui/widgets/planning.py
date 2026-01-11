@@ -1180,7 +1180,12 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         """
         )
 
-        metadata_layout = QtWidgets.QFormLayout()
+        metadata_container_layout = QtWidgets.QVBoxLayout()
+        metadata_container_layout.setContentsMargins(0, 0, 0, 0)
+        metadata_container_layout.setSpacing(8)
+
+        # Top form layout for simple fields
+        top_form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(
             planning.CampaignPlan,
             self.campaign_plan.obj_id if self.campaign_plan else None,
@@ -1188,25 +1193,77 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         self.title = QtWidgets.QLineEdit(
             self.campaign_plan.title if self.campaign_plan else ""
         )
-        self.version = QtWidgets.QTextEdit(
+        self.version = QtWidgets.QLineEdit(
             self.campaign_plan.version if self.campaign_plan else ""
         )
-        self.version.setMaximumHeight(60)
-        self.setting = QtWidgets.QTextEdit(
-            self.campaign_plan.setting if self.campaign_plan else ""
-        )
-        self.setting.setMaximumHeight(80)
-        self.summary = QtWidgets.QTextEdit(
-            self.campaign_plan.summary if self.campaign_plan else ""
-        )
-        self.summary.setMaximumHeight(100)
+        top_form_layout.addRow("ID:", self.obj_id)
+        top_form_layout.addRow("Title:", self.title)
+        top_form_layout.addRow("Version:", self.version)
+        metadata_container_layout.addLayout(top_form_layout)
 
-        metadata_layout.addRow("ID:", self.obj_id)
-        metadata_layout.addRow("Title:", self.title)
-        metadata_layout.addRow("Version:", self.version)
-        metadata_layout.addRow("Setting:", self.setting)
-        metadata_layout.addRow("Summary:", self.summary)
-        metadata_group.setLayout(metadata_layout)
+        # Splitter for resizable TextEdit fields
+        text_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        text_splitter.setChildrenCollapsible(False)
+        text_splitter.setHandleWidth(8)
+        text_splitter.setMinimumHeight(200)
+
+        # Setting container
+        setting_container = QtWidgets.QWidget()
+        setting_container.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        setting_layout = QtWidgets.QVBoxLayout()
+        setting_layout.setContentsMargins(0, 0, 0, 0)
+        setting_layout.setSpacing(2)
+        setting_label = QtWidgets.QLabel("Setting:")
+        self.setting = AITextEdit(
+            self.campaign_plan.setting if self.campaign_plan else "",
+            field_name="setting",
+            entity_type="CampaignPlan",
+            entity_context_func=self._get_entity_context,
+        )
+        self.setting.setMinimumHeight(40)
+        self.setting.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        setting_layout.addWidget(setting_label)
+        setting_layout.addWidget(self.setting, 1)  # stretch factor 1
+        setting_container.setLayout(setting_layout)
+        text_splitter.addWidget(setting_container)
+
+        # Summary container
+        summary_container = QtWidgets.QWidget()
+        summary_container.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        summary_layout = QtWidgets.QVBoxLayout()
+        summary_layout.setContentsMargins(0, 0, 0, 0)
+        summary_layout.setSpacing(2)
+        summary_label = QtWidgets.QLabel("Summary:")
+        self.summary = AITextEdit(
+            self.campaign_plan.summary if self.campaign_plan else "",
+            field_name="summary",
+            entity_type="CampaignPlan",
+            entity_context_func=self._get_entity_context,
+        )
+        self.summary.setMinimumHeight(40)
+        self.summary.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        summary_layout.addWidget(summary_label)
+        summary_layout.addWidget(self.summary, 1)  # stretch factor 1
+        summary_container.setLayout(summary_layout)
+        text_splitter.addWidget(summary_container)
+
+        # Set initial sizes for the splitter (in pixels)
+        text_splitter.setSizes([100, 100])
+
+        metadata_container_layout.addWidget(text_splitter)
+        metadata_group.setLayout(metadata_container_layout)
         main_layout.addWidget(metadata_group)
 
         # Create list widgets
@@ -1282,12 +1339,21 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         # No longer needed - layout is set up in init_ui
         pass
 
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        return {
+            "title": self.title.text(),
+            "version": self.version.text(),
+            "setting": self.setting.toPlainText(),
+            "summary": self.summary.toPlainText(),
+        }
+
     def export_content(self) -> planning.CampaignPlan:
         """Export the form data as a CampaignPlan object."""
         return planning.CampaignPlan(
             obj_id=self.obj_id.get_id(),
             title=self.title.text(),
-            version=self.version.toPlainText(),
+            version=self.version.text(),
             setting=self.setting.toPlainText(),
             summary=self.summary.toPlainText(),
             storypoints=self.storypoints.get_objects(),
