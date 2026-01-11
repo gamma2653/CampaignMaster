@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, cast, TypeVar, Generic
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, cast
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -325,7 +325,10 @@ class IDListEdit(QtWidgets.QWidget):
             for i in range(self.list_widget.count())
         ]
 
+
 T = TypeVar("T", bound=planning.Object)
+
+
 class ListEdit(QtWidgets.QWidget, Generic[T]):
     """
     A widget to edit a list of objects with splitter-based resizing.
