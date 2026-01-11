@@ -329,7 +329,7 @@ class StrListEdit(QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setFixedHeight(45)
+        button_container.setFixedHeight(50)
         splitter.addWidget(button_container)
 
         # Configure splitter
@@ -337,7 +337,7 @@ class StrListEdit(QtWidgets.QWidget):
         splitter.setHandleWidth(5)
         splitter.setStretchFactor(0, 1)  # List widget gets all extra space
         splitter.setStretchFactor(1, 0)  # Button container stays fixed
-        splitter.setSizes([150, 45])
+        splitter.setSizes([150, 50])
 
         main_layout.addWidget(splitter)
         self.setLayout(main_layout)
@@ -405,7 +405,7 @@ class IDListEdit(QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setFixedHeight(45)
+        button_container.setFixedHeight(50)
         splitter.addWidget(button_container)
 
         # Configure splitter
@@ -413,7 +413,7 @@ class IDListEdit(QtWidgets.QWidget):
         splitter.setHandleWidth(5)
         splitter.setStretchFactor(0, 1)  # List widget gets all extra space
         splitter.setStretchFactor(1, 0)  # Button container stays fixed
-        splitter.setSizes([150, 45])
+        splitter.setSizes([150, 50])
 
         main_layout.addWidget(splitter)
         self.setLayout(main_layout)
@@ -507,7 +507,7 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setFixedHeight(35)
+        button_container.setFixedHeight(50)
 
         main_layout.addWidget(self.list_widget, 1)  # stretch factor 1
         main_layout.addWidget(button_container)
@@ -983,7 +983,7 @@ class MapEdit[K, V](QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setFixedHeight(45)
+        button_container.setFixedHeight(50)
         splitter.addWidget(button_container)
 
         # Configure splitter
@@ -991,7 +991,7 @@ class MapEdit[K, V](QtWidgets.QWidget):
         splitter.setHandleWidth(5)
         splitter.setStretchFactor(0, 1)  # Table widget gets all extra space
         splitter.setStretchFactor(1, 0)  # Button container stays fixed
-        splitter.setSizes([150, 45])
+        splitter.setSizes([150, 50])
 
         main_layout.addWidget(splitter)
         self.setLayout(main_layout)
