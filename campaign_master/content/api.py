@@ -166,6 +166,49 @@ def retrieve_ids(
 
 
 @perform_w_session
+def _release_id(
+    id_obj: "planning.ID",
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = False,
+) -> bool:
+    """
+    Release (delete) an ID from the database.
+
+    Note: This is an internal helper that does NOT commit by default.
+    The caller is responsible for committing the transaction.
+
+    Returns True if the ID was found and deleted, False otherwise.
+    """
+    session = cast(Session, session)  # for mypy
+    db_obj_id = _retrieve_id(
+        id_obj.prefix, id_obj.numeric, session=session, proto_user_id=proto_user_id
+    )
+    if db_obj_id:
+        session.delete(db_obj_id)
+        session.flush()
+        return True
+    return False
+
+
+@perform_w_session
+def release_id(
+    id_obj: "planning.ID",
+    session: Session | None = None,
+    proto_user_id: int = 0,
+) -> bool:
+    """
+    Release (delete) an ID from the database.
+
+    Use this to clean up unused IDs when a creation dialog is cancelled.
+
+    Returns True if the ID was found and deleted, False otherwise.
+    """
+    session = cast(Session, session)  # for mypy
+    return _release_id(id_obj, session=session, proto_user_id=proto_user_id)
+
+
+@perform_w_session
 def _create_object(
     obj: planning.Object,
     session: Session | None = None,

@@ -31,6 +31,12 @@ class CollapsibleSection(QtWidgets.QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        # Set size policy to allow the section to expand/contract in splitters
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+
         # Create header button
         self.header_button = QtWidgets.QPushButton(title)
         self.header_button.setCheckable(True)
@@ -64,6 +70,10 @@ class CollapsibleSection(QtWidgets.QWidget):
         # Create content widget
         self.content_widget = QtWidgets.QWidget()
         self.content_widget.setObjectName("collapsibleContent")
+        self.content_widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         self.content_layout = QtWidgets.QVBoxLayout()
         self.content_layout.setContentsMargins(16, 16, 16, 16)
         self.content_widget.setLayout(self.content_layout)
@@ -82,7 +92,7 @@ class CollapsibleSection(QtWidgets.QWidget):
         )
 
         main_layout.addWidget(self.header_button)
-        main_layout.addWidget(self.content_widget)
+        main_layout.addWidget(self.content_widget, 1)  # stretch factor 1
 
         self.setLayout(main_layout)
 
@@ -100,8 +110,13 @@ class CollapsibleSection(QtWidgets.QWidget):
             if item.widget():
                 item.widget().setParent(None)
 
-        # Add new content
-        self.content_layout.addWidget(widget)
+        # Ensure the widget can expand
+        widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        # Add new content with stretch
+        self.content_layout.addWidget(widget, 1)
 
     def toggle_collapse(self):
         """Toggle the collapsed state."""
@@ -164,6 +179,116 @@ class IDSelect(QtWidgets.QComboBox):
 
     def get_selected_object(self) -> planning.ID:
         return planning.ID.from_str(self.currentText())
+
+    def set_selected_id(self, obj_id: planning.ID):
+        """Set the selected ID in the combo box."""
+        id_str = str(obj_id)
+        index = self.findText(id_str)
+        if index >= 0:
+            self.setCurrentIndex(index)
+
+
+class IDSelectWithCreate(QtWidgets.QWidget):
+    """
+    A widget combining IDSelect dropdown with a 'Create New' button.
+    Allows selecting an existing object or creating a new one.
+    """
+
+    def __init__(
+        self,
+        model_type: type[planning.Object],
+        selected_id: Optional[planning.ID] = None,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.model_type = model_type
+        self.selected_id = selected_id
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Dropdown for selecting existing IDs
+        self.id_select = IDSelect(self.model_type)
+        if self.selected_id:
+            self.id_select.set_selected_id(self.selected_id)
+
+        # Create New button
+        self.create_button = QtWidgets.QPushButton("Create New")
+        self.create_button.clicked.connect(self.create_new_object)
+        self.create_button.setMaximumWidth(100)
+
+        layout.addWidget(self.id_select, stretch=1)
+        layout.addWidget(self.create_button)
+        self.setLayout(layout)
+
+    def create_new_object(self):
+        """Open a dialog to create a new object of the model type."""
+        # Map model types to their edit widget class names
+        edit_widget_map = {
+            planning.Point: "PointEdit",
+            planning.Rule: "RuleEdit",
+            planning.Objective: "ObjectiveEdit",
+            planning.Segment: "SegmentEdit",
+            planning.Arc: "ArcEdit",
+            planning.Item: "ItemEdit",
+            planning.Character: "CharacterEdit",
+            planning.Location: "LocationEdit",
+        }
+
+        edit_widget_class_name = edit_widget_map.get(self.model_type)
+        if not edit_widget_class_name:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Not Supported",
+                f"Creating {self.model_type.__name__} objects is not supported.",
+            )
+            return
+
+        # Open an edit dialog to create a new object
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle(f"Create New {self.model_type.__name__}")
+        dialog.setMinimumWidth(400)
+        dialog_layout = QtWidgets.QVBoxLayout()
+
+        # Get the edit widget class from globals
+        edit_widget_class = globals()[edit_widget_class_name]
+        edit_widget = edit_widget_class(parent=dialog)
+        dialog_layout.addWidget(edit_widget)
+
+        # Add OK/Cancel buttons
+        button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        dialog_layout.addWidget(button_box)
+
+        dialog.setLayout(dialog_layout)
+
+        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            # Export the form data and create in database
+            form_data = edit_widget.export_content()
+            content_api._create_object(form_data, proto_user_id=0)
+
+            # Refresh the dropdown and select the new ID
+            self.id_select.populate()
+            self.id_select.set_selected_id(form_data.obj_id)
+        else:
+            # Dialog was cancelled - release the unused ID
+            content_api.release_id(edit_widget.obj_id.get_id(), proto_user_id=0)
+
+    def get_selected_id(self) -> Optional[planning.ID]:
+        """Get the currently selected ID."""
+        if self.id_select.currentText():
+            return self.id_select.get_selected_object()
+        return None
+
+    def set_selected_id(self, obj_id: planning.ID):
+        """Set the selected ID."""
+        self.id_select.set_selected_id(obj_id)
 
 
 class StrListEdit(QtWidgets.QWidget):
@@ -349,15 +474,21 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create vertical splitter
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        # Set size policy to allow expanding within parent splitters
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
 
-        # List widget (resizable)
+        # List widget (resizable) - no internal splitter needed, just the list and buttons
         self.list_widget = QtWidgets.QListWidget()
+        self.list_widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         for object_ in self.objects:
             self.list_widget.addItem(str(object_.obj_id))
         self.list_widget.setMinimumHeight(50)
-        self.splitter.addWidget(self.list_widget)
 
         # Buttons in container
         button_container = QtWidgets.QWidget()
@@ -375,17 +506,12 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setMinimumHeight(35)
-        self.splitter.addWidget(button_container)
+        button_container.setFixedHeight(35)
 
-        # Configure splitter
-        self.splitter.setChildrenCollapsible(False)
-        self.splitter.setHandleWidth(6)
-        self.splitter.setSizes([150, 40])
-
-        main_layout.addWidget(self.splitter)
+        main_layout.addWidget(self.list_widget, 1)  # stretch factor 1
+        main_layout.addWidget(button_container)
         self.setLayout(main_layout)
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(100)
 
     def add_object(self):
         # Create a mapping from model types to their edit widgets
@@ -434,6 +560,9 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
                 # Add to the list (use form_data directly since it's already a Pydantic object)
                 self.list_widget.addItem(str(form_data.obj_id))
                 self.objects.append(cast(T, form_data))
+            else:
+                # Dialog was cancelled - release the unused ID
+                content_api.release_id(edit_widget.obj_id.get_id(), proto_user_id=0)
         else:
             # Fallback to the old selection dialog for types without edit widgets
             object_select_dialog = QtWidgets.QDialog(self)
@@ -523,7 +652,7 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
         return planning.Rule(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             description=self.description.toPlainText(),
             effect=self.effect.toPlainText(),
             components=self.components.get_items(),
@@ -577,7 +706,7 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
         return planning.Objective(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             description=self.description.toPlainText(),
             components=self.components.get_items(),
             prerequisites=self.prerequisites.get_ids(),
@@ -632,7 +761,7 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
             objective_id = self.objective.get_selected_object()
 
         return planning.Point(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             name=self.name.text(),
             description=self.description.toPlainText(),
             objective=objective_id,
@@ -646,8 +775,8 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
     Fields:
     name: str
     description: str
-    start: Point
-    end: Point
+    start: ID (reference to Point)
+    end: ID (reference to Point)
     """
 
     def __init__(self, segment: Optional[planning.Segment] = None, parent=None):
@@ -667,8 +796,15 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         self.description = QtWidgets.QTextEdit(
             self.segment.description if self.segment else ""
         )
-        self.start = PointEdit(self.segment.start if self.segment else None)
-        self.end = PointEdit(self.segment.end if self.segment else None)
+        # Use IDSelectWithCreate to allow selecting existing Points or creating new ones
+        self.start = IDSelectWithCreate(
+            planning.Point,
+            selected_id=self.segment.start if self.segment else None,
+        )
+        self.end = IDSelectWithCreate(
+            planning.Point,
+            selected_id=self.segment.end if self.segment else None,
+        )
 
         container.setLayout(self.form_layout)
         main_layout.addWidget(container)
@@ -684,17 +820,19 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
 
     def export_content(self) -> planning.Segment:
         """Export the form data as a Segment object."""
-        # Note: The GUI uses PointEdit widgets but the model expects ID references
-        # For now, we'll export the Point objects and their IDs
-        start_point = self.start.export_content()
-        end_point = self.end.export_content()
+        # Get the selected Point IDs from the IDSelectWithCreate widgets
+        start_id = self.start.get_selected_id()
+        end_id = self.end.get_selected_id()
+
+        # Use default ID if none selected
+        default_id = planning.ID(prefix="P", numeric=0)
 
         return planning.Segment(
             obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             description=self.description.toPlainText(),
-            start=start_point.obj_id,
-            end=end_point.obj_id,
+            start=start_id if start_id else default_id,
+            end=end_id if end_id else default_id,
         )
 
 
@@ -721,11 +859,11 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         self.obj_id = IDDisplay(planning.Arc, self.arc.obj_id if self.arc else None)
         self.name = QtWidgets.QLineEdit(self.arc.name if self.arc else "")
         self.description = QtWidgets.QTextEdit(self.arc.description if self.arc else "")
-        self.segments = QtWidgets.QListWidget()
-        if self.arc:
-            for segment in self.arc.segments:
-                item = QtWidgets.QListWidgetItem(segment.name)
-                self.segments.addItem(item)
+        # Use ListEdit to properly manage segments with add/remove functionality
+        self.segments = ListEdit[planning.Segment](
+            planning.Segment,
+            objects=self.arc.segments if self.arc else [],
+        )
 
         container.setLayout(self.form_layout)
         main_layout.addWidget(container)
@@ -740,14 +878,11 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
 
     def export_content(self) -> planning.Arc:
         """Export the form data as an Arc object."""
-        # Note: The GUI uses a simple QListWidget which doesn't properly manage segments
-        # For now, we'll export with an empty segments list
-        # A proper implementation would need a ListEdit widget for segments
         return planning.Arc(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             name=self.name.text(),
             description=self.description.toPlainText(),
-            segments=[],  # TODO: Properly handle segments list
+            segments=self.segments.get_objects(),
         )
 
 
@@ -900,7 +1035,7 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Item:
         """Export the form data as an Item object."""
         return planning.Item(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             name=self.name.text(),
             type_=self.type_.text(),
             description=self.description.toPlainText(),
@@ -996,7 +1131,7 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         }
 
         return planning.Character(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             name=self.name.text(),
             role=self.role.text(),
             backstory=self.backstory.toPlainText(),
@@ -1112,7 +1247,7 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
             pass
 
         return planning.Location(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             name=self.name.text(),
             description=self.description.toPlainText(),
             neighboring_locations=self.neighboring_locations.get_ids(),
@@ -1151,15 +1286,10 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         from ..themes.colors import get_colors_for_type
 
-        # Main scroll area
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-
-        # Content widget for scroll area
-        content_widget = QtWidgets.QWidget()
+        # Main layout - no scroll area so splitters can divide available space
         main_layout = QtWidgets.QVBoxLayout()
-        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(8)
 
         # Metadata section (non-collapsible)
         metadata_group = QtWidgets.QGroupBox("Campaign Metadata")
@@ -1181,6 +1311,10 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
                 padding: 0 8px;
             }}
         """
+        )
+        metadata_group.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
         )
 
         metadata_container_layout = QtWidgets.QVBoxLayout()
@@ -1208,7 +1342,6 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         text_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
         text_splitter.setChildrenCollapsible(False)
         text_splitter.setHandleWidth(8)
-        text_splitter.setMinimumHeight(200)
 
         # Setting container
         setting_container = QtWidgets.QWidget()
@@ -1226,13 +1359,13 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
             entity_type="CampaignPlan",
             entity_context_func=self._get_entity_context,
         )
-        self.setting.setMinimumHeight(40)
+        self.setting.setMinimumHeight(30)
         self.setting.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
         setting_layout.addWidget(setting_label)
-        setting_layout.addWidget(self.setting, 1)  # stretch factor 1
+        setting_layout.addWidget(self.setting, 1)
         setting_container.setLayout(setting_layout)
         text_splitter.addWidget(setting_container)
 
@@ -1252,22 +1385,19 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
             entity_type="CampaignPlan",
             entity_context_func=self._get_entity_context,
         )
-        self.summary.setMinimumHeight(40)
+        self.summary.setMinimumHeight(30)
         self.summary.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
         summary_layout.addWidget(summary_label)
-        summary_layout.addWidget(self.summary, 1)  # stretch factor 1
+        summary_layout.addWidget(self.summary, 1)
         summary_container.setLayout(summary_layout)
         text_splitter.addWidget(summary_container)
 
-        # Set initial sizes for the splitter (in pixels)
         text_splitter.setSizes([100, 100])
-
-        metadata_container_layout.addWidget(text_splitter)
+        metadata_container_layout.addWidget(text_splitter, 1)
         metadata_group.setLayout(metadata_container_layout)
-        main_layout.addWidget(metadata_group)
 
         # Create list widgets
         self.storypoints = ListEdit(
@@ -1296,7 +1426,7 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         )
 
         # Create collapsible sections with color coding
-        sections = [
+        sections: list[tuple[str, QtWidgets.QWidget, type[planning.Object]]] = [
             ("Story Points", self.storypoints, planning.Point),
             ("Storyline Arcs", self.storyline, planning.Arc),
             ("Rules", self.rules, planning.Rule),
@@ -1306,11 +1436,40 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
             ("Locations", self.locations, planning.Location),
         ]
 
-        for title, widget, obj_type in sections:
-            border_color, bg_color = get_colors_for_type(obj_type)
+        # Scroll area for the collapsible sections (so they can scroll if needed)
+        sections_scroll = QtWidgets.QScrollArea()
+        sections_scroll.setWidgetResizable(True)
+        sections_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        sections_scroll.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+
+        # Container for sections inside scroll area
+        sections_container = QtWidgets.QWidget()
+        sections_layout = QtWidgets.QVBoxLayout()
+        sections_layout.setContentsMargins(0, 0, 0, 0)
+        sections_layout.setSpacing(8)
+
+        for title, widget, ObjectType in sections:
+            border_color, bg_color = get_colors_for_type(ObjectType)
             section = CollapsibleSection(title, border_color, bg_color)
             section.set_content(widget)
-            main_layout.addWidget(section)
+            sections_layout.addWidget(section)
+
+        sections_layout.addStretch()
+        sections_container.setLayout(sections_layout)
+        sections_scroll.setWidget(sections_container)
+
+        # Create a main splitter to allow resizing between metadata and sections
+        main_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        main_splitter.setChildrenCollapsible(False)
+        main_splitter.setHandleWidth(8)
+        main_splitter.addWidget(metadata_group)
+        main_splitter.addWidget(sections_scroll)
+        main_splitter.setSizes([300, 500])
+
+        main_layout.addWidget(main_splitter, 1)
 
         # Add save/export buttons
         button_layout = QtWidgets.QHBoxLayout()
@@ -1327,16 +1486,7 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         button_layout.addStretch()
         main_layout.addLayout(button_layout)
 
-        main_layout.addStretch()
-
-        content_widget.setLayout(main_layout)
-        scroll_area.setWidget(content_widget)
-
-        # Set scroll area as main widget
-        final_layout = QtWidgets.QVBoxLayout()
-        final_layout.setContentsMargins(0, 0, 0, 0)
-        final_layout.addWidget(scroll_area)
-        self.setLayout(final_layout)
+        self.setLayout(main_layout)
 
     def update_layout(self):
         # No longer needed - layout is set up in init_ui
@@ -1354,7 +1504,7 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.CampaignPlan:
         """Export the form data as a CampaignPlan object."""
         return planning.CampaignPlan(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             title=self.title.text(),
             version=self.version.text(),
             setting=self.setting.toPlainText(),
