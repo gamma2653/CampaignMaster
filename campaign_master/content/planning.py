@@ -81,25 +81,57 @@ class Object(BaseModel):
     Base class for all objects in the campaign planning system.
     """
 
-    obj_id: ID | None = Field(default=None, exclude=True)
+    _obj_id: ID | None = PrivateAttr(default=None)
     """
-    The unique identifier for this object. Set via content.api.create_object().
-    Excluded from serialization - managed separately.
+    Internal storage for the object ID. Use the `obj_id` property to access.
     """
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
-    @field_validator("obj_id", mode="before")
-    @classmethod
-    def coerce_obj_id(cls, v: Any) -> ID | None:
-        if v is None:
-            return None
-        if isinstance(v, str):
-            return ID.from_str(v)
-        return v
+    def __init__(self, *, obj_id: ID | str | None = None, **data: Any) -> None:
+        """
+        Initialize the object, optionally with an ID.
+
+        Args:
+            obj_id: The object ID (can be ID instance, string like "R-000001", or None)
+            **data: Additional fields for the model
+        """
+        super().__init__(**data)
+        if obj_id is not None:
+            if isinstance(obj_id, str):
+                self._obj_id = ID.from_str(obj_id)
+            else:
+                self._obj_id = obj_id
+
+    @property
+    def obj_id(self) -> ID:
+        """
+        The unique identifier for this object.
+
+        Raises:
+            ValueError: If the object has not been assigned an ID yet.
+        """
+        if self._obj_id is None:
+            raise ValueError(
+                f"{self.__class__.__name__} has no ID assigned. "
+                "Use content.api.create_object() to create objects with IDs."
+            )
+        return self._obj_id
+
+    @obj_id.setter
+    def obj_id(self, value: ID | str) -> None:
+        """Set the object ID."""
+        if isinstance(value, str):
+            self._obj_id = ID.from_str(value)
+        else:
+            self._obj_id = value
+
+    def has_id(self) -> bool:
+        """Check if this object has an ID assigned."""
+        return self._obj_id is not None
 
     def __str__(self) -> str:
-        id_str = str(self.obj_id) if self.obj_id else "no-id"
+        id_str = str(self._obj_id) if self._obj_id else "no-id"
         return f"{self.__class__.__name__}({id_str})"
 
 

@@ -68,10 +68,9 @@ class DBTestCase(TestCase):
         rule = content_api.create_object(planning.Rule)
 
         # Verify object was created with valid ID
-        self.assertIsNotNone(rule.obj_id)
-        if rule.obj_id is not None:
-            self.assertEqual(rule.obj_id.prefix, "R")
-            self.assertGreater(rule.obj_id.numeric, 0)
+        self.assertTrue(rule.has_id())
+        self.assertEqual(rule.obj_id.prefix, "R")
+        self.assertGreater(rule.obj_id.numeric, 0)
 
         # Verify we can retrieve all rules and find our rule
         all_rules = content_api.retrieve_objects(planning.Rule)
@@ -116,9 +115,7 @@ class DBTestCase(TestCase):
 
         # Create and delete an object
         rule = content_api.create_object(planning.Rule)
-        self.assertIsNotNone(rule.obj_id)
-        if rule.obj_id is None:
-            return
+        self.assertTrue(rule.has_id())
         result = content_api.delete_object(rule.obj_id)
         self.assertTrue(result)
 
