@@ -42,7 +42,6 @@ class DBTestCase(TestCase):
         database.create_db_and_tables()
         database.create_example_data()
 
-
     def test_transaction_rollback(self):
         """Test that failed transactions roll back properly."""
         from campaign_master.content.database import transaction

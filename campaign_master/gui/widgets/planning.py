@@ -1,4 +1,4 @@
-from typing import Any, Optional, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -520,8 +520,12 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
         return planning.Rule(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Rule._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Rule._default_prefix,
+                )
             ),
             description=self.description.toPlainText(),
             effect=self.effect.toPlainText(),
@@ -576,8 +580,12 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
         return planning.Objective(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Objective._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Objective._default_prefix,
+                )
             ),
             description=self.description.toPlainText(),
             components=self.components.get_items(),
@@ -633,8 +641,12 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
             objective_id = self.objective.get_selected_object()
 
         return planning.Point(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Point._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Point._default_prefix,
+                )
             ),
             name=self.name.text(),
             description=self.description.toPlainText(),
@@ -693,8 +705,12 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         end_point = self.end.export_content()
 
         return planning.Segment(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Segment._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Segment._default_prefix,
+                )
             ),
             name=self.name.text(),
             description=self.description.toPlainText(),
@@ -749,8 +765,12 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         # For now, we'll export with an empty segments list
         # A proper implementation would need a ListEdit widget for segments
         return planning.Arc(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Arc._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Arc._default_prefix,
+                )
             ),
             name=self.name.text(),
             description=self.description.toPlainText(),
@@ -907,8 +927,12 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Item:
         """Export the form data as an Item object."""
         return planning.Item(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Item._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Item._default_prefix,
+                )
             ),
             name=self.name.text(),
             type_=self.type_.text(),
@@ -1005,8 +1029,12 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         }
 
         return planning.Character(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Character._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Character._default_prefix,
+                )
             ),
             name=self.name.text(),
             role=self.role.text(),
@@ -1123,8 +1151,12 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
             pass
 
         return planning.Location(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.Location._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.Location._default_prefix,
+                )
             ),
             name=self.name.text(),
             description=self.description.toPlainText(),
@@ -1301,8 +1333,12 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.CampaignPlan:
         """Export the form data as a CampaignPlan object."""
         return planning.CampaignPlan(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
-                prefix=planning.CampaignPlan._default_prefix,
+            obj_id=(
+                self.obj_id.get_id()
+                if self.obj_id.get_id()
+                else content_api.generate_id(
+                    prefix=planning.CampaignPlan._default_prefix,
+                )
             ),
             title=self.title.text(),
             version=self.version.toPlainText(),

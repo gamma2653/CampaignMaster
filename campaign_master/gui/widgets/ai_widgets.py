@@ -69,9 +69,7 @@ class CompletionPopup(QtWidgets.QWidget):
         self.adjustSize()
 
         # Position below the parent widget
-        pos = parent_widget.mapToGlobal(
-            QtCore.QPoint(0, parent_widget.height())
-        )
+        pos = parent_widget.mapToGlobal(QtCore.QPoint(0, parent_widget.height()))
         self.move(pos)
         self.show()
         self.setFocus()

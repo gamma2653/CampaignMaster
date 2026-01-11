@@ -8,8 +8,8 @@ TTRPG-specific context in AI completions.
 from abc import ABC, abstractmethod
 from typing import Iterator
 
-from ..protocol import CompletionRequest, CompletionResponse
 from ...util import get_basic_logger
+from ..protocol import CompletionRequest, CompletionResponse
 
 logger = get_basic_logger(__name__)
 

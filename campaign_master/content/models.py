@@ -1291,7 +1291,10 @@ class AgentConfig(ObjectBase):
 
     @classmethod
     def from_pydantic(
-        cls, obj: "planning.AgentConfig", proto_user_id: int = 0, session: Session | None = None
+        cls,
+        obj: "planning.AgentConfig",
+        proto_user_id: int = 0,
+        session: Session | None = None,
     ) -> "Self":  # type: ignore[override]
         """Create from pydantic. Does NOT commit - caller handles that."""
 
@@ -1337,7 +1340,9 @@ class AgentConfig(ObjectBase):
                     raise
         return perform(session)
 
-    def update_from_pydantic(self, obj: "planning.AgentConfig", session: Session) -> None:
+    def update_from_pydantic(
+        self, obj: "planning.AgentConfig", session: Session
+    ) -> None:
         """Update this AgentConfig's fields from a Pydantic model."""
         self.name = obj.name
         self.provider_type = obj.provider_type

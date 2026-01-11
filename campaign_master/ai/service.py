@@ -9,7 +9,7 @@ import os
 from threading import Lock
 from typing import Any, Callable, Iterator, cast
 
-from PySide6.QtCore import QObject, QThread, Signal, Qt
+from PySide6.QtCore import QObject, Qt, QThread, Signal
 
 from ..content import api as content_api
 from ..content import planning
@@ -197,10 +197,13 @@ class AICompletionService:
     def get_all_agents(self) -> list[planning.AgentConfig]:
         """Get all configured agents."""
         try:
-            return cast(list[planning.AgentConfig], content_api.retrieve_objects(
-                planning.AgentConfig,
-                proto_user_id=self._proto_user_id,
-            ))
+            return cast(
+                list[planning.AgentConfig],
+                content_api.retrieve_objects(
+                    planning.AgentConfig,
+                    proto_user_id=self._proto_user_id,
+                ),
+            )
         except Exception as e:
             logger.error("Error retrieving agents: %s", e)
             return []
@@ -243,7 +246,9 @@ class AICompletionService:
             temperature=temperature or default_agent.temperature,
             system_prompt=default_agent.system_prompt,
         )
-        logger.debug("Sending completion request to provider %s", default_agent.provider_type)
+        logger.debug(
+            "Sending completion request to provider %s", default_agent.provider_type
+        )
         try:
             response = provider.complete(request)
             logger.debug("Received completion response: %s", response.text[:50])
@@ -283,7 +288,6 @@ class AICompletionService:
                 return None
         provider = cast(BaseProvider, self._provider)
         default_agent = cast(planning.AgentConfig, self._default_agent)
-
 
         request = CompletionRequest(
             prompt=prompt,

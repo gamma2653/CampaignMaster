@@ -1,7 +1,9 @@
 """
 Agent Settings Dialog for configuring AI completion providers.
 """
+
 from typing import cast
+
 from PySide6 import QtCore, QtWidgets
 
 from campaign_master.ai import AICompletionService
@@ -209,10 +211,13 @@ class AgentSettingsDialog(QtWidgets.QDialog):
 
     def load_agents(self):
         """Load agents from database."""
-        self._agents = cast(list[planning.AgentConfig], content_api.retrieve_objects(
-            planning.AgentConfig,
-            proto_user_id=self._proto_user_id,
-        ))
+        self._agents = cast(
+            list[planning.AgentConfig],
+            content_api.retrieve_objects(
+                planning.AgentConfig,
+                proto_user_id=self._proto_user_id,
+            ),
+        )
 
         self.agent_list.clear()
         for agent in self._agents:
@@ -399,7 +404,9 @@ class AgentSettingsDialog(QtWidgets.QDialog):
             env_var = api_key[1:]
             api_key = os.environ.get(env_var, "")
             if not api_key:
-                self.status_label.setText(f"Error: Environment variable {env_var} not set")
+                self.status_label.setText(
+                    f"Error: Environment variable {env_var} not set"
+                )
                 self.status_label.setStyleSheet("color: red;")
                 return
 

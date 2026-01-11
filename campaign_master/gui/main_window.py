@@ -3,6 +3,7 @@ Main window for the Campaign Master GUI application.
 
 Provides navigation, menu system, and manages the overall application structure.
 """
+
 from typing import cast
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -460,9 +461,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         self.default_agent_menu.clear()
 
         try:
-            agents = content_api.retrieve_objects(
-                planning.AgentConfig, proto_user_id=0
-            )
+            agents = content_api.retrieve_objects(planning.AgentConfig, proto_user_id=0)
 
             if not agents:
                 no_agents_action = QtGui.QAction("(No agents configured)", self)
@@ -481,9 +480,9 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                     action.setChecked(agent.is_default)
                     action.setData(str(agent.obj_id))
                     action.triggered.connect(
-                        lambda checked, agent_id=str(agent.obj_id): self.set_default_agent(
-                            agent_id
-                        )
+                        lambda checked, agent_id=str(
+                            agent.obj_id
+                        ): self.set_default_agent(agent_id)
                     )
                     action_group.addAction(action)
                     self.default_agent_menu.addAction(action)
