@@ -474,6 +474,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             action_group.setExclusive(True)
 
             for agent in agents:
+                agent = cast(planning.AgentConfig, agent)
                 if agent.is_enabled:
                     action = QtGui.QAction(agent.name or "(unnamed)", self)
                     action.setCheckable(True)
@@ -500,6 +501,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                     planning.AgentConfig, proto_user_id=0
                 )
                 for agent in agents:
+                    agent = cast(planning.AgentConfig, agent)
                     should_be_default = str(agent.obj_id) == agent_id
                     if agent.is_default != should_be_default:
                         agent.is_default = should_be_default

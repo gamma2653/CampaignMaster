@@ -1,4 +1,4 @@
-from typing import Any, Optional, cast
+from typing import Any, Optional, cast, TYPE_CHECKING
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -17,11 +17,12 @@ class CollapsibleSection(QtWidgets.QWidget):
         border_color: str = "#555555",
         bg_color: str = "#1a341a",
         parent=None,
+        start_collapsed: bool = True,
     ):
         super().__init__(parent)
         self.border_color = border_color
         self.bg_color = bg_color
-        self.is_collapsed = False
+        self.is_collapsed = start_collapsed
         self.init_ui(title)
 
     def init_ui(self, title: str):
@@ -33,7 +34,7 @@ class CollapsibleSection(QtWidgets.QWidget):
         # Create header button
         self.header_button = QtWidgets.QPushButton(title)
         self.header_button.setCheckable(True)
-        self.header_button.setChecked(True)  # Start expanded
+        self.header_button.setChecked(not self.is_collapsed)  # Checked = expanded
         self.header_button.clicked.connect(self.toggle_collapse)
 
         # Style the header button
@@ -85,8 +86,8 @@ class CollapsibleSection(QtWidgets.QWidget):
 
         self.setLayout(main_layout)
 
-        # Start expanded
-        self.content_widget.setVisible(True)
+        # Set initial visibility based on collapsed state
+        self.content_widget.setVisible(not self.is_collapsed)
 
         # Update arrow indicator
         self.update_arrow()
@@ -167,7 +168,7 @@ class IDSelect(QtWidgets.QComboBox):
 
 class StrListEdit(QtWidgets.QWidget):
     """
-    A widget to edit a list of strings.
+    A widget to edit a list of strings with splitter-based resizing.
     """
 
     def __init__(self, items: Optional[list[str]] = None, parent=None):
@@ -176,10 +177,21 @@ class StrListEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Create vertical splitter
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+
+        # List widget (resizable)
         self.list_widget = QtWidgets.QListWidget()
         self.list_widget.addItems(self.items)
+        splitter.addWidget(self.list_widget)
+
+        # Buttons in container (fixed max height)
+        button_container = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setContentsMargins(0, 4, 0, 0)
 
         self.add_button = QtWidgets.QPushButton("Add")
         self.remove_button = QtWidgets.QPushButton("Remove")
@@ -187,14 +199,21 @@ class StrListEdit(QtWidgets.QWidget):
         self.add_button.clicked.connect(self.add_item)
         self.remove_button.clicked.connect(self.remove_item)
 
-        button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.add_button)
         button_layout.addWidget(self.remove_button)
+        button_layout.addStretch()
 
-        layout.addWidget(self.list_widget)
-        layout.addLayout(button_layout)
+        button_container.setLayout(button_layout)
+        button_container.setMaximumHeight(45)
+        splitter.addWidget(button_container)
 
-        self.setLayout(layout)
+        # Configure splitter
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(5)
+        splitter.setSizes([150, 45])
+
+        main_layout.addWidget(splitter)
+        self.setLayout(main_layout)
 
     def add_item(self):
         text, ok = QtWidgets.QInputDialog.getText(self, "Add Item", "Item:")
@@ -216,7 +235,7 @@ class StrListEdit(QtWidgets.QWidget):
 
 class IDListEdit(QtWidgets.QWidget):
     """
-    A widget to edit a list of IDs.
+    A widget to edit a list of IDs with splitter-based resizing.
     """
 
     def __init__(
@@ -231,11 +250,22 @@ class IDListEdit(QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Create vertical splitter
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+
+        # List widget (resizable)
         self.list_widget = QtWidgets.QListWidget()
         for id_value in self.ids:
             self.list_widget.addItem(str(id_value))
+        splitter.addWidget(self.list_widget)
+
+        # Buttons in container (fixed max height)
+        button_container = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setContentsMargins(0, 4, 0, 0)
 
         self.add_button = QtWidgets.QPushButton("Add")
         self.remove_button = QtWidgets.QPushButton("Remove")
@@ -243,14 +273,21 @@ class IDListEdit(QtWidgets.QWidget):
         self.add_button.clicked.connect(self.add_id)
         self.remove_button.clicked.connect(self.remove_id)
 
-        button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.add_button)
         button_layout.addWidget(self.remove_button)
+        button_layout.addStretch()
 
-        layout.addWidget(self.list_widget)
-        layout.addLayout(button_layout)
+        button_container.setLayout(button_layout)
+        button_container.setMaximumHeight(45)
+        splitter.addWidget(button_container)
 
-        self.setLayout(layout)
+        # Configure splitter
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(5)
+        splitter.setSizes([150, 45])
+
+        main_layout.addWidget(splitter)
+        self.setLayout(main_layout)
 
     def add_id(self):
         id_select_dialog = QtWidgets.QDialog(self)
@@ -287,7 +324,7 @@ class IDListEdit(QtWidgets.QWidget):
 
 class ListEdit[T: planning.Object](QtWidgets.QWidget):
     """
-    A widget to edit a list of objects.
+    A widget to edit a list of objects with splitter-based resizing.
     """
 
     def __init__(
@@ -302,11 +339,22 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Create vertical splitter
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+
+        # List widget (resizable)
         self.list_widget = QtWidgets.QListWidget()
         for object_ in self.objects:
             self.list_widget.addItem(str(object_.obj_id))
+        splitter.addWidget(self.list_widget)
+
+        # Buttons in container (fixed max height)
+        button_container = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setContentsMargins(0, 4, 0, 0)
 
         self.add_button = QtWidgets.QPushButton("Add")
         self.remove_button = QtWidgets.QPushButton("Remove")
@@ -314,14 +362,21 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
         self.add_button.clicked.connect(self.add_object)
         self.remove_button.clicked.connect(self.remove_object)
 
-        button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.add_button)
         button_layout.addWidget(self.remove_button)
+        button_layout.addStretch()
 
-        layout.addWidget(self.list_widget)
-        layout.addLayout(button_layout)
+        button_container.setLayout(button_layout)
+        button_container.setMaximumHeight(45)
+        splitter.addWidget(button_container)
 
-        self.setLayout(layout)
+        # Configure splitter
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(5)
+        splitter.setSizes([150, 45])
+
+        main_layout.addWidget(splitter)
+        self.setLayout(main_layout)
 
     def add_object(self):
         # Create a mapping from model types to their edit widgets
@@ -459,7 +514,9 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
         return planning.Rule(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Rule._default_prefix,
+            ),
             description=self.description.toPlainText(),
             effect=self.effect.toPlainText(),
             components=self.components.get_items(),
@@ -513,7 +570,9 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
         return planning.Objective(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Objective._default_prefix,
+            ),
             description=self.description.toPlainText(),
             components=self.components.get_items(),
             prerequisites=self.prerequisites.get_ids(),
@@ -568,7 +627,9 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
             objective_id = self.objective.get_selected_object()
 
         return planning.Point(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Point._default_prefix,
+            ),
             name=self.name.text(),
             description=self.description.toPlainText(),
             objective=objective_id,
@@ -626,7 +687,9 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         end_point = self.end.export_content()
 
         return planning.Segment(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Segment._default_prefix,
+            ),
             name=self.name.text(),
             description=self.description.toPlainText(),
             start=start_point.obj_id,
@@ -680,7 +743,9 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         # For now, we'll export with an empty segments list
         # A proper implementation would need a ListEdit widget for segments
         return planning.Arc(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Arc._default_prefix,
+            ),
             name=self.name.text(),
             description=self.description.toPlainText(),
             segments=[],  # TODO: Properly handle segments list
@@ -689,7 +754,7 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
 
 class MapEdit[K, V](QtWidgets.QWidget):
     """
-    A widget to edit a mapping of strings to strings.
+    A widget to edit a mapping of strings to strings with splitter-based resizing.
     """
 
     def __init__(
@@ -704,12 +769,24 @@ class MapEdit[K, V](QtWidgets.QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create vertical splitter
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+
+        # Table widget (resizable)
         self.table_widget = QtWidgets.QTableWidget()
         self.table_widget.setColumnCount(2)
         self.table_widget.setHorizontalHeaderLabels(self.k_v_labels)
         self.table_widget.horizontalHeader().setStretchLastSection(True)
         self.populate_table()
+        splitter.addWidget(self.table_widget)
+
+        # Buttons in container (fixed max height)
+        button_container = QtWidgets.QWidget()
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.setContentsMargins(0, 4, 0, 0)
 
         self.add_button = QtWidgets.QPushButton("Add")
         self.remove_button = QtWidgets.QPushButton("Remove")
@@ -717,14 +794,21 @@ class MapEdit[K, V](QtWidgets.QWidget):
         self.add_button.clicked.connect(self.add_entry)
         self.remove_button.clicked.connect(self.remove_entry)
 
-        button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self.add_button)
         button_layout.addWidget(self.remove_button)
+        button_layout.addStretch()
 
-        layout.addWidget(self.table_widget)
-        layout.addLayout(button_layout)
+        button_container.setLayout(button_layout)
+        button_container.setMaximumHeight(45)
+        splitter.addWidget(button_container)
 
-        self.setLayout(layout)
+        # Configure splitter
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(5)
+        splitter.setSizes([150, 45])
+
+        main_layout.addWidget(splitter)
+        self.setLayout(main_layout)
 
     def populate_table(self):
         self.table_widget.setRowCount(0)
@@ -815,7 +899,9 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Item:
         """Export the form data as an Item object."""
         return planning.Item(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Item._default_prefix,
+            ),
             name=self.name.text(),
             type_=self.type_.text(),
             description=self.description.toPlainText(),
@@ -911,7 +997,9 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         }
 
         return planning.Character(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Character._default_prefix,
+            ),
             name=self.name.text(),
             role=self.role.text(),
             backstory=self.backstory.toPlainText(),
@@ -1027,7 +1115,9 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
             pass
 
         return planning.Location(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.Location._default_prefix,
+            ),
             name=self.name.text(),
             description=self.description.toPlainText(),
             neighboring_locations=self.neighboring_locations.get_ids(),
@@ -1203,7 +1293,9 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.CampaignPlan:
         """Export the form data as a CampaignPlan object."""
         return planning.CampaignPlan(
-            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else planning.ID(),
+            obj_id=self.obj_id.get_id() if self.obj_id.get_id() else content_api.generate_id(
+                prefix=planning.CampaignPlan._default_prefix,
+            ),
             title=self.title.text(),
             version=self.version.toPlainText(),
             setting=self.setting.toPlainText(),
@@ -1221,10 +1313,10 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         """Handle save button click - delegate to main window."""
         main_window = self.window()
         if hasattr(main_window, "save_campaign"):
-            main_window.save_campaign()
+            main_window.save_campaign()  # type: ignore
 
     def export_to_json(self):
         """Handle export button click - delegate to main window."""
         main_window = self.window()
         if hasattr(main_window, "export_campaign"):
-            main_window.export_campaign()
+            main_window.export_campaign()  # type: ignore

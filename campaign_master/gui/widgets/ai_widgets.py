@@ -227,6 +227,8 @@ class AITextEdit(QtWidgets.QTextEdit):
 
     Trigger completion with Ctrl+Space. The widget will show a popup
     with the AI suggestion that can be accepted or rejected.
+
+    This widget is sized larger than standard text edits for multi-line content.
     """
 
     completionRequested = QtCore.Signal()

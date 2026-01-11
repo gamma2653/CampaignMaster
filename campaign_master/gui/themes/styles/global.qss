@@ -381,21 +381,28 @@ QToolTip {
     padding: 4px 8px;
 }
 
-/* Splitters */
+/* Splitters - Enhanced Styling */
 QSplitter::handle {
-    background-color: #555555;
+    background-color: #3a5a3a;
+    border-radius: 2px;
 }
 
 QSplitter::handle:horizontal {
-    width: 2px;
+    width: 5px;
+    margin: 2px 0;
 }
 
 QSplitter::handle:vertical {
-    height: 2px;
+    height: 5px;
+    margin: 0 2px;
 }
 
 QSplitter::handle:hover {
     background-color: #4CAF50;
+}
+
+QSplitter::handle:pressed {
+    background-color: #45a049;
 }
 
 /* Tab widgets */
