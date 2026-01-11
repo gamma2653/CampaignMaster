@@ -106,7 +106,10 @@ class Object(BaseModel):
         else:
             # Generate an ID using content_api
             from ..content import api as content_api
-            self._obj_id = content_api.generate_id(self._default_prefix, proto_user_id=data.get("proto_user_id", 0))
+
+            self._obj_id = content_api.generate_id(
+                self._default_prefix, proto_user_id=data.get("proto_user_id", 0)
+            )
 
     @property
     def obj_id(self) -> ID:
