@@ -63,20 +63,20 @@ class CollapsibleSection(QtWidgets.QWidget):
 
         # Create content widget
         self.content_widget = QtWidgets.QWidget()
+        self.content_widget.setObjectName("collapsibleContent")
         self.content_layout = QtWidgets.QVBoxLayout()
         self.content_layout.setContentsMargins(16, 16, 16, 16)
         self.content_widget.setLayout(self.content_layout)
 
-        # Style the content widget
+        # Style the content widget (use #id selector to avoid affecting children)
         self.content_widget.setStyleSheet(
             f"""
-            QWidget {{
+            QWidget#collapsibleContent {{
                 background-color: {self.bg_color};
                 border: 2px solid {self.border_color};
                 border-top: none;
                 border-bottom-left-radius: 8px;
                 border-bottom-right-radius: 8px;
-                padding: 12px;
             }}
         """
         )
@@ -204,12 +204,14 @@ class StrListEdit(QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setMaximumHeight(45)
+        button_container.setFixedHeight(45)
         splitter.addWidget(button_container)
 
         # Configure splitter
         splitter.setChildrenCollapsible(False)
         splitter.setHandleWidth(5)
+        splitter.setStretchFactor(0, 1)  # List widget gets all extra space
+        splitter.setStretchFactor(1, 0)  # Button container stays fixed
         splitter.setSizes([150, 45])
 
         main_layout.addWidget(splitter)
@@ -278,12 +280,14 @@ class IDListEdit(QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setMaximumHeight(45)
+        button_container.setFixedHeight(45)
         splitter.addWidget(button_container)
 
         # Configure splitter
         splitter.setChildrenCollapsible(False)
         splitter.setHandleWidth(5)
+        splitter.setStretchFactor(0, 1)  # List widget gets all extra space
+        splitter.setStretchFactor(1, 0)  # Button container stays fixed
         splitter.setSizes([150, 45])
 
         main_layout.addWidget(splitter)
@@ -343,15 +347,16 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Create vertical splitter
-        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
 
         # List widget (resizable)
         self.list_widget = QtWidgets.QListWidget()
         for object_ in self.objects:
             self.list_widget.addItem(str(object_.obj_id))
-        splitter.addWidget(self.list_widget)
+        self.list_widget.setMinimumHeight(50)
+        self.splitter.addWidget(self.list_widget)
 
-        # Buttons in container (fixed max height)
+        # Buttons in container
         button_container = QtWidgets.QWidget()
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.setContentsMargins(0, 4, 0, 0)
@@ -367,16 +372,17 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setMaximumHeight(45)
-        splitter.addWidget(button_container)
+        button_container.setMinimumHeight(35)
+        self.splitter.addWidget(button_container)
 
         # Configure splitter
-        splitter.setChildrenCollapsible(False)
-        splitter.setHandleWidth(5)
-        splitter.setSizes([150, 45])
+        self.splitter.setChildrenCollapsible(False)
+        self.splitter.setHandleWidth(6)
+        self.splitter.setSizes([150, 40])
 
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(self.splitter)
         self.setLayout(main_layout)
+        self.setMinimumHeight(120)
 
     def add_object(self):
         # Create a mapping from model types to their edit widgets
@@ -799,12 +805,14 @@ class MapEdit[K, V](QtWidgets.QWidget):
         button_layout.addStretch()
 
         button_container.setLayout(button_layout)
-        button_container.setMaximumHeight(45)
+        button_container.setFixedHeight(45)
         splitter.addWidget(button_container)
 
         # Configure splitter
         splitter.setChildrenCollapsible(False)
         splitter.setHandleWidth(5)
+        splitter.setStretchFactor(0, 1)  # Table widget gets all extra space
+        splitter.setStretchFactor(1, 0)  # Button container stays fixed
         splitter.setSizes([150, 45])
 
         main_layout.addWidget(splitter)

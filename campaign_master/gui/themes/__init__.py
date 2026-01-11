@@ -1,12 +1,12 @@
 """Theme management for Campaign Master GUI."""
 
-import os
 from enum import Enum
 
 from PySide6.QtWidgets import QApplication, QGroupBox, QWidget
 
 from .colors import get_colors_for_type
-from .dark_theme import create_dark_palette
+from .dark_theme import DARK_COLORS, create_dark_palette
+from .style_builder import StyleBuilder
 
 
 class ThemeMode(Enum):
@@ -38,28 +38,12 @@ class ThemeManager:
             # Apply dark palette
             self.app.setPalette(create_dark_palette())
 
-            # Load and apply stylesheet
-            self.load_stylesheet("global.qss")
+            # Generate and apply stylesheet programmatically
+            builder = StyleBuilder(DARK_COLORS)
+            self.app.setStyleSheet(builder.build_all())
 
             self.current_mode = mode
         # Future: elif mode == ThemeMode.LIGHT: ...
-
-    def load_stylesheet(self, filename: str):
-        """Load QSS file and apply to application.
-
-        Args:
-            filename: Name of the stylesheet file in themes/styles/ directory.
-        """
-        theme_dir = os.path.dirname(__file__)
-        qss_path = os.path.join(theme_dir, "styles", filename)
-
-        try:
-            with open(qss_path, "r", encoding="utf-8") as f:
-                self.app.setStyleSheet(f.read())
-        except FileNotFoundError:
-            print(f"Warning: Could not find stylesheet: {qss_path}")
-        except Exception as e:
-            print(f"Error loading stylesheet {qss_path}: {e}")
 
 
 class ThemedWidget:
