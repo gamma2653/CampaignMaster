@@ -100,7 +100,7 @@ class DBTestCase(TestCase):
     def test_error_handling_in_update(self):
         """Test that database errors in update are properly handled."""
         # Try to update with invalid ID - should raise error
-        invalid_rule = planning.Rule(obj_id=planning.ID(prefix="R", numeric=99999))
+        invalid_rule = planning.Rule(obj_id=planning.ID(prefix="R", numeric=99999)) # type: ignore[arg-type]
         with self.assertRaises(ValueError) as context:
             content_api.update_object(invalid_rule)
         self.assertIn("not found", str(context.exception))
@@ -128,7 +128,7 @@ class DBTestCase(TestCase):
             for ObjectType in get_all_object_types()
             if ObjectType is not planning.Object
         ]:
-            with self.subTest(ObjectType=ObjectType):
+            with self.subTest(ObjectType=ObjectType.__name__):
                 obj = content_api.create_object(ObjectType)
                 self.assertIsInstance(obj, ObjectType)
                 self.assertIsInstance(obj.obj_id, planning.ID)

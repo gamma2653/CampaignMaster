@@ -88,7 +88,7 @@ class Object(BaseModel):
 
     _default_prefix: ClassVar[str] = DEFAULT_ID_PREFIX
 
-    def __init__(self, *, obj_id: ID | str | None = None, **data: Any) -> None:
+    def __init__(self, **data: Any) -> None:
         """
         Initialize the object, optionally with an ID.
 
@@ -97,11 +97,16 @@ class Object(BaseModel):
             **data: Additional fields for the model
         """
         super().__init__(**data)
+        obj_id = data.pop("obj_id", None)
         if obj_id is not None:
             if isinstance(obj_id, str):
                 self._obj_id = ID.from_str(obj_id)
             else:
                 self._obj_id = obj_id
+        else:
+            # Generate an ID using content_api
+            from ..content import api as content_api
+            self._obj_id = content_api.generate_id(self._default_prefix, proto_user_id=data.get("proto_user_id", 0))
 
     @property
     def obj_id(self) -> ID:

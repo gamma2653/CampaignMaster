@@ -255,7 +255,7 @@ class Rule(ObjectBase):
         obj_id = self.obj_id(session=session).to_pydantic()
         logger.debug("Rule obj_id retrieved: %s", obj_id)
         obj = planning.Rule(
-            obj_id=obj_id,
+            obj_id=obj_id,  # type: ignore[arg-type]  # added in Object constructor
             description=self.description,
             effect=self.effect,
             components=[comp.value for comp in self.components],
@@ -372,7 +372,7 @@ class Objective(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Objective":
         return planning.Objective(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type] # added in Object constructor
             description=self.description,
             components=[comp.value for comp in self.components],
             prerequisites=[
@@ -437,7 +437,7 @@ class Point(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Point":
         return planning.Point(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             description=self.description,
             objective=(
@@ -533,7 +533,7 @@ class Segment(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Segment":
         return planning.Segment(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             description=self.description,
             start=(
@@ -610,7 +610,7 @@ class Arc(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Arc":
         return planning.Arc(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             description=self.description,
             segments=[seg.to_pydantic(session=session) for seg in self.segments],
@@ -719,7 +719,7 @@ class Item(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Item":
         return planning.Item(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             type_=self.type_,
             description=self.description,
@@ -868,7 +868,7 @@ class Character(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Character":
         return planning.Character(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             role=self.role,
             backstory=self.backstory,
@@ -978,7 +978,7 @@ class Location(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.Location":
         return planning.Location(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             description=self.description,
             coords=self.coords.to_pydantic(session=session) if self.coords else None,
@@ -1112,7 +1112,7 @@ class CampaignPlan(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.CampaignPlan":
         return planning.CampaignPlan(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             title=self.title,
             version=self.version,
             setting=self.setting,
@@ -1276,7 +1276,7 @@ class AgentConfig(ObjectBase):
 
     def to_pydantic(self, session: Session) -> "planning.AgentConfig":
         return planning.AgentConfig(
-            obj_id=self.obj_id(session=session).to_pydantic(),
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             provider_type=self.provider_type,
             api_key=self.api_key,

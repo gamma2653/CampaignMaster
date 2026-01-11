@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast, TypeVar, Generic
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -325,8 +325,8 @@ class IDListEdit(QtWidgets.QWidget):
             for i in range(self.list_widget.count())
         ]
 
-
-class ListEdit[T: planning.Object](QtWidgets.QWidget):
+T = TypeVar("T", bound=planning.Object)
+class ListEdit(QtWidgets.QWidget, Generic[T]):
     """
     A widget to edit a list of objects with splitter-based resizing.
     """
@@ -339,7 +339,7 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
     ):
         super().__init__(parent)
         self.model_type = model_type
-        self.objects = objects if objects else []
+        self.objects: list[T] = objects if objects else []
         self.init_ui()
 
     def init_ui(self):
@@ -430,7 +430,7 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
                 content_api._create_object(form_data, proto_user_id=0)
                 # Add to the list (use form_data directly since it's already a Pydantic object)
                 self.list_widget.addItem(str(form_data.obj_id))
-                self.objects.append(form_data)
+                self.objects.append(cast(T, form_data))
         else:
             # Fallback to the old selection dialog for types without edit widgets
             object_select_dialog = QtWidgets.QDialog(self)
@@ -448,7 +448,7 @@ class ListEdit[T: planning.Object](QtWidgets.QWidget):
                 obj = content_api.retrieve_object(selected_id)
                 if obj:
                     self.list_widget.addItem(str(selected_id))
-                    self.objects.append(obj)
+                    self.objects.append(cast(T, obj))
 
     def remove_object(self):
         selected_items_widgets = self.list_widget.selectedItems()
@@ -520,13 +520,7 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
         return planning.Rule(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Rule._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             description=self.description.toPlainText(),
             effect=self.effect.toPlainText(),
             components=self.components.get_items(),
@@ -580,13 +574,7 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
         return planning.Objective(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Objective._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             description=self.description.toPlainText(),
             components=self.components.get_items(),
             prerequisites=self.prerequisites.get_ids(),
@@ -641,13 +629,7 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
             objective_id = self.objective.get_selected_object()
 
         return planning.Point(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Point._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             description=self.description.toPlainText(),
             objective=objective_id,
@@ -705,13 +687,7 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         end_point = self.end.export_content()
 
         return planning.Segment(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Segment._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             description=self.description.toPlainText(),
             start=start_point.obj_id,
@@ -765,13 +741,7 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         # For now, we'll export with an empty segments list
         # A proper implementation would need a ListEdit widget for segments
         return planning.Arc(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Arc._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             description=self.description.toPlainText(),
             segments=[],  # TODO: Properly handle segments list
@@ -927,13 +897,7 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.Item:
         """Export the form data as an Item object."""
         return planning.Item(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Item._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             type_=self.type_.text(),
             description=self.description.toPlainText(),
@@ -1029,13 +993,7 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         }
 
         return planning.Character(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Character._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             role=self.role.text(),
             backstory=self.backstory.toPlainText(),
@@ -1151,13 +1109,7 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
             pass
 
         return planning.Location(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.Location._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             name=self.name.text(),
             description=self.description.toPlainText(),
             neighboring_locations=self.neighboring_locations.get_ids(),
@@ -1333,13 +1285,7 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def export_content(self) -> planning.CampaignPlan:
         """Export the form data as a CampaignPlan object."""
         return planning.CampaignPlan(
-            obj_id=(
-                self.obj_id.get_id()
-                if self.obj_id.get_id()
-                else content_api.generate_id(
-                    prefix=planning.CampaignPlan._default_prefix,
-                )
-            ),
+            obj_id=self.obj_id.get_id(),
             title=self.title.text(),
             version=self.version.toPlainText(),
             setting=self.setting.toPlainText(),

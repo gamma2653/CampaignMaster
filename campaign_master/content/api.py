@@ -31,7 +31,7 @@ def perform_w_session(f: Callable[P, T]) -> Callable[P, T]:
 
     @wraps(f)
     def wrapped(*args: P.args, **kwargs: P.kwargs):
-        session = kwargs.get("session", None)
+        session = cast(Session, kwargs.get("session", None))
         auto_commit = kwargs.pop("auto_commit", True)
         owns_session = session is None
 
