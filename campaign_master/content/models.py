@@ -1126,7 +1126,9 @@ class CampaignPlan(ObjectBase):
             objectives=[obj.to_pydantic(session=session) for obj in self.objectives],
         )
 
-    def update_from_pydantic(self, obj: "planning.CampaignPlan", session: Session) -> None:
+    def update_from_pydantic(
+        self, obj: "planning.CampaignPlan", session: Session
+    ) -> None:
         """Update this CampaignPlan's fields from a Pydantic CampaignPlan model."""
         # Update scalar fields
         self.title = obj.title

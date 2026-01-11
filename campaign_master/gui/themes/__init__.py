@@ -60,7 +60,7 @@ class ThemedWidget:
 
         # Create a darker input background for better contrast
         # Parse the bg_color hex and darken it by ~30%
-        bg_int = int(bg_color.lstrip('#'), 16)
+        bg_int = int(bg_color.lstrip("#"), 16)
         r = (bg_int >> 16) & 0xFF
         g = (bg_int >> 8) & 0xFF
         b = bg_int & 0xFF
