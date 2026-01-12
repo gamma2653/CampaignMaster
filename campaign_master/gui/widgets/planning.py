@@ -8,6 +8,47 @@ from ..themes import ThemedWidget
 from .ai_widgets import AILineEdit, AITextEdit
 
 
+def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
+    """Walk up the widget tree to find CampaignPlanEdit and extract context."""
+    parent = widget.parent()
+    while parent is not None:
+        # Check if this is CampaignPlanEdit by looking for its attributes
+        if hasattr(parent, "title") and hasattr(parent, "setting") and hasattr(parent, "summary"):
+            parent = cast(CampaignPlanEdit, parent)
+            try:
+                return {
+                    "campaign_title": parent.title.text(),
+                    "campaign_version": parent.version.text(),
+                    "campaign_setting": parent.setting.toPlainText(),
+                    "campaign_summary": parent.summary.toPlainText(),
+                    "campaign_storypoints": [
+                        obj.model_dump() for obj in parent.storypoints.get_objects()
+                    ],
+                    "campaign_storyline": [
+                        obj.model_dump() for obj in parent.storyline.get_objects()
+                    ],
+                    "campaign_characters": [
+                        obj.model_dump() for obj in parent.characters.get_objects()
+                    ],
+                    "campaign_locations": [
+                        obj.model_dump() for obj in parent.locations.get_objects()
+                    ],
+                    "campaign_items": [
+                        obj.model_dump() for obj in parent.items.get_objects()
+                    ],
+                    "campaign_rules": [
+                        obj.model_dump() for obj in parent.rules.get_objects()
+                    ],
+                    "campaign_objectives": [
+                        obj.model_dump() for obj in parent.objectives.get_objects()
+                    ],
+                }
+            except Exception:
+                pass
+        parent = parent.parent()
+    return {}
+
+
 class CollapsibleSection(QtWidgets.QWidget):
     """A collapsible section widget with a header and expandable content."""
 
@@ -687,11 +728,13 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        return {
+        context = {
             "description": self.description.toPlainText(),
             "effect": self.effect.toPlainText(),
             "components": self.components.get_items(),
         }
+        context.update(_find_campaign_context(self))
+        return context
 
     def update_layout(self):
         self.form_layout.addRow("ID:", self.obj_id)
@@ -732,8 +775,11 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
         self.obj_id = IDDisplay(
             planning.Objective, self.objective.obj_id if self.objective else None
         )
-        self.description = QtWidgets.QTextEdit(
-            self.objective.description if self.objective else ""
+        self.description = AITextEdit(
+            self.objective.description if self.objective else "",
+            field_name="description",
+            entity_type="Objective",
+            entity_context_func=self._get_entity_context,
         )
         self.components = StrListEdit(
             self.objective.components if self.objective else []
@@ -746,6 +792,15 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
         main_layout.addWidget(container)
         self.setLayout(main_layout)
         self.update_layout()
+
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        context = {
+            "description": self.description.toPlainText(),
+            "components": self.components.get_items(),
+        }
+        context.update(_find_campaign_context(self))
+        return context
 
     def update_layout(self):
         self.form_layout.addRow("ID:", self.obj_id)
@@ -786,9 +841,17 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
         self.obj_id = IDDisplay(
             planning.Point, self.point.obj_id if self.point else None
         )
-        self.name = QtWidgets.QLineEdit(self.point.name if self.point else "")
-        self.description = QtWidgets.QTextEdit(
-            self.point.description if self.point else ""
+        self.name = AILineEdit(
+            self.point.name if self.point else "",
+            field_name="name",
+            entity_type="Point",
+            entity_context_func=self._get_entity_context,
+        )
+        self.description = AITextEdit(
+            self.point.description if self.point else "",
+            field_name="description",
+            entity_type="Point",
+            entity_context_func=self._get_entity_context,
         )
         self.objective = IDSelect(planning.Objective)
 
@@ -796,6 +859,15 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
         main_layout.addWidget(container)
         self.setLayout(main_layout)
         self.update_layout()
+
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        context = {
+            "name": self.name.text(),
+            "description": self.description.toPlainText(),
+        }
+        context.update(_find_campaign_context(self))
+        return context
 
     def update_layout(self):
         self.form_layout.addRow("ID:", self.obj_id)
@@ -842,9 +914,17 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         self.obj_id = IDDisplay(
             planning.Segment, self.segment.obj_id if self.segment else None
         )
-        self.name = QtWidgets.QLineEdit(self.segment.name if self.segment else "")
-        self.description = QtWidgets.QTextEdit(
-            self.segment.description if self.segment else ""
+        self.name = AILineEdit(
+            self.segment.name if self.segment else "",
+            field_name="name",
+            entity_type="Segment",
+            entity_context_func=self._get_entity_context,
+        )
+        self.description = AITextEdit(
+            self.segment.description if self.segment else "",
+            field_name="description",
+            entity_type="Segment",
+            entity_context_func=self._get_entity_context,
         )
         # Use IDSelectWithCreate to allow selecting existing Points or creating new ones
         self.start = IDSelectWithCreate(
@@ -860,6 +940,15 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         main_layout.addWidget(container)
         self.setLayout(main_layout)
         self.update_layout()
+
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        context = {
+            "name": self.name.text(),
+            "description": self.description.toPlainText(),
+        }
+        context.update(_find_campaign_context(self))
+        return context
 
     def update_layout(self):
         self.form_layout.addRow("ID:", self.obj_id)
@@ -907,8 +996,18 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         self.form_layout = QtWidgets.QFormLayout()
 
         self.obj_id = IDDisplay(planning.Arc, self.arc.obj_id if self.arc else None)
-        self.name = QtWidgets.QLineEdit(self.arc.name if self.arc else "")
-        self.description = QtWidgets.QTextEdit(self.arc.description if self.arc else "")
+        self.name = AILineEdit(
+            self.arc.name if self.arc else "",
+            field_name="name",
+            entity_type="Arc",
+            entity_context_func=self._get_entity_context,
+        )
+        self.description = AITextEdit(
+            self.arc.description if self.arc else "",
+            field_name="description",
+            entity_type="Arc",
+            entity_context_func=self._get_entity_context,
+        )
         # Use ListEdit to properly manage segments with add/remove functionality
         self.segments = ListEdit[planning.Segment](
             planning.Segment,
@@ -919,6 +1018,15 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         main_layout.addWidget(container)
         self.setLayout(main_layout)
         self.update_layout()
+
+    def _get_entity_context(self) -> dict[str, Any]:
+        """Get current entity data for AI context."""
+        context = {
+            "name": self.name.text(),
+            "description": self.description.toPlainText(),
+        }
+        context.update(_find_campaign_context(self))
+        return context
 
     def update_layout(self):
         self.form_layout.addRow("ID:", self.obj_id)
@@ -1094,11 +1202,13 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        return {
+        context = {
             "name": self.name.text(),
             "type": self.type_.text(),
             "description": self.description.toPlainText(),
         }
+        context.update(_find_campaign_context(self))
+        return context
 
 
 class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
@@ -1193,11 +1303,13 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        return {
+        context = {
             "name": self.name.text(),
             "role": self.role.text(),
             "backstory": self.backstory.toPlainText(),
         }
+        context.update(_find_campaign_context(self))
+        return context
 
 
 class LocationEdit(QtWidgets.QWidget, ThemedWidget):
@@ -1306,10 +1418,12 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        return {
+        context = {
             "name": self.name.text(),
             "description": self.description.toPlainText(),
         }
+        context.update(_find_campaign_context(self))
+        return context
 
 
 class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):

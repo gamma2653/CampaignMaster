@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..util import get_basic_logger
 from . import planning
-from .database import SessionLocal
+from .database import get_session_factory
 from .models import ObjectBase, ObjectID, PydanticToSQLModel
 
 # from . import planning
@@ -36,7 +36,7 @@ def perform_w_session(f: Callable[P, T]) -> Callable[P, T]:
         owns_session = session is None
 
         if owns_session:
-            session = SessionLocal()
+            session = get_session_factory()()
             kwargs["session"] = session
 
         try:
