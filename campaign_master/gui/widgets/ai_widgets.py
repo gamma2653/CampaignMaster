@@ -130,10 +130,7 @@ class AILineEdit(QtWidgets.QLineEdit):
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         """Handle Ctrl+Space for completion trigger."""
-        if (
-            event.key() == QtCore.Qt.Key.Key_Space
-            and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier
-        ):
+        if event.key() == QtCore.Qt.Key.Key_Space and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
             logger.debug("Ctrl+Space detected, triggering AI completion")
             self.trigger_completion()
             return
@@ -259,10 +256,7 @@ class AITextEdit(QtWidgets.QTextEdit):
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         """Handle Ctrl+Space for completion trigger."""
-        if (
-            event.key() == QtCore.Qt.Key.Key_Space
-            and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier
-        ):
+        if event.key() == QtCore.Qt.Key.Key_Space and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
             logger.debug("Ctrl+Space detected, triggering AI completion")
             self.trigger_completion()
             return

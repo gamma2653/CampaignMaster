@@ -49,9 +49,7 @@ class BaseProvider(ABC):
         ...
 
     @abstractmethod
-    def validate_config(
-        self, api_key: str, base_url: str, model: str
-    ) -> tuple[bool, str]:
+    def validate_config(self, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """Validate the provider configuration."""
         ...
 
@@ -135,8 +133,7 @@ When completing text:
 
         # Add instruction
         parts.append(
-            "\nProvide a natural continuation or completion. "
-            "Respond with only the completion text, no explanations."
+            "\nProvide a natural continuation or completion. " "Respond with only the completion text, no explanations."
         )
 
         return "\n".join(parts)

@@ -29,6 +29,4 @@ def get_colors_for_type(obj_type: type) -> Tuple[str, str]:
         Tuple of (border_color, background_color) as hex strings.
         Returns default colors if type not found.
     """
-    return OBJECT_TYPE_COLORS.get(
-        obj_type, (DARK_COLORS.border_default, DARK_COLORS.primary_bg)
-    )
+    return OBJECT_TYPE_COLORS.get(obj_type, (DARK_COLORS.border_default, DARK_COLORS.primary_bg))

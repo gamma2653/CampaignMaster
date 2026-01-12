@@ -43,16 +43,12 @@ def initialize_app(settings_: Settings):
 
     app.include_router(api_router, prefix="/api")
     # app.include_router(auth_router, prefix="/auth")
-    app.mount(
-        "/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static"
-    )
+    app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
     app.add_api_route("/", index, methods=["GET"])
     app.add_api_route("/{full_path:path}", spa_router, methods=["GET"])
 
 
-def run_dev(
-    host: str | None = None, port: int | None = None, debug: bool | None = None
-):
+def run_dev(host: str | None = None, port: int | None = None, debug: bool | None = None):
     """
     Runs the development server.
     """

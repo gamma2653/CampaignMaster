@@ -136,8 +136,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
 
         # Description
         desc_label = QtWidgets.QLabel(
-            "A companion application for TTRPG game masters,\n"
-            "supporting campaign planning and execution."
+            "A companion application for TTRPG game masters,\n" "supporting campaign planning and execution."
         )
         desc_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(desc_label)
@@ -242,9 +241,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         """Load campaign from database."""
         try:
             # Retrieve all campaigns from database
-            campaigns = content_api.retrieve_objects(
-                planning.CampaignPlan, proto_user_id=0
-            )
+            campaigns = content_api.retrieve_objects(planning.CampaignPlan, proto_user_id=0)
             campaigns = cast(list[planning.CampaignPlan], campaigns)
 
             if not campaigns:
@@ -270,9 +267,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             # Campaign list
             list_widget = QtWidgets.QListWidget()
             for campaign in campaigns:
-                item_text = (
-                    f"{campaign.title or 'Untitled Campaign'} (ID: {campaign.obj_id})"
-                )
+                item_text = f"{campaign.title or 'Untitled Campaign'} (ID: {campaign.obj_id})"
                 if campaign.summary:
                     item_text += f"\n  {campaign.summary[:100]}{'...' if len(campaign.summary) > 100 else ''}"
                 item = QtWidgets.QListWidgetItem(item_text)
@@ -296,8 +291,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                     "Confirm Deletion",
                     f"Are you sure you want to delete '{campaign.title or 'Untitled Campaign'}'?\n\n"
                     "This action cannot be undone.",
-                    QtWidgets.QMessageBox.StandardButton.Yes
-                    | QtWidgets.QMessageBox.StandardButton.No,
+                    QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
                     QtWidgets.QMessageBox.StandardButton.No,
                 )
 
@@ -331,13 +325,10 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
 
             # Buttons
             button_box = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.StandardButton.Ok
-                | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
             )
             delete_button = QtWidgets.QPushButton("Delete")
-            button_box.addButton(
-                delete_button, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole
-            )
+            button_box.addButton(delete_button, QtWidgets.QDialogButtonBox.ButtonRole.ActionRole)
 
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
@@ -372,9 +363,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
     def save_campaign(self):
         """Save current campaign to database."""
         if not hasattr(self, "current_editor") or self.current_editor is None:
-            QtWidgets.QMessageBox.warning(
-                self, "No Campaign", "No campaign is currently open."
-            )
+            QtWidgets.QMessageBox.warning(self, "No Campaign", "No campaign is currently open.")
             return
 
         try:
@@ -402,14 +391,10 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
     def export_campaign(self):
         """Export current campaign to JSON file."""
         if not hasattr(self, "current_editor") or self.current_editor is None:
-            QtWidgets.QMessageBox.warning(
-                self, "No Campaign", "No campaign is currently open."
-            )
+            QtWidgets.QMessageBox.warning(self, "No Campaign", "No campaign is currently open.")
             return
 
-        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Export Campaign", "", "JSON Files (*.json)"
-        )
+        file_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Export Campaign", "", "JSON Files (*.json)")
 
         if file_path:
             try:
@@ -424,9 +409,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(campaign.model_dump_json(indent=2))
 
-                QtWidgets.QMessageBox.information(
-                    self, "Export Successful", f"Campaign exported to:\n{file_path}"
-                )
+                QtWidgets.QMessageBox.information(self, "Export Successful", f"Campaign exported to:\n{file_path}")
 
             except Exception as e:
                 QtWidgets.QMessageBox.critical(
@@ -480,9 +463,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                     action.setChecked(agent.is_default)
                     action.setData(str(agent.obj_id))
                     action.triggered.connect(
-                        lambda checked, agent_id=str(
-                            agent.obj_id
-                        ): self.set_default_agent(agent_id)
+                        lambda checked, agent_id=str(agent.obj_id): self.set_default_agent(agent_id)
                     )
                     action_group.addAction(action)
                     self.default_agent_menu.addAction(action)
@@ -496,9 +477,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         if service.set_default_agent_by_id(agent_id):
             # Update is_default flags in database
             try:
-                agents = content_api.retrieve_objects(
-                    planning.AgentConfig, proto_user_id=0
-                )
+                agents = content_api.retrieve_objects(planning.AgentConfig, proto_user_id=0)
                 for agent in agents:
                     agent = cast(planning.AgentConfig, agent)
                     should_be_default = str(agent.obj_id) == agent_id

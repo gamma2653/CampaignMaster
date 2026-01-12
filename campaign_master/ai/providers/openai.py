@@ -28,9 +28,7 @@ class OpenAIProvider(BaseProvider):
     def provider_type(self) -> str:
         return "openai"
 
-    def validate_config(
-        self, api_key: str, base_url: str, model: str
-    ) -> tuple[bool, str]:
+    def validate_config(self, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """Validate OpenAI configuration."""
         if not api_key:
             return False, "API key is required for OpenAI"

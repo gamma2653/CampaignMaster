@@ -13,9 +13,7 @@ logger = get_basic_logger(__name__)
 
 
 settings = GUISettings()
-engine = create_engine(
-    settings.db_settings.db_scheme, connect_args=settings.db_settings.db_connect_args
-)
+engine = create_engine(settings.db_settings.db_scheme, connect_args=settings.db_settings.db_connect_args)
 SessionLocal = sessionmaker(
     bind=engine,
     autoflush=False,

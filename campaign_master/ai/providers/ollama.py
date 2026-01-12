@@ -37,9 +37,7 @@ class OllamaProvider(BaseProvider):
         """Get the base URL, using default if not set."""
         return self.base_url or self.DEFAULT_BASE_URL
 
-    def validate_config(
-        self, api_key: str, base_url: str, model: str
-    ) -> tuple[bool, str]:
+    def validate_config(self, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """Validate Ollama configuration."""
         # Ollama doesn't require an API key
         if not model:

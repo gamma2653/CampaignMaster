@@ -1,14 +1,4 @@
-from .planning import (
-    Arc,
-    CampaignPlan,
-    Character,
-    Item,
-    Location,
-    Objective,
-    Point,
-    Rule,
-    Segment,
-)
+from .planning import Arc, CampaignPlan, Character, Item, Location, Objective, Point, Rule, Segment
 
 __all__ = [
     "CampaignPlan",

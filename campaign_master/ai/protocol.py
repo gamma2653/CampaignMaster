@@ -63,9 +63,7 @@ class AIProvider(Protocol):
         """Provider type identifier (anthropic, openai, ollama)."""
         ...
 
-    def validate_config(
-        self, api_key: str, base_url: str, model: str
-    ) -> tuple[bool, str]:
+    def validate_config(self, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """
         Validate the provider configuration.
 

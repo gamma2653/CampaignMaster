@@ -107,9 +107,7 @@ class Object(BaseModel):
             # Generate an ID using content_api
             from ..content import api as content_api
 
-            self._obj_id = content_api.generate_id(
-                self._default_prefix, proto_user_id=data.get("proto_user_id", 0)
-            )
+            self._obj_id = content_api.generate_id(self._default_prefix, proto_user_id=data.get("proto_user_id", 0))
 
     @property
     def obj_id(self) -> ID:
@@ -304,9 +302,7 @@ class Location(Object):
     """
     A list of IDs of neighboring locations.
     """
-    coords: Optional[tuple[float, float] | tuple[float, float, float]] = (
-        None  # (latitude, longitude[, altitude])
-    )
+    coords: Optional[tuple[float, float] | tuple[float, float, float]] = None  # (latitude, longitude[, altitude])
     """
     The geographical coordinates of the location in-universe.
     NOTE: It is up to the CampaignPlan to define the coordinate system, via a Rule.
@@ -393,6 +389,4 @@ ALL_OBJECT_TYPES: list[type[Object]] = [
     AgentConfig,
 ]
 
-PREFIX_TO_OBJECT_TYPE = {
-    obj_type._default_prefix: obj_type for obj_type in ALL_OBJECT_TYPES
-}
+PREFIX_TO_OBJECT_TYPE = {obj_type._default_prefix: obj_type for obj_type in ALL_OBJECT_TYPES}

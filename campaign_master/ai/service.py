@@ -246,9 +246,7 @@ class AICompletionService:
             temperature=temperature or default_agent.temperature,
             system_prompt=default_agent.system_prompt,
         )
-        logger.debug(
-            "Sending completion request to provider %s", default_agent.provider_type
-        )
+        logger.debug("Sending completion request to provider %s", default_agent.provider_type)
         try:
             response = provider.complete(request)
             logger.debug("Received completion response: %s", response.text[:50])
@@ -354,9 +352,7 @@ class AICompletionService:
         logger.debug("Starting AI completion worker thread")
         thread.start()
 
-    def test_connection(
-        self, provider_type: str, api_key: str, base_url: str, model: str
-    ) -> tuple[bool, str]:
+    def test_connection(self, provider_type: str, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """
         Test connection to an AI provider.
 

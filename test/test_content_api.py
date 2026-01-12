@@ -49,9 +49,7 @@ class DBTestCase(TestCase):
         with self.assertRaises(ValueError):
             with transaction() as session:
                 # Create an object
-                obj = content_api.create_object(
-                    planning.Rule, session=session, auto_commit=False
-                )
+                obj = content_api.create_object(planning.Rule, session=session, auto_commit=False)
                 # Verify it exists in session
                 self.assertIsNotNone(obj)
                 # Force an error
@@ -83,12 +81,8 @@ class DBTestCase(TestCase):
 
         with transaction() as session:
             # Create multiple objects in one transaction
-            rule1 = content_api.create_object(
-                planning.Rule, session=session, auto_commit=False
-            )
-            rule2 = content_api.create_object(
-                planning.Rule, session=session, auto_commit=False
-            )
+            rule1 = content_api.create_object(planning.Rule, session=session, auto_commit=False)
+            rule2 = content_api.create_object(planning.Rule, session=session, auto_commit=False)
             # Verify objects have different IDs
             self.assertNotEqual(rule1.obj_id, rule2.obj_id)
         # Commit happens at end of context manager
@@ -123,11 +117,7 @@ class DBTestCase(TestCase):
         self.assertIsNone(retrieved)
 
     def test_create_object(self):
-        for ObjectType in [
-            ObjectType
-            for ObjectType in get_all_object_types()
-            if ObjectType is not planning.Object
-        ]:
+        for ObjectType in [ObjectType for ObjectType in get_all_object_types() if ObjectType is not planning.Object]:
             with self.subTest(ObjectType=ObjectType.__name__):
                 obj = content_api.create_object(ObjectType)
                 self.assertIsInstance(obj, ObjectType)

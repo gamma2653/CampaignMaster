@@ -37,19 +37,13 @@ class PointResponse(BaseModel):
 def list_points(proto_user_id: int = 0):
     """List all points for a user."""
     try:
-        points = content_api_functions.retrieve_objects(
-            obj_type=planning.Point, proto_user_id=proto_user_id
-        )
+        points = content_api_functions.retrieve_objects(obj_type=planning.Point, proto_user_id=proto_user_id)
         return [
             {
                 "obj_id": {"prefix": p.obj_id.prefix, "numeric": p.obj_id.numeric},
                 "name": p.name,
                 "description": p.description,
-                "objective": (
-                    {"prefix": p.objective.prefix, "numeric": p.objective.numeric}
-                    if p.objective
-                    else None
-                ),
+                "objective": ({"prefix": p.objective.prefix, "numeric": p.objective.numeric} if p.objective else None),
             }
             for p in points
         ]
@@ -62,9 +56,7 @@ def get_point(numeric: int, proto_user_id: int = 0):
     """Get a specific point by ID."""
     try:
         point_id = planning.PointID(prefix="P", numeric=numeric)
-        point = content_api_functions.retrieve_object(
-            obj_id=point_id, proto_user_id=proto_user_id
-        )
+        point = content_api_functions.retrieve_object(obj_id=point_id, proto_user_id=proto_user_id)
         if not point:
             raise HTTPException(status_code=404, detail="Point not found")
 
@@ -73,9 +65,7 @@ def get_point(numeric: int, proto_user_id: int = 0):
             "name": point.name,
             "description": point.description,
             "objective": (
-                {"prefix": point.objective.prefix, "numeric": point.objective.numeric}
-                if point.objective
-                else None
+                {"prefix": point.objective.prefix, "numeric": point.objective.numeric} if point.objective else None
             ),
         }
     except HTTPException:
@@ -89,9 +79,7 @@ def create_point(point_data: PointCreate, proto_user_id: int = 0):
     """Create a new point."""
     try:
         # Generate new ID
-        new_id = content_api_functions.generate_id(
-            prefix="P", proto_user_id=proto_user_id
-        )
+        new_id = content_api_functions.generate_id(prefix="P", proto_user_id=proto_user_id)
 
         # Create objective ID if provided
         objective_id = None
@@ -110,9 +98,7 @@ def create_point(point_data: PointCreate, proto_user_id: int = 0):
         )
 
         # Save to database
-        created_point = content_api_functions._create_object(
-            obj=new_point, proto_user_id=proto_user_id
-        ).to_pydantic()
+        created_point = content_api_functions._create_object(obj=new_point, proto_user_id=proto_user_id).to_pydantic()
 
         return {
             "obj_id": {
@@ -140,9 +126,7 @@ def update_point(numeric: int, point_data: PointUpdate, proto_user_id: int = 0):
     try:
         # Verify point exists
         point_id = planning.PointID(prefix="P", numeric=numeric)
-        existing_point = content_api_functions.retrieve_object(
-            obj_id=point_id, proto_user_id=proto_user_id
-        )
+        existing_point = content_api_functions.retrieve_object(obj_id=point_id, proto_user_id=proto_user_id)
         if not existing_point:
             raise HTTPException(status_code=404, detail="Point not found")
 
@@ -163,9 +147,7 @@ def update_point(numeric: int, point_data: PointUpdate, proto_user_id: int = 0):
         )
 
         # Update in database
-        result = content_api_functions.update_object(
-            obj=updated_point, proto_user_id=proto_user_id
-        )
+        result = content_api_functions.update_object(obj=updated_point, proto_user_id=proto_user_id)
 
         return {
             "obj_id": {
@@ -175,9 +157,7 @@ def update_point(numeric: int, point_data: PointUpdate, proto_user_id: int = 0):
             "name": result.name,
             "description": result.description,
             "objective": (
-                {"prefix": result.objective.prefix, "numeric": result.objective.numeric}
-                if result.objective
-                else None
+                {"prefix": result.objective.prefix, "numeric": result.objective.numeric} if result.objective else None
             ),
         }
     except HTTPException:
@@ -191,9 +171,7 @@ def delete_point(numeric: int, proto_user_id: int = 0):
     """Delete a point."""
     try:
         point_id = planning.PointID(prefix="P", numeric=numeric)
-        success = content_api_functions.delete_object(
-            obj_id=point_id, proto_user_id=proto_user_id
-        )
+        success = content_api_functions.delete_object(obj_id=point_id, proto_user_id=proto_user_id)
         if not success:
             raise HTTPException(status_code=404, detail="Point not found")
         return {"success": True}
@@ -208,17 +186,13 @@ def delete_point(numeric: int, proto_user_id: int = 0):
 def list_objectives(proto_user_id: int = 0):
     """List all objectives for a user."""
     try:
-        objectives = content_api_functions.retrieve_objects(
-            obj_type=planning.Objective, proto_user_id=proto_user_id
-        )
+        objectives = content_api_functions.retrieve_objects(obj_type=planning.Objective, proto_user_id=proto_user_id)
         return [
             {
                 "obj_id": {"prefix": o.obj_id.prefix, "numeric": o.obj_id.numeric},
                 "description": o.description,
                 "components": o.components,
-                "prerequisites": [
-                    {"prefix": p.prefix, "numeric": p.numeric} for p in o.prerequisites
-                ],
+                "prerequisites": [{"prefix": p.prefix, "numeric": p.numeric} for p in o.prerequisites],
             }
             for o in objectives
         ]

@@ -39,16 +39,12 @@ def fake_decode_token(token: str) -> User:
     )
 
 
-async def get_current_user(
-    token: Annotated[str, fastapi.Depends(oauth2_scheme)]
-) -> User:
+async def get_current_user(token: Annotated[str, fastapi.Depends(oauth2_scheme)]) -> User:
     # Placeholder implementation for user retrieval
     user = fake_decode_token(token)
     return user
 
 
 @router.get("/users/me")
-async def read_users_me(
-    current_user: Annotated[User, fastapi.Depends(get_current_user)]
-):
+async def read_users_me(current_user: Annotated[User, fastapi.Depends(get_current_user)]):
     return current_user
