@@ -1,7 +1,8 @@
 """Pytest configuration and fixtures for CampaignMaster tests."""
 
-import pytest
 from typing import Generator
+
+import pytest
 from sqlalchemy import Engine
 
 from campaign_master.content import database
