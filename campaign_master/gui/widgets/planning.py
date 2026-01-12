@@ -878,7 +878,7 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         default_id = planning.ID(prefix="P", numeric=0)
 
         return planning.Segment(
-            obj_id=self.obj_id.get_id(),
+            obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
             name=self.name.text(),
             description=self.description.toPlainText(),
             start=start_id if start_id else default_id,
