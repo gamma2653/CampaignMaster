@@ -1,13 +1,7 @@
 from typing import Self
 
 from sqlalchemy import ForeignKey, select
-from sqlalchemy.orm import (
-    Mapped,
-    Session,
-    declarative_base,
-    mapped_column,
-    relationship,
-)
+from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, relationship
 
 from ..util import get_basic_logger
 from . import planning
@@ -109,9 +103,7 @@ class ObjectID(Base):
                 session=session,
             )
             if not existing:
-                logger.debug(
-                    "No existing ID found, creating new ObjectID for %s", id_obj
-                )
+                logger.debug("No existing ID found, creating new ObjectID for %s", id_obj)
                 return content_api._generate_id(
                     prefix=id_obj.prefix,
                     proto_user_id=proto_user_id,
@@ -175,11 +167,7 @@ class ObjectBase(
     #         "ObjectID", backref=cls.__tablename__, uselist=False, foreign_keys=[cls.id]
     #     )
     def obj_id(self, session: Session):
-        obj_id = (
-            session.execute(select(ObjectID).where(ObjectID.id == self.id))
-            .scalars()
-            .first()
-        )
+        obj_id = session.execute(select(ObjectID).where(ObjectID.id == self.id)).scalars().first()
         if not obj_id:
             raise ValueError(
                 f"ObjectID with id {self.id} not found in DB. This is likely an orphaned object, or one created improperly."
@@ -207,9 +195,7 @@ class ObjectBase(
 
         def perform(session: Session) -> "Self":
             return cls(
-                obj_id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ),
+                obj_id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session),
             )
 
         if session is None:
@@ -246,9 +232,7 @@ class Rule(ObjectBase):
     """
     description: Mapped[str] = mapped_column()
     effect: Mapped[str] = mapped_column()
-    components: Mapped[list[RuleComponent]] = relationship(
-        "RuleComponent", backref="rule"
-    )
+    components: Mapped[list[RuleComponent]] = relationship("RuleComponent", backref="rule")
 
     def to_pydantic(self, session: Session) -> "planning.Rule":
         obj_id = self.obj_id(session=session).to_pydantic()
@@ -290,19 +274,13 @@ class Rule(ObjectBase):
             # else:
             #     logger.debug("Found existing ID for Rule: %s", obj_id_db)
             # Now check for existing Rule with this ID
-            existing = (
-                session.execute(select(cls).where(cls.id == obj_id_db.id))
-                .scalars()
-                .first()
-            )
+            existing = session.execute(select(cls).where(cls.id == obj_id_db.id)).scalars().first()
             # logger.debug("Existing Rule found: %s", existing)
             if existing:
                 return existing
             # logger.debug("Creating new Rule from pydantic using ObjectID: %s", obj)
             db_obj = cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 description=obj.description,
                 effect=obj.effect,
                 components=[RuleComponent(value=comp) for comp in obj.components],
@@ -341,12 +319,8 @@ class ObjectivePrerequisite(Base):
     """
     Association table for Objective prerequisites.
     """
-    objective_id: Mapped[int] = mapped_column(
-        ForeignKey("objective.id"), primary_key=True
-    )
-    prerequisite_id: Mapped[int] = mapped_column(
-        ForeignKey("objective.id"), primary_key=True
-    )
+    objective_id: Mapped[int] = mapped_column(ForeignKey("objective.id"), primary_key=True)
+    prerequisite_id: Mapped[int] = mapped_column(ForeignKey("objective.id"), primary_key=True)
 
 
 class Objective(ObjectBase):
@@ -357,9 +331,7 @@ class Objective(ObjectBase):
     Inherits from planning.Objective.
     """
     description: Mapped[str] = mapped_column()
-    components: Mapped[list[ObjectiveComponent]] = relationship(
-        "ObjectiveComponent", backref="objective"
-    )
+    components: Mapped[list[ObjectiveComponent]] = relationship("ObjectiveComponent", backref="objective")
     # Not sure about the below, testing required.
     prerequisites: Mapped[list["Objective"]] = relationship(
         "Objective",
@@ -374,10 +346,7 @@ class Objective(ObjectBase):
             obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type] # added in Object constructor
             description=self.description,
             components=[comp.value for comp in self.components],
-            prerequisites=[
-                prereq.obj_id(session=session).to_pydantic()
-                for prereq in self.prerequisites
-            ],
+            prerequisites=[prereq.obj_id(session=session).to_pydantic() for prereq in self.prerequisites],
         )
 
     @classmethod
@@ -388,10 +357,7 @@ class Objective(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -400,9 +366,7 @@ class Objective(ObjectBase):
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 description=obj.description,
                 components=[ObjectiveComponent(value=comp) for comp in obj.components],
                 # Prerequisites handling may require session management; omitted for brevity.
@@ -439,11 +403,7 @@ class Point(ObjectBase):
             obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]  # added in Object constructor
             name=self.name,
             description=self.description,
-            objective=(
-                self.objective.obj_id(session=session).to_pydantic()
-                if self.objective
-                else None
-            ),
+            objective=(self.objective.obj_id(session=session).to_pydantic() if self.objective else None),
         )
 
     @classmethod
@@ -471,14 +431,10 @@ class Point(ObjectBase):
             # Get the objective_id if an objective is specified
             objective_obj_id = None
             if obj.objective:
-                objective_obj_id = ObjectID.from_pydantic(
-                    obj.objective, proto_user_id=proto_user_id, session=session
-                )
+                objective_obj_id = ObjectID.from_pydantic(obj.objective, proto_user_id=proto_user_id, session=session)
 
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 description=obj.description,
                 objective_id=objective_obj_id.id if objective_obj_id else None,
@@ -502,9 +458,7 @@ class Point(ObjectBase):
 
         if obj.objective:
             # Find the objective by ID
-            obj_id = ObjectID.from_pydantic(
-                obj.objective, proto_user_id=0, session=session
-            )
+            obj_id = ObjectID.from_pydantic(obj.objective, proto_user_id=0, session=session)
             self.objective_id = obj_id.id
         else:
             self.objective_id = None
@@ -522,13 +476,9 @@ class Segment(ObjectBase):
     description: Mapped[str] = mapped_column()
     # Point data
     start_id: Mapped[int | None] = mapped_column(ForeignKey("point.id"), nullable=True)
-    start: Mapped[Point | None] = relationship(
-        "Point", foreign_keys="[Segment.start_id]", backref="segment_starts"
-    )
+    start: Mapped[Point | None] = relationship("Point", foreign_keys="[Segment.start_id]", backref="segment_starts")
     end_id: Mapped[int | None] = mapped_column(ForeignKey("point.id"), nullable=True)
-    end: Mapped[Point | None] = relationship(
-        "Point", foreign_keys="[Segment.end_id]", backref="segment_ends"
-    )
+    end: Mapped[Point | None] = relationship("Point", foreign_keys="[Segment.end_id]", backref="segment_ends")
 
     def to_pydantic(self, session: Session) -> "planning.Segment":
         return planning.Segment(
@@ -536,15 +486,9 @@ class Segment(ObjectBase):
             name=self.name,
             description=self.description,
             start=(
-                self.start.obj_id(session=session).to_pydantic()
-                if self.start
-                else planning.ID(prefix="P", numeric=0)
+                self.start.obj_id(session=session).to_pydantic() if self.start else planning.ID(prefix="P", numeric=0)
             ),
-            end=(
-                self.end.obj_id(session=session).to_pydantic()
-                if self.end
-                else planning.ID(prefix="P", numeric=0)
-            ),
+            end=(self.end.obj_id(session=session).to_pydantic() if self.end else planning.ID(prefix="P", numeric=0)),
         )
 
     @classmethod
@@ -555,10 +499,7 @@ class Segment(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -567,17 +508,11 @@ class Segment(ObjectBase):
             if existing:
                 return existing
             # Try to find the start and end points in the database
-            start_obj_id = ObjectID.from_pydantic(
-                obj.start, proto_user_id=proto_user_id, session=session
-            )
-            end_obj_id = ObjectID.from_pydantic(
-                obj.end, proto_user_id=proto_user_id, session=session
-            )
+            start_obj_id = ObjectID.from_pydantic(obj.start, proto_user_id=proto_user_id, session=session)
+            end_obj_id = ObjectID.from_pydantic(obj.end, proto_user_id=proto_user_id, session=session)
 
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 description=obj.description,
                 start_id=start_obj_id.id if start_obj_id.numeric != 0 else None,
@@ -623,10 +558,7 @@ class Arc(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -635,16 +567,11 @@ class Arc(ObjectBase):
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 description=obj.description,
                 segments=[
-                    Segment.from_pydantic(
-                        seg, proto_user_id=proto_user_id, session=session
-                    )
-                    for seg in obj.segments
+                    Segment.from_pydantic(seg, proto_user_id=proto_user_id, session=session) for seg in obj.segments
                 ],
             )
 
@@ -665,9 +592,7 @@ class ArcToCampaign(Base):
     """
     Association table for CampaignPlan and their Arcs (Storylines).
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
     arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"), primary_key=True)
 
 
@@ -676,9 +601,7 @@ class PointToCampaign(Base):
     """
     Association table for CampaignPlan and their Points (Storypoints).
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
     point_id: Mapped[int] = mapped_column(ForeignKey("point.id"), primary_key=True)
 
 
@@ -704,9 +627,7 @@ class Item(ObjectBase):
     type_: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
 
-    _properties: Mapped[list[ItemProperty]] = relationship(
-        "ItemProperty", backref="item"
-    )
+    _properties: Mapped[list[ItemProperty]] = relationship("ItemProperty", backref="item")
 
     @property  # Heh, different type of property
     def properties(self) -> dict[str, str]:
@@ -733,10 +654,7 @@ class Item(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -745,9 +663,7 @@ class Item(ObjectBase):
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 type_=obj.type_,
                 description=obj.description,
@@ -771,9 +687,7 @@ class CampaignItem(Base):
     """
     Association table for CampaignPlan and their Items.
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
     item_id: Mapped[int] = mapped_column(ForeignKey("item.id"), primary_key=True)
 
 
@@ -782,9 +696,7 @@ class StorylineToCharacter(Base):
     """
     Association table for Characters and their Storylines (Arcs).
     """
-    character_id: Mapped[int] = mapped_column(
-        ForeignKey("character.id"), primary_key=True
-    )
+    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), primary_key=True)
     arc_id: Mapped[int] = mapped_column(ForeignKey("arc.id"), primary_key=True)
 
 
@@ -793,9 +705,7 @@ class CharacterInventory(Base):
     """
     Association table for Characters and their Items (Inventory).
     """
-    character_id: Mapped[int] = mapped_column(
-        ForeignKey("character.id"), primary_key=True
-    )
+    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), primary_key=True)
     item_id: Mapped[int] = mapped_column(ForeignKey("item.id"), primary_key=True)
 
 
@@ -832,9 +742,7 @@ class Character(ObjectBase):
     role: Mapped[str] = mapped_column()
     backstory: Mapped[str] = mapped_column()
 
-    _attributes: Mapped[list[CharacterAttribute]] = relationship(
-        "CharacterAttribute", backref="character"
-    )
+    _attributes: Mapped[list[CharacterAttribute]] = relationship("CharacterAttribute", backref="character")
 
     @property
     def attributes(self) -> dict[str, int]:
@@ -842,13 +750,9 @@ class Character(ObjectBase):
 
     @attributes.setter
     def attributes(self, attrs: dict[str, int]):
-        self._attributes = [
-            CharacterAttribute(key=k, value=v) for k, v in attrs.items()
-        ]
+        self._attributes = [CharacterAttribute(key=k, value=v) for k, v in attrs.items()]
 
-    _skills: Mapped[list[CharacterSkill]] = relationship(
-        "CharacterSkill", backref="character"
-    )
+    _skills: Mapped[list[CharacterSkill]] = relationship("CharacterSkill", backref="character")
 
     @property
     def skills(self) -> dict[str, int]:
@@ -858,12 +762,8 @@ class Character(ObjectBase):
     def skills(self, skills: dict[str, int]):
         self._skills = [CharacterSkill(key=k, value=v) for k, v in skills.items()]
 
-    storylines: Mapped[list[Arc]] = relationship(
-        "Arc", secondary="character_storylines", backref="characters"
-    )
-    inventory: Mapped[list[Item]] = relationship(
-        "Item", secondary="character_inventory", backref="owners"
-    )
+    storylines: Mapped[list[Arc]] = relationship("Arc", secondary="character_storylines", backref="characters")
+    inventory: Mapped[list[Item]] = relationship("Item", secondary="character_inventory", backref="owners")
 
     def to_pydantic(self, session: Session) -> "planning.Character":
         return planning.Character(
@@ -883,10 +783,7 @@ class Character(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -895,9 +792,7 @@ class Character(ObjectBase):
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 role=obj.role,
                 backstory=obj.backstory,
@@ -922,12 +817,8 @@ class CharacterToCampaign(Base):
     """
     Association table for CampaignPlan and their Characters.
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
-    character_id: Mapped[int] = mapped_column(
-        ForeignKey("character.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("character.id"), primary_key=True)
 
 
 class LocationCoord(Base):
@@ -947,12 +838,8 @@ class LocationNeighbor(Base):
     """
     Association table for neighboring Locations.
     """
-    location_id: Mapped[int] = mapped_column(
-        ForeignKey("location.id"), primary_key=True
-    )
-    neighbor_id: Mapped[int] = mapped_column(
-        ForeignKey("location.id"), primary_key=True
-    )
+    location_id: Mapped[int] = mapped_column(ForeignKey("location.id"), primary_key=True)
+    neighbor_id: Mapped[int] = mapped_column(ForeignKey("location.id"), primary_key=True)
 
 
 class Location(ObjectBase):
@@ -964,9 +851,7 @@ class Location(ObjectBase):
     """
     name: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
-    coords: Mapped[LocationCoord | None] = relationship(
-        "LocationCoord", uselist=False, backref="location"
-    )
+    coords: Mapped[LocationCoord | None] = relationship("LocationCoord", uselist=False, backref="location")
     neighboring_locations: Mapped[list["Location"]] = relationship(
         "Location",
         secondary="location_neighbors",
@@ -981,9 +866,7 @@ class Location(ObjectBase):
             name=self.name,
             description=self.description,
             coords=self.coords.to_pydantic(session=session) if self.coords else None,
-            neighboring_locations=[
-                loc.obj_id.to_pydantic(session=session) for loc in self.neighbors
-            ],
+            neighboring_locations=[loc.obj_id.to_pydantic(session=session) for loc in self.neighbors],
         )
 
     @classmethod
@@ -994,10 +877,7 @@ class Location(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -1006,22 +886,16 @@ class Location(ObjectBase):
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 description=obj.description,
                 coords=(
-                    LocationCoord.from_pydantic(
-                        obj.coords, proto_user_id=proto_user_id, session=session
-                    )
+                    LocationCoord.from_pydantic(obj.coords, proto_user_id=proto_user_id, session=session)
                     if obj.coords
                     else None
                 ),
                 neighboring_locations=[
-                    ObjectID.from_pydantic(
-                        loc, proto_user_id=proto_user_id, session=session
-                    )
+                    ObjectID.from_pydantic(loc, proto_user_id=proto_user_id, session=session)
                     for loc in obj.neighboring_locations
                 ],
             )
@@ -1043,12 +917,8 @@ class CampaignLocation(Base):
     """
     Association table for CampaignPlan and their Locations.
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
-    location_id: Mapped[int] = mapped_column(
-        ForeignKey("location.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
+    location_id: Mapped[int] = mapped_column(ForeignKey("location.id"), primary_key=True)
 
 
 class CampaignRule(Base):
@@ -1056,9 +926,7 @@ class CampaignRule(Base):
     """
     Association table for CampaignPlan and their Rules.
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
     rule_id: Mapped[int] = mapped_column(ForeignKey("rule.id"), primary_key=True)
 
 
@@ -1067,12 +935,8 @@ class CampaignObjective(Base):
     """
     Association table for CampaignPlan and their Objectives.
     """
-    campaign_id: Mapped[int] = mapped_column(
-        ForeignKey("campaign_plan.id"), primary_key=True
-    )
-    objective_id: Mapped[int] = mapped_column(
-        ForeignKey("objective.id"), primary_key=True
-    )
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaign_plan.id"), primary_key=True)
+    objective_id: Mapped[int] = mapped_column(ForeignKey("objective.id"), primary_key=True)
 
 
 class CampaignPlan(ObjectBase):
@@ -1087,24 +951,14 @@ class CampaignPlan(ObjectBase):
     setting: Mapped[str] = mapped_column()
     summary: Mapped[str] = mapped_column()
     # These relationships may be unnecessary, depending on how we load the full plan.
-    storypoints: Mapped[list[Point]] = relationship(
-        "Point", secondary="campaign_point", backref="campaign_plan_points"
-    )
-    storyline: Mapped[list[Arc]] = relationship(
-        "Arc", secondary="campaign_arc", backref="campaign_plan_arcs"
-    )
+    storypoints: Mapped[list[Point]] = relationship("Point", secondary="campaign_point", backref="campaign_plan_points")
+    storyline: Mapped[list[Arc]] = relationship("Arc", secondary="campaign_arc", backref="campaign_plan_arcs")
     characters: Mapped[list[Character]] = relationship(
         "Character", secondary="campaign_character", backref="campaign_plan"
     )
-    locations: Mapped[list[Location]] = relationship(
-        "Location", secondary="campaign_location", backref="campaign_plan"
-    )
-    items: Mapped[list[Item]] = relationship(
-        "Item", secondary="campaign_item", backref="campaign_plan"
-    )
-    rules: Mapped[list[Rule]] = relationship(
-        "Rule", secondary="campaign_rule", backref="campaign_plan"
-    )
+    locations: Mapped[list[Location]] = relationship("Location", secondary="campaign_location", backref="campaign_plan")
+    items: Mapped[list[Item]] = relationship("Item", secondary="campaign_item", backref="campaign_plan")
+    rules: Mapped[list[Rule]] = relationship("Rule", secondary="campaign_rule", backref="campaign_plan")
     objectives: Mapped[list[Objective]] = relationship(
         "Objective", secondary="campaign_objective", backref="campaign_plan"
     )
@@ -1125,9 +979,7 @@ class CampaignPlan(ObjectBase):
             objectives=[obj.to_pydantic(session=session) for obj in self.objectives],
         )
 
-    def update_from_pydantic(
-        self, obj: "planning.CampaignPlan", session: Session
-    ) -> None:
+    def update_from_pydantic(self, obj: "planning.CampaignPlan", session: Session) -> None:
         """Update this CampaignPlan's fields from a Pydantic CampaignPlan model."""
         # Update scalar fields
         self.title = obj.title
@@ -1191,10 +1043,7 @@ class CampaignPlan(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -1203,9 +1052,7 @@ class CampaignPlan(ObjectBase):
             if existing:
                 return existing
             campaign_plan = cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 title=obj.title,
                 version=obj.version,
                 setting=obj.setting,
@@ -1237,9 +1084,7 @@ class CampaignPlan(ObjectBase):
                 campaign_plan.rules.append(rule_obj)
             # Populate objectives relationship
             for objective in obj.objectives:
-                obj_db = Objective.from_pydantic(
-                    objective, proto_user_id, session=session
-                )
+                obj_db = Objective.from_pydantic(objective, proto_user_id, session=session)
                 campaign_plan.objectives.append(obj_db)
             return campaign_plan
 
@@ -1301,10 +1146,7 @@ class AgentConfig(ObjectBase):
             existing = (
                 session.execute(
                     select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id, proto_user_id=proto_user_id, session=session
-                        ).id
+                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
                     )
                 )
                 .scalars()
@@ -1313,9 +1155,7 @@ class AgentConfig(ObjectBase):
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(
-                    obj.obj_id, proto_user_id=proto_user_id, session=session
-                ).id,
+                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 provider_type=obj.provider_type,
                 api_key=obj.api_key,
@@ -1339,9 +1179,7 @@ class AgentConfig(ObjectBase):
                     raise
         return perform(session)
 
-    def update_from_pydantic(
-        self, obj: "planning.AgentConfig", session: Session
-    ) -> None:
+    def update_from_pydantic(self, obj: "planning.AgentConfig", session: Session) -> None:
         """Update this AgentConfig's fields from a Pydantic model."""
         self.name = obj.name
         self.provider_type = obj.provider_type
@@ -1355,9 +1193,7 @@ class AgentConfig(ObjectBase):
         self.system_prompt = obj.system_prompt
 
 
-PydanticToSQLModel: dict[
-    type[planning.Object] | type[planning.ID], type[ObjectBase] | type[ObjectID]
-] = {
+PydanticToSQLModel: dict[type[planning.Object] | type[planning.ID], type[ObjectBase] | type[ObjectID]] = {
     planning.ID: ObjectID,
     planning.Object: ObjectBase,
     planning.Rule: Rule,

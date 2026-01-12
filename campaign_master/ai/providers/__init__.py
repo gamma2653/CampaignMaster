@@ -43,13 +43,8 @@ def get_provider(
         ValueError: If provider_type is not registered
     """
     if provider_type not in PROVIDER_REGISTRY:
-        raise ValueError(
-            f"Unknown provider: {provider_type}. "
-            f"Available: {list(PROVIDER_REGISTRY.keys())}"
-        )
-    return PROVIDER_REGISTRY[provider_type](
-        api_key=api_key, base_url=base_url, model=model
-    )
+        raise ValueError(f"Unknown provider: {provider_type}. " f"Available: {list(PROVIDER_REGISTRY.keys())}")
+    return PROVIDER_REGISTRY[provider_type](api_key=api_key, base_url=base_url, model=model)
 
 
 def register_provider(name: str, provider_class: type["BaseProvider"]) -> None:

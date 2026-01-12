@@ -104,9 +104,7 @@ def _generate_id(
 
 
 @perform_w_session
-def generate_id(
-    prefix: str, session: Session | None = None, proto_user_id: int = 0
-) -> "planning.ID":
+def generate_id(prefix: str, session: Session | None = None, proto_user_id: int = 0) -> "planning.ID":
     session = cast(Session, session)  # for mypy
     """Generate a new unique ID with the given prefix for the specified user."""
     db_obj_id = _generate_id(prefix, session=session, proto_user_id=proto_user_id)
@@ -134,9 +132,7 @@ def retrieve_id(
 ) -> "planning.ID | None":
     """Retrieve a specific ID by prefix and numeric part for the specified user."""
     session = cast(Session, session)  # for mypy
-    db_obj_id = _retrieve_id(
-        prefix, numeric, session=session, proto_user_id=proto_user_id
-    )
+    db_obj_id = _retrieve_id(prefix, numeric, session=session, proto_user_id=proto_user_id)
     if db_obj_id:
         return db_obj_id.to_pydantic()
     return None
@@ -181,9 +177,7 @@ def _release_id(
     Returns True if the ID was found and deleted, False otherwise.
     """
     session = cast(Session, session)  # for mypy
-    db_obj_id = _retrieve_id(
-        id_obj.prefix, id_obj.numeric, session=session, proto_user_id=proto_user_id
-    )
+    db_obj_id = _retrieve_id(id_obj.prefix, id_obj.numeric, session=session, proto_user_id=proto_user_id)
     if db_obj_id:
         session.delete(db_obj_id)
         session.flush()
@@ -256,9 +250,7 @@ def create_object(
     # Create the Pydantic object with the generated ID
     pydantic_obj = type_(obj_id=new_id.to_pydantic())
     # Convert to SQLAlchemy and save (won't commit due to auto_commit=False)
-    db_obj = _create_object(
-        pydantic_obj, proto_user_id=proto_user_id, session=session, auto_commit=False
-    )
+    db_obj = _create_object(pydantic_obj, proto_user_id=proto_user_id, session=session, auto_commit=False)
     # Commit happens in decorator (if auto_commit=True and owns session)
     return db_obj.to_pydantic(session=session)
 
@@ -313,11 +305,7 @@ def retrieve_objects(
 
     results = []
     for db_id in db_ids:
-        db_obj = (
-            session.execute(select(sql_model).where(sql_model.id == db_id.id))
-            .scalars()
-            .first()
-        )
+        db_obj = session.execute(select(sql_model).where(sql_model.id == db_id.id)).scalars().first()
         if db_obj:
             results.append(db_obj.to_pydantic(session=session))
 
@@ -352,11 +340,7 @@ def update_object(
         raise ValueError(f"Object with ID {obj.obj_id} not found")
 
     # Get existing DB object
-    db_obj = (
-        session.execute(select(sql_model).where(sql_model.id == db_obj_id.id))
-        .scalars()
-        .first()
-    )
+    db_obj = session.execute(select(sql_model).where(sql_model.id == db_obj_id.id)).scalars().first()
 
     if not db_obj:
         raise ValueError(f"Object with ID {obj.obj_id} not found")
@@ -396,11 +380,7 @@ def delete_object(
     if not db_obj_id:
         return False
 
-    db_obj = (
-        session.execute(select(sql_model).where(sql_model.id == db_obj_id.id))
-        .scalars()
-        .first()
-    )
+    db_obj = session.execute(select(sql_model).where(sql_model.id == db_obj_id.id)).scalars().first()
 
     if not db_obj:
         return False

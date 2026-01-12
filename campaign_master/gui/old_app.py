@@ -40,9 +40,7 @@ class ObjectListWidget(QtWidgets.QGroupBox):
 
         self.add_button.clicked.connect(self.open_add_item)
         self.edit_button.clicked.connect(
-            lambda: self.edit_item(
-                self.list_widget.currentItem().data(QtCore.Qt.ItemDataRole.UserRole)
-            )
+            lambda: self.edit_item(self.list_widget.currentItem().data(QtCore.Qt.ItemDataRole.UserRole))
         )
         self.remove_button.clicked.connect(self.remove_item)
 
@@ -64,16 +62,12 @@ class ObjectListWidget(QtWidgets.QGroupBox):
         if obj_id:
             self.forms[str(obj_id)] = form
         else:
-            print(
-                f"Warning: Could not retrieve obj_id from new form of model {form.model_name}."
-            )
+            print(f"Warning: Could not retrieve obj_id from new form of model {form.model_name}.")
 
     def add_item(self, item: Object):
         # Add the item to the list view
         if str(item.obj_id) not in self.forms:
-            print(
-                f"Warning: Item with obj_id {item.obj_id} not in forms dict. Cannot add."
-            )
+            print(f"Warning: Item with obj_id {item.obj_id} not in forms dict. Cannot add.")
         else:
             item_widget = QtWidgets.QListWidgetItem(str(item))
             item_widget.setData(QtCore.Qt.ItemDataRole.UserRole, item.obj_id)
@@ -228,9 +222,7 @@ class ObjectForm(QtWidgets.QWidget):
                 # Special case for obj_id
                 raw_content[field_name] = self.obj_id.model_dump()
             else:
-                retriever = self.TYPE_TO_RETRIEVER.get(
-                    type(field), ObjectForm.get_line_content
-                )
+                retriever = self.TYPE_TO_RETRIEVER.get(type(field), ObjectForm.get_line_content)
                 raw_content[field_name] = retriever(field)
             print(f"Retrieved field {field_name}: {raw_content[field_name]}")
         # Compile w/ existing content
@@ -295,9 +287,7 @@ class ObjectForm(QtWidgets.QWidget):
         """
         layout = QtWidgets.QVBoxLayout(self)
         for field in self.model_fields.keys():
-            self.fields[field] = self.create_field_item(
-                field, self.model_fields[field].annotation
-            )
+            self.fields[field] = self.create_field_item(field, self.model_fields[field].annotation)
             layout.addWidget(self.fields[field])
         # Special handling for "obj_id" field to make it read-only
         obj_id_field: Optional[QtWidgets.QWidget] = self.fields.get("obj_id", None)
@@ -339,13 +329,9 @@ class ObjectForm(QtWidgets.QWidget):
                     # Subform
                     create_widget = ObjectCreateWidget(field_type, self)
                     # Mark dirty on save, and update label
+                    create_widget.form.save_event.connect(lambda: self.mark_field_dirty(field_name))
                     create_widget.form.save_event.connect(
-                        lambda: self.mark_field_dirty(field_name)
-                    )
-                    create_widget.form.save_event.connect(
-                        lambda: create_widget.update_label(
-                            create_widget.form.export_content()
-                        )
+                        lambda: create_widget.update_label(create_widget.form.export_content())
                     )
                     return create_widget
             except TypeError:
@@ -376,9 +362,7 @@ class ObjectForm(QtWidgets.QWidget):
         return form_instance
 
     @classmethod
-    def new(
-        cls, model: type[Object], parent: Optional[QtWidgets.QWidget] = None
-    ) -> "ObjectForm":
+    def new(cls, model: type[Object], parent: Optional[QtWidgets.QWidget] = None) -> "ObjectForm":
         """
         Create a new PydanticForm for a given Pydantic model type.
         """
@@ -405,9 +389,7 @@ class ObjectForm(QtWidgets.QWidget):
                 return
         # Close any subforms
         for field in self.fields.values():
-            if isinstance(field, ObjectCreateWidget) or isinstance(
-                field, ObjectListWidget
-            ):
+            if isinstance(field, ObjectCreateWidget) or isinstance(field, ObjectListWidget):
                 field = cast(ObjectCreateWidget | ObjectListWidget, field)
                 field.hide_form()
 
@@ -482,9 +464,7 @@ class CampaignMasterPlanApp(QtWidgets.QMainWindow):
     def load_existing_campaign(self):
         self.label.setText("Loading an existing campaign...")
         file_dialog = QtWidgets.QFileDialog(self)
-        file_path, _ = file_dialog.getOpenFileName(
-            self, "Open Campaign Plan", "", "JSON Files (*.json);;All Files (*)"
-        )
+        file_path, _ = file_dialog.getOpenFileName(self, "Open Campaign Plan", "", "JSON Files (*.json);;All Files (*)")
         if file_path:
             # Load the campaign plan from the selected file
             with open(file_path, "rb") as f:

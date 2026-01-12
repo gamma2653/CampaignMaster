@@ -113,9 +113,7 @@ def create_dark_palette() -> QPalette:
 
     # Text colors
     palette.setColor(QPalette.ColorRole.Text, QColor(DARK_COLORS.text_primary))
-    palette.setColor(
-        QPalette.ColorRole.PlaceholderText, QColor(DARK_COLORS.text_disabled)
-    )
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(DARK_COLORS.text_disabled))
 
     # Button colors
     palette.setColor(QPalette.ColorRole.Button, QColor(DARK_COLORS.tertiary_bg))
@@ -123,9 +121,7 @@ def create_dark_palette() -> QPalette:
 
     # Highlight colors
     palette.setColor(QPalette.ColorRole.Highlight, QColor(DARK_COLORS.highlight))
-    palette.setColor(
-        QPalette.ColorRole.HighlightedText, QColor(DARK_COLORS.text_primary)
-    )
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(DARK_COLORS.text_primary))
 
     # Bright text (for tooltips, etc.)
     palette.setColor(QPalette.ColorRole.BrightText, QColor(DARK_COLORS.text_primary))

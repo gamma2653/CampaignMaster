@@ -77,9 +77,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
 
         form_container = QtWidgets.QWidget()
         form_layout = QtWidgets.QFormLayout(form_container)
-        form_layout.setFieldGrowthPolicy(
-            QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
-        )
+        form_layout.setFieldGrowthPolicy(QtWidgets.QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
         # Name
         self.name_edit = QtWidgets.QLineEdit()
@@ -108,14 +106,10 @@ class AgentSettingsDialog(QtWidgets.QDialog):
         show_key_button.setCheckable(True)
         show_key_button.toggled.connect(
             lambda checked: self.api_key_edit.setEchoMode(
-                QtWidgets.QLineEdit.EchoMode.Normal
-                if checked
-                else QtWidgets.QLineEdit.EchoMode.Password
+                QtWidgets.QLineEdit.EchoMode.Normal if checked else QtWidgets.QLineEdit.EchoMode.Password
             )
         )
-        show_key_button.toggled.connect(
-            lambda checked: show_key_button.setText("Hide" if checked else "Show")
-        )
+        show_key_button.toggled.connect(lambda checked: show_key_button.setText("Hide" if checked else "Show"))
         api_key_row = QtWidgets.QHBoxLayout()
         api_key_row.addWidget(self.api_key_edit)
         api_key_row.addWidget(show_key_button)
@@ -143,9 +137,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
 
         # System prompt
         self.system_prompt_edit = QtWidgets.QTextEdit()
-        self.system_prompt_edit.setPlaceholderText(
-            "Optional: Additional instructions for the AI..."
-        )
+        self.system_prompt_edit.setPlaceholderText("Optional: Additional instructions for the AI...")
         self.system_prompt_edit.setMaximumHeight(100)
         form_layout.addRow("Custom Prompt:", self.system_prompt_edit)
 
@@ -182,8 +174,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
 
         # Dialog buttons
         button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Save
-            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Save | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(self.save_and_close)
         button_box.rejected.connect(self.reject)
@@ -333,8 +324,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
             self,
             "Remove Agent",
             f"Are you sure you want to remove '{self._current_agent.name}'?",
-            QtWidgets.QMessageBox.StandardButton.Yes
-            | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
         )
 
         if reply == QtWidgets.QMessageBox.StandardButton.Yes:
@@ -384,9 +374,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
             self._current_agent.is_default = False
 
         # Save to database
-        content_api.update_object(
-            self._current_agent, proto_user_id=self._proto_user_id
-        )
+        content_api.update_object(self._current_agent, proto_user_id=self._proto_user_id)
 
         return True
 
@@ -404,9 +392,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
             env_var = api_key[1:]
             api_key = os.environ.get(env_var, "")
             if not api_key:
-                self.status_label.setText(
-                    f"Error: Environment variable {env_var} not set"
-                )
+                self.status_label.setText(f"Error: Environment variable {env_var} not set")
                 self.status_label.setStyleSheet("color: red;")
                 return
 
@@ -415,9 +401,7 @@ class AgentSettingsDialog(QtWidgets.QDialog):
         QtWidgets.QApplication.processEvents()
 
         service = AICompletionService.instance()
-        success, message = service.test_connection(
-            provider_type, api_key, base_url, model
-        )
+        success, message = service.test_connection(provider_type, api_key, base_url, model)
 
         if success:
             self.status_label.setText(f"Success: {message}")

@@ -1,8 +1,6 @@
 import subprocess
 
-from pydantic_core import (  # HACK: Used to check for undefined defaults
-    PydanticUndefined,
-)
+from pydantic_core import PydanticUndefined  # HACK: Used to check for undefined defaults
 
 from ..content import planning
 

@@ -28,9 +28,7 @@ class AnthropicProvider(BaseProvider):
     def provider_type(self) -> str:
         return "anthropic"
 
-    def validate_config(
-        self, api_key: str, base_url: str, model: str
-    ) -> tuple[bool, str]:
+    def validate_config(self, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """Validate Anthropic configuration."""
         if not api_key:
             return False, "API key is required for Anthropic"
@@ -57,9 +55,7 @@ class AnthropicProvider(BaseProvider):
                 kwargs["base_url"] = self.base_url
             return anthropic.Anthropic(**kwargs)
         except ImportError:
-            raise ImportError(
-                "anthropic package not installed. Run: pip install anthropic"
-            )
+            raise ImportError("anthropic package not installed. Run: pip install anthropic")
 
     def complete(self, request: CompletionRequest) -> CompletionResponse:
         """Perform completion using Anthropic API."""
