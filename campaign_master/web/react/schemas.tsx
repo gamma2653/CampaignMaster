@@ -18,6 +18,7 @@ export const PREFIXES = {
     CHARACTER: 'C',
     LOCATION: 'L',
     CAMPAIGN_PLAN: 'CampPlan',
+    AGENT_CONFIG: 'AG',
 } as const
 export type PREFIXES_T = typeof PREFIXES[keyof typeof PREFIXES]
 
@@ -32,6 +33,7 @@ export const PREFIX_TO_NAME = {
     [PREFIXES.CHARACTER]: "Character",
     [PREFIXES.LOCATION]: "Location",
     [PREFIXES.CAMPAIGN_PLAN]: "Campaign Plan",
+    [PREFIXES.AGENT_CONFIG]: "Agent Config",
 }
 // Zod prototype schemas
 const AnyIDSchema = z.object({
@@ -65,6 +67,9 @@ const LocationIDSchema = AnyIDSchema.extend({
 })
 const CampaignIDSchema = AnyIDSchema.extend({
     prefix: z.literal(PREFIXES.CAMPAIGN_PLAN),
+})
+const AgentConfigIDSchema = AnyIDSchema.extend({
+    prefix: z.literal(PREFIXES.AGENT_CONFIG),
 })
 
 
@@ -105,7 +110,7 @@ export const ObjectiveSchema = ObjectSchema.extend({
     obj_id: ObjectiveIDSchema,
     description: z.string().default(''),
     components: z.array(z.string()).default([]),
-    prerequisites: z.array(z.string()).default([]),
+    prerequisites: z.array(AnyIDSchema).default([]),
 })
 
 export const ItemSchema = ObjectSchema.extend({
@@ -113,11 +118,7 @@ export const ItemSchema = ObjectSchema.extend({
     name: z.string().min(1).catch('Unnamed Item').default('Unnamed Item'),
     type_: z.string().min(1).catch('Misc').default('Misc'),
     description: z.string().min(1).catch('No description').default('No description'),
-    // properties: z.record(z.string(), z.string()),
-    properties: z.array(z.object({
-        name: z.string().min(1).catch('Unnamed Property').default('Unnamed Property'),
-        value: z.string().min(1).catch('No value').default('No value'),
-    })).catch([]).default([]),
+    properties: z.record(z.string(), z.string()).default({}),
 })
 
 export const CharacterSchema = ObjectSchema.extend({
@@ -125,16 +126,9 @@ export const CharacterSchema = ObjectSchema.extend({
     name: z.string().min(1).catch('Unnamed Character').default('Unnamed Character'),
     role: z.string().min(1).catch('No role').default('No role'),
     backstory: z.string().min(1).catch('No backstory').default('No backstory'),
-    // attributes: z.record(z.string(), z.number()),
-    // skills: z.record(z.string(), z.number()),
-    attributes: z.array(z.object({
-        name: z.string().min(1).catch('Unnamed Attribute').default('Unnamed Attribute'),
-        value: z.number().int().catch(0).default(0),
-    })).default([]),
-    skills: z.array(z.object({
-        name: z.string().min(1).catch('Unnamed Skill').default('Unnamed Skill'),
-        value: z.number().int().catch(0).default(0),
-    })).default([]),
+    attributes: z.record(z.string(), z.number()).default({}),
+    skills: z.record(z.string(), z.number()).default({}),
+    storylines: z.array(ArcIDSchema).default([]),
     inventory: z.array(ItemIDSchema).default([]),
 })
 
@@ -166,6 +160,20 @@ export const CampaignSchema = ObjectSchema.extend({
     objectives: z.array(ObjectiveSchema).catch([]).default([]),
 })
 
+export const AgentConfigSchema = ObjectSchema.extend({
+    obj_id: AgentConfigIDSchema,
+    name: z.string().default(''),
+    provider_type: z.string().default(''),
+    api_key: z.string().default(''),
+    base_url: z.string().default(''),
+    model: z.string().default(''),
+    max_tokens: z.number().int().default(500),
+    temperature: z.number().default(0.7),
+    is_default: z.boolean().default(false),
+    is_enabled: z.boolean().default(true),
+    system_prompt: z.string().default(''),
+})
+
 // Higher order type (ID)
 export type AnyID = z.infer<typeof AnyIDSchema>
 export type RuleID = z.infer<typeof RuleIDSchema>
@@ -177,6 +185,7 @@ export type ItemID = z.infer<typeof ItemIDSchema>
 export type CharacterID = z.infer<typeof CharacterIDSchema>
 export type LocationID = z.infer<typeof LocationIDSchema>
 export type CampaignID = z.infer<typeof CampaignIDSchema>
+export type AgentConfigID = z.infer<typeof AgentConfigIDSchema>
 // Lower order types
 export type Object = z.infer<typeof ObjectSchema>
 export type Rule = z.infer<typeof RuleSchema>
@@ -188,13 +197,36 @@ export type Item = z.infer<typeof ItemSchema>
 export type Character = z.infer<typeof CharacterSchema>
 export type Location = z.infer<typeof LocationSchema>
 export type CampaignPlan = z.infer<typeof CampaignSchema>
-export type AnyObject = Object | Rule | Objective | Point | Segment | Arc | Item | Character | Location | CampaignPlan
+export type AgentConfig = z.infer<typeof AgentConfigSchema>
+export type AnyObject = Object | Rule | Objective | Point | Segment | Arc | Item | Character | Location | CampaignPlan | AgentConfig
 
 
 // Util function
 export const getUrlSegment = (idObj: AnyID) => {
     return `${idObj.prefix.toLowerCase()}/${idObj.numeric}`
 }
+
+// Create/Update types for mutations
+export type RuleCreate = Omit<Rule, 'obj_id'>
+export type RuleUpdate = Rule
+export type ObjectiveCreate = Omit<Objective, 'obj_id'>
+export type ObjectiveUpdate = Objective
+export type PointCreate = Omit<Point, 'obj_id'>
+export type PointUpdate = Point
+export type SegmentCreate = Omit<Segment, 'obj_id'>
+export type SegmentUpdate = Segment
+export type ArcCreate = Omit<Arc, 'obj_id'>
+export type ArcUpdate = Arc
+export type ItemCreate = Omit<Item, 'obj_id'>
+export type ItemUpdate = Item
+export type CharacterCreate = Omit<Character, 'obj_id'>
+export type CharacterUpdate = Character
+export type LocationCreate = Omit<Location, 'obj_id'>
+export type LocationUpdate = Location
+export type CampaignPlanCreate = Omit<CampaignPlan, 'obj_id'>
+export type CampaignPlanUpdate = CampaignPlan
+export type AgentConfigCreate = Omit<AgentConfig, 'obj_id'>
+export type AgentConfigUpdate = AgentConfig
 
 export default {
     AnyIDSchema,
@@ -217,4 +249,6 @@ export default {
     LocationSchema,
     CampaignIDSchema,
     CampaignSchema,
+    AgentConfigIDSchema,
+    AgentConfigSchema,
 }
