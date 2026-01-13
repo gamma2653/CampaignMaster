@@ -1,6 +1,6 @@
 """Pytest configuration and fixtures for CampaignMaster tests."""
 
-from typing import Generator
+from typing import Iterator
 
 import pytest
 from sqlalchemy import Engine
@@ -10,7 +10,7 @@ from campaign_master.content.models import Base
 
 
 @pytest.fixture(scope="session")
-def test_engine() -> Generator[Engine]:
+def test_engine() -> Iterator[Engine]:
     """
     Session-scoped fixture that creates a test database engine.
 
