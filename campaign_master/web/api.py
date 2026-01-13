@@ -1,4 +1,5 @@
 from typing import cast
+
 import fastapi
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -683,13 +684,15 @@ def create_arc(arc_data: ArcCreate, proto_user_id: int = 0):
             seg_id = planning.ID(prefix=seg_dict["obj_id"]["prefix"], numeric=seg_dict["obj_id"]["numeric"])
             start_id = planning.ID(prefix=seg_dict["start"]["prefix"], numeric=seg_dict["start"]["numeric"])
             end_id = planning.ID(prefix=seg_dict["end"]["prefix"], numeric=seg_dict["end"]["numeric"])
-            segments.append(planning.Segment(
-                obj_id=seg_id,  # type: ignore[arg-type]
-                name=seg_dict.get("name", ""),
-                description=seg_dict.get("description", ""),
-                start=start_id,
-                end=end_id,
-            ))
+            segments.append(
+                planning.Segment(
+                    obj_id=seg_id,  # type: ignore[arg-type]
+                    name=seg_dict.get("name", ""),
+                    description=seg_dict.get("description", ""),
+                    start=start_id,
+                    end=end_id,
+                )
+            )
         new_arc = planning.Arc(
             obj_id=new_id,  # type: ignore[arg-type]
             name=arc_data.name,
@@ -730,13 +733,15 @@ def update_arc(numeric: int, arc_data: ArcUpdate, proto_user_id: int = 0):
             seg_id = planning.ID(prefix=seg_dict["obj_id"]["prefix"], numeric=seg_dict["obj_id"]["numeric"])
             start_id = planning.ID(prefix=seg_dict["start"]["prefix"], numeric=seg_dict["start"]["numeric"])
             end_id = planning.ID(prefix=seg_dict["end"]["prefix"], numeric=seg_dict["end"]["numeric"])
-            segments.append(planning.Segment(
-                obj_id=seg_id,  # type: ignore[arg-type]
-                name=seg_dict.get("name", ""),
-                description=seg_dict.get("description", ""),
-                start=start_id,
-                end=end_id,
-            ))
+            segments.append(
+                planning.Segment(
+                    obj_id=seg_id,  # type: ignore[arg-type]
+                    name=seg_dict.get("name", ""),
+                    description=seg_dict.get("description", ""),
+                    start=start_id,
+                    end=end_id,
+                )
+            )
         updated = planning.Arc(
             obj_id=arc_id,  # type: ignore[arg-type]
             name=arc_data.name,
@@ -1119,7 +1124,9 @@ def list_locations(proto_user_id: int = 0):
                 "obj_id": {"prefix": loc.obj_id.prefix, "numeric": loc.obj_id.numeric},
                 "name": loc.name,
                 "description": loc.description,
-                "neighboring_locations": [{"prefix": n.prefix, "numeric": n.numeric} for n in loc.neighboring_locations],
+                "neighboring_locations": [
+                    {"prefix": n.prefix, "numeric": n.numeric} for n in loc.neighboring_locations
+                ],
                 "coords": loc.coords,
             }
             for loc in locations
@@ -1141,7 +1148,9 @@ def get_location(numeric: int, proto_user_id: int = 0):
             "obj_id": {"prefix": location.obj_id.prefix, "numeric": location.obj_id.numeric},
             "name": location.name,
             "description": location.description,
-            "neighboring_locations": [{"prefix": n.prefix, "numeric": n.numeric} for n in location.neighboring_locations],
+            "neighboring_locations": [
+                {"prefix": n.prefix, "numeric": n.numeric} for n in location.neighboring_locations
+            ],
             "coords": location.coords,
         }
     except HTTPException:
@@ -1169,7 +1178,9 @@ def create_location(loc_data: LocationCreate, proto_user_id: int = 0):
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,
             "description": created.description,
-            "neighboring_locations": [{"prefix": n.prefix, "numeric": n.numeric} for n in created.neighboring_locations],
+            "neighboring_locations": [
+                {"prefix": n.prefix, "numeric": n.numeric} for n in created.neighboring_locations
+            ],
             "coords": created.coords,
         }
     except Exception as e:
@@ -1320,7 +1331,9 @@ def _serialize_campaign(campaign: planning.CampaignPlan) -> dict:
                 "obj_id": {"prefix": loc.obj_id.prefix, "numeric": loc.obj_id.numeric},
                 "name": loc.name,
                 "description": loc.description,
-                "neighboring_locations": [{"prefix": n.prefix, "numeric": n.numeric} for n in loc.neighboring_locations],
+                "neighboring_locations": [
+                    {"prefix": n.prefix, "numeric": n.numeric} for n in loc.neighboring_locations
+                ],
                 "coords": loc.coords,
             }
             for loc in campaign.locations
