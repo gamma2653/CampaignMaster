@@ -21,27 +21,13 @@ def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
                     "campaign_version": parent.version.text(),
                     "campaign_setting": parent.setting.toPlainText(),
                     "campaign_summary": parent.summary.toPlainText(),
-                    "campaign_storypoints": [
-                        obj.model_dump() for obj in parent.storypoints.get_objects()
-                    ],
-                    "campaign_storyline": [
-                        obj.model_dump() for obj in parent.storyline.get_objects()
-                    ],
-                    "campaign_characters": [
-                        obj.model_dump() for obj in parent.characters.get_objects()
-                    ],
-                    "campaign_locations": [
-                        obj.model_dump() for obj in parent.locations.get_objects()
-                    ],
-                    "campaign_items": [
-                        obj.model_dump() for obj in parent.items.get_objects()
-                    ],
-                    "campaign_rules": [
-                        obj.model_dump() for obj in parent.rules.get_objects()
-                    ],
-                    "campaign_objectives": [
-                        obj.model_dump() for obj in parent.objectives.get_objects()
-                    ],
+                    "campaign_storypoints": [obj.model_dump() for obj in parent.storypoints.get_objects()],
+                    "campaign_storyline": [obj.model_dump() for obj in parent.storyline.get_objects()],
+                    "campaign_characters": [obj.model_dump() for obj in parent.characters.get_objects()],
+                    "campaign_locations": [obj.model_dump() for obj in parent.locations.get_objects()],
+                    "campaign_items": [obj.model_dump() for obj in parent.items.get_objects()],
+                    "campaign_rules": [obj.model_dump() for obj in parent.rules.get_objects()],
+                    "campaign_objectives": [obj.model_dump() for obj in parent.objectives.get_objects()],
                 }
             except Exception:
                 pass
@@ -191,9 +177,7 @@ class IDDisplay(QtWidgets.QLineEdit):
         super().__init__(parent)
         self.model_type = model_type
         self.setText(
-            str(id_value)
-            if id_value
-            else str(content_api.generate_id(prefix=self.model_type._default_prefix))
+            str(id_value) if id_value else str(content_api.generate_id(prefix=self.model_type._default_prefix))
         )
         self.setToolTip("Will be auto-generated.")
         self.setReadOnly(True)
@@ -300,8 +284,7 @@ class IDSelectWithCreate(QtWidgets.QWidget):
 
         # Add OK/Cancel buttons
         button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok
-            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
@@ -396,9 +379,7 @@ class StrListEdit(QtWidgets.QWidget):
             self.list_widget.takeItem(self.list_widget.row(item))
 
     def get_items(self) -> list[str]:
-        return [
-            self.list_widget.item(i).text() for i in range(self.list_widget.count())
-        ]
+        return [self.list_widget.item(i).text() for i in range(self.list_widget.count())]
 
 
 class IDListEdit(QtWidgets.QWidget):
@@ -486,10 +467,7 @@ class IDListEdit(QtWidgets.QWidget):
             self.list_widget.takeItem(self.list_widget.row(item))
 
     def get_ids(self) -> list[planning.ID]:
-        return [
-            planning.ID.from_str(self.list_widget.item(i).text())
-            for i in range(self.list_widget.count())
-        ]
+        return [planning.ID.from_str(self.list_widget.item(i).text()) for i in range(self.list_widget.count())]
 
 
 T = TypeVar("T", bound=planning.Object)
@@ -584,8 +562,7 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
 
             # Add OK/Cancel buttons
             button_box = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.StandardButton.Ok
-                | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
             )
             button_box.accepted.connect(dialog.accept)
             button_box.rejected.connect(dialog.reject)
@@ -663,8 +640,7 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         dialog_layout.addWidget(edit_widget)
 
         button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok
-            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
@@ -772,21 +748,15 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
         container = self.create_themed_container(planning.Objective, "Objective")
         self.form_layout = QtWidgets.QFormLayout()
 
-        self.obj_id = IDDisplay(
-            planning.Objective, self.objective.obj_id if self.objective else None
-        )
+        self.obj_id = IDDisplay(planning.Objective, self.objective.obj_id if self.objective else None)
         self.description = AITextEdit(
             self.objective.description if self.objective else "",
             field_name="description",
             entity_type="Objective",
             entity_context_func=self._get_entity_context,
         )
-        self.components = StrListEdit(
-            self.objective.components if self.objective else []
-        )
-        self.prerequisites = IDListEdit(
-            planning.Objective, self.objective.prerequisites if self.objective else []
-        )
+        self.components = StrListEdit(self.objective.components if self.objective else [])
+        self.prerequisites = IDListEdit(planning.Objective, self.objective.prerequisites if self.objective else [])
 
         container.setLayout(self.form_layout)
         main_layout.addWidget(container)
@@ -838,9 +808,7 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
         container = self.create_themed_container(planning.Point, "Story Point")
         self.form_layout = QtWidgets.QFormLayout()
 
-        self.obj_id = IDDisplay(
-            planning.Point, self.point.obj_id if self.point else None
-        )
+        self.obj_id = IDDisplay(planning.Point, self.point.obj_id if self.point else None)
         self.name = AILineEdit(
             self.point.name if self.point else "",
             field_name="name",
@@ -911,9 +879,7 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         container = self.create_themed_container(planning.Segment, "Segment")
         self.form_layout = QtWidgets.QFormLayout()
 
-        self.obj_id = IDDisplay(
-            planning.Segment, self.segment.obj_id if self.segment else None
-        )
+        self.obj_id = IDDisplay(planning.Segment, self.segment.obj_id if self.segment else None)
         self.name = AILineEdit(
             self.segment.name if self.segment else "",
             field_name="name",
@@ -1109,12 +1075,8 @@ class MapEdit[K, V](QtWidgets.QWidget):
         for key, value in self.map_.items():
             row_position = self.table_widget.rowCount()
             self.table_widget.insertRow(row_position)
-            self.table_widget.setItem(
-                row_position, 0, QtWidgets.QTableWidgetItem(str(key))
-            )
-            self.table_widget.setItem(
-                row_position, 1, QtWidgets.QTableWidgetItem(str(value))
-            )
+            self.table_widget.setItem(row_position, 0, QtWidgets.QTableWidgetItem(str(key)))
+            self.table_widget.setItem(row_position, 1, QtWidgets.QTableWidgetItem(str(value)))
 
     def add_entry(self):
         row_position = self.table_widget.rowCount()
@@ -1231,9 +1193,7 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         container = self.create_themed_container(planning.Character, "Character")
         self.form_layout = QtWidgets.QFormLayout()
 
-        self.obj_id = IDDisplay(
-            planning.Character, self.character.obj_id if self.character else None
-        )
+        self.obj_id = IDDisplay(planning.Character, self.character.obj_id if self.character else None)
         self.name = AILineEdit(
             self.character.name if self.character else "",
             field_name="name",
@@ -1252,16 +1212,10 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
             entity_type="Character",
             entity_context_func=self._get_entity_context,
         )
-        self.attributes = MapEdit[str, int](
-            self.character.attributes if self.character else {}
-        )
+        self.attributes = MapEdit[str, int](self.character.attributes if self.character else {})
         self.skills = MapEdit[str, int](self.character.skills if self.character else {})
-        self.storylines = IDListEdit(
-            planning.Arc, self.character.storylines if self.character else []
-        )
-        self.inventory = IDListEdit(
-            planning.Item, self.character.inventory if self.character else []
-        )
+        self.storylines = IDListEdit(planning.Arc, self.character.storylines if self.character else [])
+        self.inventory = IDListEdit(planning.Item, self.character.inventory if self.character else [])
 
         container.setLayout(self.form_layout)
         main_layout.addWidget(container)
@@ -1282,13 +1236,8 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
         """Export the form data as a Character object."""
         # Note: MapEdit.get_map() returns dict[str, str], but we need dict[str, int] for attributes and skills
         # Converting the values to int
-        attributes_dict = {
-            k: int(v) if v.isdigit() else 0
-            for k, v in self.attributes.get_map().items()
-        }
-        skills_dict = {
-            k: int(v) if v.isdigit() else 0 for k, v in self.skills.get_map().items()
-        }
+        attributes_dict = {k: int(v) if v.isdigit() else 0 for k, v in self.attributes.get_map().items()}
+        skills_dict = {k: int(v) if v.isdigit() else 0 for k, v in self.skills.get_map().items()}
 
         return planning.Character(
             obj_id=self.obj_id.get_id(),  # type: ignore[arg-type]
@@ -1338,9 +1287,7 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
         container = self.create_themed_container(planning.Location, "Location")
         self.form_layout = QtWidgets.QFormLayout()
 
-        self.obj_id = IDDisplay(
-            planning.Location, self.location.obj_id if self.location else None
-        )
+        self.obj_id = IDDisplay(planning.Location, self.location.obj_id if self.location else None)
         self.name = AILineEdit(
             self.location.name if self.location else "",
             field_name="name",
@@ -1358,14 +1305,10 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
             self.location.neighboring_locations if self.location else [],
         )
         self._latitude = QtWidgets.QLineEdit(
-            str(self.location.coords[0])
-            if self.location and self.location.coords
-            else ""
+            str(self.location.coords[0]) if self.location and self.location.coords else ""
         )
         self._longitude = QtWidgets.QLineEdit(
-            str(self.location.coords[1])
-            if self.location and self.location.coords
-            else ""
+            str(self.location.coords[1]) if self.location and self.location.coords else ""
         )
         self._altitude = QtWidgets.QLineEdit(
             str(self.location.coords[2])
@@ -1440,9 +1383,7 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     locations: list[Location]
     """
 
-    def __init__(
-        self, campaign_plan: Optional[planning.CampaignPlan] = None, parent=None
-    ):
+    def __init__(self, campaign_plan: Optional[planning.CampaignPlan] = None, parent=None):
         super().__init__(parent)
         self.campaign_plan = campaign_plan
         self.init_ui()
@@ -1491,12 +1432,8 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
             planning.CampaignPlan,
             self.campaign_plan.obj_id if self.campaign_plan else None,
         )
-        self.title = QtWidgets.QLineEdit(
-            self.campaign_plan.title if self.campaign_plan else ""
-        )
-        self.version = QtWidgets.QLineEdit(
-            self.campaign_plan.version if self.campaign_plan else ""
-        )
+        self.title = QtWidgets.QLineEdit(self.campaign_plan.title if self.campaign_plan else "")
+        self.version = QtWidgets.QLineEdit(self.campaign_plan.version if self.campaign_plan else "")
         top_form_layout.addRow("ID:", self.obj_id)
         top_form_layout.addRow("Title:", self.title)
         top_form_layout.addRow("Version:", self.version)
@@ -1564,18 +1501,10 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         metadata_group.setLayout(metadata_container_layout)
 
         # Create list widgets
-        self.storypoints = ListEdit(
-            planning.Point, self.campaign_plan.storypoints if self.campaign_plan else []
-        )
-        self.storyline = ListEdit(
-            planning.Arc, self.campaign_plan.storyline if self.campaign_plan else []
-        )
-        self.items = ListEdit(
-            planning.Item, self.campaign_plan.items if self.campaign_plan else []
-        )
-        self.rules = ListEdit(
-            planning.Rule, self.campaign_plan.rules if self.campaign_plan else []
-        )
+        self.storypoints = ListEdit(planning.Point, self.campaign_plan.storypoints if self.campaign_plan else [])
+        self.storyline = ListEdit(planning.Arc, self.campaign_plan.storyline if self.campaign_plan else [])
+        self.items = ListEdit(planning.Item, self.campaign_plan.items if self.campaign_plan else [])
+        self.rules = ListEdit(planning.Rule, self.campaign_plan.rules if self.campaign_plan else [])
         self.objectives = ListEdit(
             planning.Objective,
             self.campaign_plan.objectives if self.campaign_plan else [],

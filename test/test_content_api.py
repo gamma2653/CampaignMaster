@@ -29,9 +29,7 @@ class TestContentValidation:
         taken_prefixes = set()
         for ObjectType in all_objects:
             prefix = ObjectType._default_prefix
-            assert prefix not in taken_prefixes, (
-                f"Duplicate prefix '{prefix}' found in {ObjectType.__name__}"
-            )
+            assert prefix not in taken_prefixes, f"Duplicate prefix '{prefix}' found in {ObjectType.__name__}"
             taken_prefixes.add(prefix)
 
 
@@ -42,9 +40,7 @@ class TestDatabaseOperations:
         """Test that failed transactions roll back properly."""
         with pytest.raises(ValueError):
             with transaction() as session:
-                obj = content_api.create_object(
-                    planning.Rule, session=session, auto_commit=False
-                )
+                obj = content_api.create_object(planning.Rule, session=session, auto_commit=False)
                 assert obj is not None
                 raise ValueError("Simulated error")
 
@@ -66,12 +62,8 @@ class TestDatabaseOperations:
     def test_manual_transaction_grouping(self, db_session):
         """Test manual transaction grouping."""
         with transaction() as session:
-            rule1 = content_api.create_object(
-                planning.Rule, session=session, auto_commit=False
-            )
-            rule2 = content_api.create_object(
-                planning.Rule, session=session, auto_commit=False
-            )
+            rule1 = content_api.create_object(planning.Rule, session=session, auto_commit=False)
+            rule2 = content_api.create_object(planning.Rule, session=session, auto_commit=False)
             assert rule1.obj_id != rule2.obj_id
 
         all_rules = content_api.retrieve_objects(planning.Rule)
@@ -79,9 +71,7 @@ class TestDatabaseOperations:
 
     def test_error_handling_in_update(self, db_session):
         """Test that database errors in update are properly handled."""
-        invalid_rule = planning.Rule(
-            obj_id=planning.ID(prefix="R", numeric=99999)
-        )
+        invalid_rule = planning.Rule(obj_id=planning.ID(prefix="R", numeric=99999))
         with pytest.raises(ValueError, match="not found"):
             content_api.update_object(invalid_rule)
 
