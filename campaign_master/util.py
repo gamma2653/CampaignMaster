@@ -40,6 +40,107 @@ def get_basic_logger(name: str, level: int = CM_LOG_LEVEL) -> logging.Logger:
     return logger
 
 
+def setup_file_logging(log_file_path: str, level: int = logging.DEBUG) -> logging.FileHandler:
+    """
+    Creates and returns a file handler for logging.
+
+    Args:
+        log_file_path (str): Path to the log file.
+        level (int): Log level for the file handler. Defaults to DEBUG.
+
+    Returns:
+        logging.FileHandler: Configured file handler.
+    """
+    from pathlib import Path
+
+    log_path = Path(log_file_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
+    file_handler.setLevel(level)
+    file_handler.setFormatter(get_basic_formatter())
+    return file_handler
+
+
+def get_uvicorn_log_config(log_file_path: str) -> dict:
+    """
+    Creates a uvicorn logging configuration dict that logs to both console and file.
+
+    Args:
+        log_file_path (str): Path to the log file.
+
+    Returns:
+        dict: Uvicorn logging configuration.
+    """
+    from pathlib import Path
+
+    log_path = Path(log_file_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    return {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "default": {
+                "format": "[%(name)s:%(levelname)s](%(asctime)s):`%(message)s`",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            },
+            "access": {
+                "format": "[%(name)s:%(levelname)s](%(asctime)s):`%(client_addr)s - %(request_line)s %(status_code)s`",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "default": {
+                "class": "logging.StreamHandler",
+                "formatter": "default",
+                "stream": "ext://sys.stdout",
+            },
+            "access": {
+                "class": "logging.StreamHandler",
+                "formatter": "access",
+                "stream": "ext://sys.stdout",
+            },
+            "file": {
+                "class": "logging.FileHandler",
+                "formatter": "default",
+                "filename": str(log_file_path),
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+            "access_file": {
+                "class": "logging.FileHandler",
+                "formatter": "access",
+                "filename": str(log_file_path),
+                "mode": "a",
+                "encoding": "utf-8",
+            },
+        },
+        "loggers": {
+            "uvicorn": {
+                "handlers": ["default", "file"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "uvicorn.error": {
+                "handlers": ["default", "file"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "uvicorn.access": {
+                "handlers": ["access", "access_file"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "fastapi": {
+                "handlers": ["default", "file"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+        },
+    }
+
+
 # From my 2022 CUP Robotics work
 # https://github.com/cornell-cup/c1c0-scheduler/blob/archive/grpc-impl/c1c0_scheduler/utils.py
 

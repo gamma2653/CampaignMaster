@@ -1,7 +1,12 @@
+import pathlib
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # See campaign_master/content/settings.py for DB settings
 from ..content.settings import DBSettings
+
+# Default log directory (relative to project root)
+DEFAULT_LOG_DIR = pathlib.Path("logs")
 
 
 class Settings(BaseSettings):
@@ -10,5 +15,9 @@ class Settings(BaseSettings):
     web_port: int = 8000
     debug_mode: bool = False
     db_settings: DBSettings = DBSettings()
+
+    #### Logging settings (used when debug_mode=True)
+    log_dir: pathlib.Path = DEFAULT_LOG_DIR
+    log_filename: str = "fastapi_debug.log"
 
     model_config = SettingsConfigDict(env_prefix="CM_")

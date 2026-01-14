@@ -6,6 +6,7 @@ import uvicorn
 from fastapi.staticfiles import StaticFiles
 
 from ..content import database as content_api
+from ..util import get_uvicorn_log_config
 from .settings import Settings
 
 # from .auth import router as auth_router, create_db_and_tables as create_auth_db_and_tables
@@ -51,13 +52,28 @@ def initialize_app(settings_: Settings):
 def run_dev(host: str | None = None, port: int | None = None, debug: bool | None = None):
     """
     Runs the development server.
+
+    When debug=True, logs are written to both console and a log file
+    (default: logs/fastapi_debug.log). Configure via CM_log_dir and CM_log_filename.
     """
     host = host or settings.web_host
     port = port or settings.web_port
     debug = debug if debug is not None else settings.debug_mode
     initialize_app(settings)
+
+    uvicorn_kwargs = {
+        "host": host,
+        "port": port,
+        "log_level": "debug" if debug else "info",
+    }
+
+    if debug:
+        log_file_path = settings.log_dir / settings.log_filename
+        uvicorn_kwargs["log_config"] = get_uvicorn_log_config(str(log_file_path))
+        print(f"Debug mode enabled. Logging to: {log_file_path.resolve()}")
+
     try:
-        uvicorn.run(app, host=host, port=port, log_level="debug" if debug else "info")
+        uvicorn.run(app, **uvicorn_kwargs)
     except Exception as e:
         print(f"Error starting development server: {e}")
 

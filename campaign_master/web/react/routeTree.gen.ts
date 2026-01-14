@@ -13,6 +13,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CampaignIndexRouteImport } from './routes/campaign/index'
+import { Route as CampaignPlansIndexRouteImport } from './routes/campaign/plans/index'
 import { Route as CampaignPlanIndexRouteImport } from './routes/campaign/plan/index'
 import { Route as CampaignExecuteIndexRouteImport } from './routes/campaign/execute/index'
 import { Route as CampaignExecuteCamp_idRouteImport } from './routes/campaign/execute/$camp_id'
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
 const CampaignIndexRoute = CampaignIndexRouteImport.update({
   id: '/campaign/',
   path: '/campaign/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampaignPlansIndexRoute = CampaignPlansIndexRouteImport.update({
+  id: '/campaign/plans/',
+  path: '/campaign/plans/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampaignPlanIndexRoute = CampaignPlanIndexRouteImport.update({
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/campaign/execute/$camp_id': typeof CampaignExecuteCamp_idRoute
   '/campaign/execute': typeof CampaignExecuteIndexRoute
   '/campaign/plan': typeof CampaignPlanIndexRoute
+  '/campaign/plans': typeof CampaignPlansIndexRoute
   '/campaign/plan/$camp_id': typeof CampaignPlanCamp_idIndexRoute
   '/campaign/plan/$camp_id/arc': typeof CampaignPlanCamp_idArcIndexRoute
   '/campaign/plan/$camp_id/character': typeof CampaignPlanCamp_idCharacterIndexRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/campaign/execute/$camp_id': typeof CampaignExecuteCamp_idRoute
   '/campaign/execute': typeof CampaignExecuteIndexRoute
   '/campaign/plan': typeof CampaignPlanIndexRoute
+  '/campaign/plans': typeof CampaignPlansIndexRoute
   '/campaign/plan/$camp_id': typeof CampaignPlanCamp_idIndexRoute
   '/campaign/plan/$camp_id/arc': typeof CampaignPlanCamp_idArcIndexRoute
   '/campaign/plan/$camp_id/character': typeof CampaignPlanCamp_idCharacterIndexRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/campaign/execute/$camp_id': typeof CampaignExecuteCamp_idRoute
   '/campaign/execute/': typeof CampaignExecuteIndexRoute
   '/campaign/plan/': typeof CampaignPlanIndexRoute
+  '/campaign/plans/': typeof CampaignPlansIndexRoute
   '/campaign/plan/$camp_id/': typeof CampaignPlanCamp_idIndexRoute
   '/campaign/plan/$camp_id/arc/': typeof CampaignPlanCamp_idArcIndexRoute
   '/campaign/plan/$camp_id/character/': typeof CampaignPlanCamp_idCharacterIndexRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/campaign/execute/$camp_id'
     | '/campaign/execute'
     | '/campaign/plan'
+    | '/campaign/plans'
     | '/campaign/plan/$camp_id'
     | '/campaign/plan/$camp_id/arc'
     | '/campaign/plan/$camp_id/character'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/campaign/execute/$camp_id'
     | '/campaign/execute'
     | '/campaign/plan'
+    | '/campaign/plans'
     | '/campaign/plan/$camp_id'
     | '/campaign/plan/$camp_id/arc'
     | '/campaign/plan/$camp_id/character'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/campaign/execute/$camp_id'
     | '/campaign/execute/'
     | '/campaign/plan/'
+    | '/campaign/plans/'
     | '/campaign/plan/$camp_id/'
     | '/campaign/plan/$camp_id/arc/'
     | '/campaign/plan/$camp_id/character/'
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   CampaignExecuteCamp_idRoute: typeof CampaignExecuteCamp_idRoute
   CampaignExecuteIndexRoute: typeof CampaignExecuteIndexRoute
   CampaignPlanIndexRoute: typeof CampaignPlanIndexRoute
+  CampaignPlansIndexRoute: typeof CampaignPlansIndexRoute
   CampaignPlanCamp_idIndexRoute: typeof CampaignPlanCamp_idIndexRoute
   CampaignPlanCamp_idArcIndexRoute: typeof CampaignPlanCamp_idArcIndexRoute
   CampaignPlanCamp_idCharacterIndexRoute: typeof CampaignPlanCamp_idCharacterIndexRoute
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/campaign'
       fullPath: '/campaign'
       preLoaderRoute: typeof CampaignIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaign/plans/': {
+      id: '/campaign/plans/'
+      path: '/campaign/plans'
+      fullPath: '/campaign/plans'
+      preLoaderRoute: typeof CampaignPlansIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campaign/plan/': {
@@ -587,6 +607,7 @@ const rootRouteChildren: RootRouteChildren = {
   CampaignExecuteCamp_idRoute: CampaignExecuteCamp_idRoute,
   CampaignExecuteIndexRoute: CampaignExecuteIndexRoute,
   CampaignPlanIndexRoute: CampaignPlanIndexRoute,
+  CampaignPlansIndexRoute: CampaignPlansIndexRoute,
   CampaignPlanCamp_idIndexRoute: CampaignPlanCamp_idIndexRoute,
   CampaignPlanCamp_idArcIndexRoute: CampaignPlanCamp_idArcIndexRoute,
   CampaignPlanCamp_idCharacterIndexRoute:

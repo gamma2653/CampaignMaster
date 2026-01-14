@@ -1,7 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { CampaignPlanForm } from '../../../features/planning/components/CampaignPlanForm'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/campaign/plan/')({
-  component: CampaignPlanForm,
+    beforeLoad: () => {
+        throw redirect({ to: '/campaign/plans' })
+    },
+    component: () => null,
 })
-

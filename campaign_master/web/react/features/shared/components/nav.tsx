@@ -2,20 +2,14 @@
 
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import book_closed from '../../../../../assets/images/icons/book2.png'
 import me from '../../../../../assets/images/Me.jpg'
-
-import { Route as campaignPlanRoute } from '../../../routes/campaign/plan'
-import { Route as campaignExecuteRoute } from '../../../routes/campaign/execute'
-
-
-console.log(campaignPlanRoute.to)
-console.log(campaignExecuteRoute.to)
+import { useCreateCampaignPlan } from '../../../query'
+import { useRouter } from "@tanstack/react-router";
 
 const navigation = [
-    { name: 'New Campaign Plan', href: '/campaign/plan', current: true },
-    { name: 'My Campaign Plans', href: '/campaign/execute', current: false },
+    { name: 'My Campaign Plans', href: '/campaign/plans', current: true },
 ] as const
 
 function classNames(...classes: string[]) {
@@ -24,6 +18,37 @@ function classNames(...classes: string[]) {
 
 
 export default function Navbar() {
+    const navigate = useNavigate()
+    const router = useRouter()
+    const createMutation = useCreateCampaignPlan()
+
+    const handleCreateNew = async () => {
+        createMutation.mutate(
+            {
+                title: 'New Campaign',
+                version: '0.0.1',
+                setting: '',
+                summary: '',
+                storyline: [],
+                storypoints: [],
+                characters: [],
+                locations: [],
+                items: [],
+                rules: [],
+                objectives: [],
+            },
+            {
+                onSuccess: (newCampaign) => {
+                    navigate({ to: `/campaign/plan/${newCampaign.obj_id.numeric}` })
+                },
+                onError: (error) => {
+                    alert(`Failed to create campaign: ${error.message}`)
+                    router.invalidate()
+                },
+            }
+        )
+    }
+
     return (
         <Disclosure
             as="nav"
@@ -65,6 +90,13 @@ export default function Navbar() {
                                         {item.name}
                                     </a>
                                 ))}
+                                <button
+                                    onClick={handleCreateNew}
+                                    disabled={createMutation.isPending}
+                                    className="text-gray-300 hover:bg-white/5 hover:text-white disabled:cursor-wait rounded-md px-3 py-2 text-sm font-medium"
+                                >
+                                    {createMutation.isPending ? 'Creating...' : 'New Campaign'}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -141,6 +173,14 @@ export default function Navbar() {
                             </DisclosureButton>
                         </Link>
                     ))}
+                    <DisclosureButton
+                        as="button"
+                        onClick={handleCreateNew}
+                        disabled={createMutation.isPending}
+                        className="text-gray-300 hover:bg-white/5 hover:text-white disabled:cursor-wait block rounded-md px-3 py-2 text-base font-medium w-full text-left"
+                    >
+                        {createMutation.isPending ? 'Creating...' : 'New Campaign'}
+                    </DisclosureButton>
                 </div>
             </DisclosurePanel>
         </Disclosure>
