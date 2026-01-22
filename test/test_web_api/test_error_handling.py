@@ -346,9 +346,7 @@ class TestProtoUserIsolation:
         }
 
         # Try to update as user 1 - should 404
-        response = test_client.put(
-            f"/api/campaign/i/{numeric}", json=update_data, params={"proto_user_id": 1}
-        )
+        response = test_client.put(f"/api/campaign/i/{numeric}", json=update_data, params={"proto_user_id": 1})
         assert response.status_code == 404
 
         # Verify original still intact for user 0

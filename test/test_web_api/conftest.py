@@ -5,7 +5,6 @@ from typing import Any, Callable
 import pytest
 from fastapi.testclient import TestClient
 
-
 # Resource configurations for all 10 resource types
 RESOURCE_CONFIGS: dict[str, dict[str, Any]] = {
     "point": {

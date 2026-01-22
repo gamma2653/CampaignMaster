@@ -690,9 +690,7 @@ class Item(ObjectBase):
     type_: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
 
-    _properties: Mapped[list[ItemProperty]] = relationship(
-        "ItemProperty", backref="item", cascade="all, delete-orphan"
-    )
+    _properties: Mapped[list[ItemProperty]] = relationship("ItemProperty", backref="item", cascade="all, delete-orphan")
 
     @property  # Heh, different type of property
     def properties(self) -> dict[str, str]:

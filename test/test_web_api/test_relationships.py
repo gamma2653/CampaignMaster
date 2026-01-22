@@ -136,9 +136,7 @@ class TestSegmentPointRelationship:
             "start": {"prefix": "P", "numeric": point1["obj_id"]["numeric"]},
             "end": {"prefix": "P", "numeric": point3["obj_id"]["numeric"]},
         }
-        response = test_client.put(
-            f"/api/campaign/s/{segment['obj_id']['numeric']}", json=update_data
-        )
+        response = test_client.put(f"/api/campaign/s/{segment['obj_id']['numeric']}", json=update_data)
         assert response.status_code == 200
 
         result = response.json()
@@ -268,9 +266,7 @@ class TestCharacterItemRelationship:
                 {"prefix": "I", "numeric": item3["obj_id"]["numeric"]},
             ],
         }
-        response = test_client.put(
-            f"/api/campaign/c/{character['obj_id']['numeric']}", json=update_data
-        )
+        response = test_client.put(f"/api/campaign/c/{character['obj_id']['numeric']}", json=update_data)
         assert response.status_code == 200
 
         result = response.json()
@@ -452,9 +448,7 @@ class TestLocationNeighborRelationship:
             ],
             "coords": None,
         }
-        response = test_client.put(
-            f"/api/campaign/l/{loc1['obj_id']['numeric']}", json=update_data
-        )
+        response = test_client.put(f"/api/campaign/l/{loc1['obj_id']['numeric']}", json=update_data)
         assert response.status_code == 200
 
         # Verify bidirectional relationship
@@ -464,9 +458,5 @@ class TestLocationNeighborRelationship:
         loc1_result = response1.json()
         loc2_result = response2.json()
 
-        assert loc2["obj_id"]["numeric"] in [
-            n["numeric"] for n in loc1_result["neighboring_locations"]
-        ]
-        assert loc1["obj_id"]["numeric"] in [
-            n["numeric"] for n in loc2_result["neighboring_locations"]
-        ]
+        assert loc2["obj_id"]["numeric"] in [n["numeric"] for n in loc1_result["neighboring_locations"]]
+        assert loc1["obj_id"]["numeric"] in [n["numeric"] for n in loc2_result["neighboring_locations"]]

@@ -264,9 +264,7 @@ class TestUpdateEndpoints:
         update_data["obj_id"] = {"prefix": prefix, "numeric": numeric}
 
         # Try to update as user 1
-        response = test_client.put(
-            f"{endpoint}/{numeric}", json=update_data, params={"proto_user_id": 1}
-        )
+        response = test_client.put(f"{endpoint}/{numeric}", json=update_data, params={"proto_user_id": 1})
         assert response.status_code == 404
 
 
