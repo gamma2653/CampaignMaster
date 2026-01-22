@@ -232,7 +232,9 @@ class Rule(ObjectBase):
     """
     description: Mapped[str] = mapped_column()
     effect: Mapped[str] = mapped_column()
-    components: Mapped[list[RuleComponent]] = relationship("RuleComponent", backref="rule")
+    components: Mapped[list[RuleComponent]] = relationship(
+        "RuleComponent", backref="rule", cascade="all, delete-orphan"
+    )
 
     def to_pydantic(self, session: Session) -> "planning.Rule":
         obj_id = self.obj_id(session=session).to_pydantic()
@@ -302,6 +304,15 @@ class Rule(ObjectBase):
                     raise
         return perform(session)
 
+    def update_from_pydantic(self, obj: "planning.Rule", session: Session) -> None:
+        """Update this Rule's fields from a Pydantic Rule model."""
+        self.description = obj.description
+        self.effect = obj.effect
+        # Clear existing components before setting new ones (to avoid orphan constraint errors)
+        for comp in self.components:
+            session.delete(comp)
+        self.components = [RuleComponent(value=comp) for comp in obj.components]
+
 
 class ObjectiveComponent(Base):
     __tablename__ = "objective_component"
@@ -331,7 +342,9 @@ class Objective(ObjectBase):
     Inherits from planning.Objective.
     """
     description: Mapped[str] = mapped_column()
-    components: Mapped[list[ObjectiveComponent]] = relationship("ObjectiveComponent", backref="objective")
+    components: Mapped[list[ObjectiveComponent]] = relationship(
+        "ObjectiveComponent", backref="objective", cascade="all, delete-orphan"
+    )
     # Not sure about the below, testing required.
     prerequisites: Mapped[list["Objective"]] = relationship(
         "Objective",
@@ -365,12 +378,22 @@ class Objective(ObjectBase):
             )
             if existing:
                 return existing
-            return cls(
+            objective = cls(
                 id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 description=obj.description,
                 components=[ObjectiveComponent(value=comp) for comp in obj.components],
-                # Prerequisites handling may require session management; omitted for brevity.
             )
+            session.add(objective)
+            session.flush()  # Ensure objective has an ID for relationships
+
+            # Handle prerequisites (list of Objective IDs - self-referential)
+            for prereq_id in obj.prerequisites:
+                prereq_obj_id = ObjectID.from_pydantic(prereq_id, proto_user_id=proto_user_id, session=session)
+                prereq = session.execute(select(cls).where(cls.id == prereq_obj_id.id)).scalars().first()
+                if prereq:
+                    objective.prerequisites.append(prereq)
+
+            return objective
 
         if session is None:
             from .database import SessionLocal
@@ -382,6 +405,22 @@ class Objective(ObjectBase):
                     session.rollback()
                     raise
         return perform(session)
+
+    def update_from_pydantic(self, obj: "planning.Objective", session: Session) -> None:
+        """Update this Objective's fields from a Pydantic Objective model."""
+        self.description = obj.description
+        # Clear existing components before setting new ones (to avoid orphan constraint errors)
+        for comp in self.components:
+            session.delete(comp)
+        self.components = [ObjectiveComponent(value=comp) for comp in obj.components]
+
+        # Update prerequisites relationship
+        self.prerequisites.clear()
+        for prereq_id in obj.prerequisites:
+            prereq_obj_id = ObjectID.from_pydantic(prereq_id, proto_user_id=0, session=session)
+            prereq = session.execute(select(Objective).where(Objective.id == prereq_obj_id.id)).scalars().first()
+            if prereq:
+                self.prerequisites.append(prereq)
 
 
 class Point(ObjectBase):
@@ -530,6 +569,23 @@ class Segment(ObjectBase):
                     raise
         return perform(session)
 
+    def update_from_pydantic(self, obj: "planning.Segment", session: Session) -> None:
+        """Update this Segment's fields from a Pydantic Segment model."""
+        self.name = obj.name
+        self.description = obj.description
+        # Update start point reference
+        if obj.start:
+            start_obj_id = ObjectID.from_pydantic(obj.start, proto_user_id=0, session=session)
+            self.start_id = start_obj_id.id if start_obj_id.numeric != 0 else None
+        else:
+            self.start_id = None
+        # Update end point reference
+        if obj.end:
+            end_obj_id = ObjectID.from_pydantic(obj.end, proto_user_id=0, session=session)
+            self.end_id = end_obj_id.id if end_obj_id.numeric != 0 else None
+        else:
+            self.end_id = None
+
 
 class Arc(ObjectBase):
     __tablename__ = "arc"
@@ -586,6 +642,13 @@ class Arc(ObjectBase):
                     raise
         return perform(session)
 
+    def update_from_pydantic(self, obj: "planning.Arc", session: Session) -> None:
+        """Update this Arc's fields from a Pydantic Arc model."""
+        self.name = obj.name
+        self.description = obj.description
+        # Note: Updating segments is complex as they are related objects
+        # For simplicity, we only update scalar fields here
+
 
 class ArcToCampaign(Base):
     __tablename__ = "campaign_arc"
@@ -627,7 +690,9 @@ class Item(ObjectBase):
     type_: Mapped[str] = mapped_column()
     description: Mapped[str] = mapped_column()
 
-    _properties: Mapped[list[ItemProperty]] = relationship("ItemProperty", backref="item")
+    _properties: Mapped[list[ItemProperty]] = relationship(
+        "ItemProperty", backref="item", cascade="all, delete-orphan"
+    )
 
     @property  # Heh, different type of property
     def properties(self) -> dict[str, str]:
@@ -680,6 +745,16 @@ class Item(ObjectBase):
                     session.rollback()
                     raise
         return perform(session)
+
+    def update_from_pydantic(self, obj: "planning.Item", session: Session) -> None:
+        """Update this Item's fields from a Pydantic Item model."""
+        self.name = obj.name
+        self.type_ = obj.type_
+        self.description = obj.description
+        # Clear existing properties before setting new ones (to avoid orphan constraint errors)
+        for prop in self._properties:
+            session.delete(prop)
+        self._properties = [ItemProperty(key=k, value=v) for k, v in obj.properties.items()]
 
 
 class CampaignItem(Base):
@@ -742,7 +817,9 @@ class Character(ObjectBase):
     role: Mapped[str] = mapped_column()
     backstory: Mapped[str] = mapped_column()
 
-    _attributes: Mapped[list[CharacterAttribute]] = relationship("CharacterAttribute", backref="character")
+    _attributes: Mapped[list[CharacterAttribute]] = relationship(
+        "CharacterAttribute", backref="character", cascade="all, delete-orphan"
+    )
 
     @property
     def attributes(self) -> dict[str, int]:
@@ -752,7 +829,9 @@ class Character(ObjectBase):
     def attributes(self, attrs: dict[str, int]):
         self._attributes = [CharacterAttribute(key=k, value=v) for k, v in attrs.items()]
 
-    _skills: Mapped[list[CharacterSkill]] = relationship("CharacterSkill", backref="character")
+    _skills: Mapped[list[CharacterSkill]] = relationship(
+        "CharacterSkill", backref="character", cascade="all, delete-orphan"
+    )
 
     @property
     def skills(self) -> dict[str, int]:
@@ -773,6 +852,8 @@ class Character(ObjectBase):
             backstory=self.backstory,
             attributes=self.attributes,
             skills=self.skills,
+            inventory=[item.obj_id(session=session).to_pydantic() for item in self.inventory],
+            storylines=[arc.obj_id(session=session).to_pydantic() for arc in self.storylines],
         )
 
     @classmethod
@@ -791,7 +872,7 @@ class Character(ObjectBase):
             )
             if existing:
                 return existing
-            return cls(
+            character = cls(
                 id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 role=obj.role,
@@ -799,6 +880,24 @@ class Character(ObjectBase):
                 attributes=obj.attributes,
                 skills=obj.skills,
             )
+            session.add(character)
+            session.flush()  # Ensure character has an ID for relationships
+
+            # Handle inventory (list of Item IDs)
+            for item_id in obj.inventory:
+                item_obj_id = ObjectID.from_pydantic(item_id, proto_user_id=proto_user_id, session=session)
+                item = session.execute(select(Item).where(Item.id == item_obj_id.id)).scalars().first()
+                if item:
+                    character.inventory.append(item)
+
+            # Handle storylines (list of Arc IDs)
+            for arc_id in obj.storylines:
+                arc_obj_id = ObjectID.from_pydantic(arc_id, proto_user_id=proto_user_id, session=session)
+                arc = session.execute(select(Arc).where(Arc.id == arc_obj_id.id)).scalars().first()
+                if arc:
+                    character.storylines.append(arc)
+
+            return character
 
         if session is None:
             from .database import SessionLocal
@@ -810,6 +909,36 @@ class Character(ObjectBase):
                     session.rollback()
                     raise
         return perform(session)
+
+    def update_from_pydantic(self, obj: "planning.Character", session: Session) -> None:
+        """Update this Character's fields from a Pydantic Character model."""
+        self.name = obj.name
+        self.role = obj.role
+        self.backstory = obj.backstory
+        # Clear existing attributes before setting new ones (to avoid orphan constraint errors)
+        for attr in self._attributes:
+            session.delete(attr)
+        self._attributes = [CharacterAttribute(key=k, value=v) for k, v in obj.attributes.items()]
+        # Clear existing skills before setting new ones
+        for skill in self._skills:
+            session.delete(skill)
+        self._skills = [CharacterSkill(key=k, value=v) for k, v in obj.skills.items()]
+
+        # Update inventory relationship
+        self.inventory.clear()
+        for item_id in obj.inventory:
+            item_obj_id = ObjectID.from_pydantic(item_id, proto_user_id=0, session=session)
+            item = session.execute(select(Item).where(Item.id == item_obj_id.id)).scalars().first()
+            if item:
+                self.inventory.append(item)
+
+        # Update storylines relationship
+        self.storylines.clear()
+        for arc_id in obj.storylines:
+            arc_obj_id = ObjectID.from_pydantic(arc_id, proto_user_id=0, session=session)
+            arc = session.execute(select(Arc).where(Arc.id == arc_obj_id.id)).scalars().first()
+            if arc:
+                self.storylines.append(arc)
 
 
 class CharacterToCampaign(Base):
@@ -831,6 +960,26 @@ class LocationCoord(Base):
     latitude: Mapped[float] = mapped_column()
     longitude: Mapped[float] = mapped_column()
     altitude: Mapped[float | None] = mapped_column()
+
+    def to_pydantic(self, session: Session | None = None) -> tuple[float, float] | tuple[float, float, float]:
+        """Convert to Pydantic tuple representation."""
+        if self.altitude is not None:
+            return (self.latitude, self.longitude, self.altitude)
+        return (self.latitude, self.longitude)
+
+    @classmethod
+    def from_pydantic(
+        cls,
+        coords: tuple[float, float] | tuple[float, float, float],
+        proto_user_id: int = 0,
+        session: Session | None = None,
+    ) -> "LocationCoord":
+        """Create LocationCoord from tuple."""
+        return cls(
+            latitude=coords[0],
+            longitude=coords[1],
+            altitude=coords[2] if len(coords) > 2 else None,
+        )
 
 
 class LocationNeighbor(Base):
@@ -866,7 +1015,7 @@ class Location(ObjectBase):
             name=self.name,
             description=self.description,
             coords=self.coords.to_pydantic(session=session) if self.coords else None,
-            neighboring_locations=[loc.obj_id.to_pydantic(session=session) for loc in self.neighbors],
+            neighboring_locations=[loc.obj_id(session=session).to_pydantic() for loc in self.neighboring_locations],
         )
 
     @classmethod
@@ -885,7 +1034,7 @@ class Location(ObjectBase):
             )
             if existing:
                 return existing
-            return cls(
+            location = cls(
                 id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
                 name=obj.name,
                 description=obj.description,
@@ -894,11 +1043,18 @@ class Location(ObjectBase):
                     if obj.coords
                     else None
                 ),
-                neighboring_locations=[
-                    ObjectID.from_pydantic(loc, proto_user_id=proto_user_id, session=session)
-                    for loc in obj.neighboring_locations
-                ],
             )
+            session.add(location)
+            session.flush()  # Ensure location has an ID for relationships
+
+            # Handle neighboring_locations (list of Location IDs)
+            for neighbor_id in obj.neighboring_locations:
+                neighbor_obj_id = ObjectID.from_pydantic(neighbor_id, proto_user_id=proto_user_id, session=session)
+                neighbor = session.execute(select(cls).where(cls.id == neighbor_obj_id.id)).scalars().first()
+                if neighbor:
+                    location.neighboring_locations.append(neighbor)
+
+            return location
 
         if session is None:
             from .database import SessionLocal
@@ -910,6 +1066,35 @@ class Location(ObjectBase):
                     session.rollback()
                     raise
         return perform(session)
+
+    def update_from_pydantic(self, obj: "planning.Location", session: Session) -> None:
+        """Update this Location's fields from a Pydantic Location model."""
+        self.name = obj.name
+        self.description = obj.description
+        # Update coords if provided
+        if obj.coords:
+            if self.coords:
+                # Update existing coords
+                self.coords.latitude = obj.coords[0]
+                self.coords.longitude = obj.coords[1]
+                self.coords.altitude = obj.coords[2] if len(obj.coords) > 2 else None
+            else:
+                # Create new coords
+                self.coords = LocationCoord(
+                    latitude=obj.coords[0],
+                    longitude=obj.coords[1],
+                    altitude=obj.coords[2] if len(obj.coords) > 2 else None,
+                )
+        else:
+            self.coords = None
+
+        # Update neighboring_locations relationship
+        self.neighboring_locations.clear()
+        for neighbor_id in obj.neighboring_locations:
+            neighbor_obj_id = ObjectID.from_pydantic(neighbor_id, proto_user_id=0, session=session)
+            neighbor = session.execute(select(Location).where(Location.id == neighbor_obj_id.id)).scalars().first()
+            if neighbor:
+                self.neighboring_locations.append(neighbor)
 
 
 class CampaignLocation(Base):

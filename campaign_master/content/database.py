@@ -3,6 +3,7 @@ from typing import Generator
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from ..util import get_basic_logger
 from .models import Base
@@ -73,7 +74,18 @@ def configure_test_database(
     if connect_args is None:
         connect_args = {"check_same_thread": False}
 
-    eng, factory = _create_engine_and_factory(db_scheme, connect_args)
+    # For in-memory SQLite, use StaticPool to share the same connection
+    # across all sessions. Otherwise, each connection gets its own database.
+    if db_scheme == "sqlite:///:memory:":
+        eng = create_engine(
+            db_scheme,
+            connect_args=connect_args,
+            poolclass=StaticPool,
+        )
+    else:
+        eng = create_engine(db_scheme, connect_args=connect_args)
+
+    factory = sessionmaker(bind=eng, autoflush=False, autocommit=False)
     _engine_registry["test"] = eng
     _session_factory_registry["test"] = factory
     _active_key = "test"
