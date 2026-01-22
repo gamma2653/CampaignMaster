@@ -93,7 +93,7 @@ class Object(BaseModel):
         Initialize the object, optionally with an ID.
 
         Args:
-            obj_id: The object ID (can be ID instance, string like "R-000001", or None)
+            obj_id: The object ID (can be ID instance, string like "R-000001", dict, or None)
             **data: Additional fields for the model
         """
         super().__init__(**data)
@@ -101,6 +101,8 @@ class Object(BaseModel):
         if obj_id is not None:
             if isinstance(obj_id, str):
                 self._obj_id = ID.from_str(obj_id)
+            elif isinstance(obj_id, dict):
+                self._obj_id = ID(**obj_id)
             else:
                 self._obj_id = obj_id
         else:
@@ -125,10 +127,12 @@ class Object(BaseModel):
         return self._obj_id
 
     @obj_id.setter
-    def obj_id(self, value: ID | str) -> None:
+    def obj_id(self, value: ID | str | dict) -> None:
         """Set the object ID."""
         if isinstance(value, str):
             self._obj_id = ID.from_str(value)
+        elif isinstance(value, dict):
+            self._obj_id = ID(**value)
         else:
             self._obj_id = value
 

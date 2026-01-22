@@ -101,7 +101,8 @@ def create_point(point_data: PointCreate, proto_user_id: int = 0):
         )
 
         # Save to database
-        created_point = content_api_functions._create_object(obj=new_point, proto_user_id=proto_user_id).to_pydantic()
+        created_point = content_api_functions.save_object(obj=new_point, proto_user_id=proto_user_id)
+        created_point = cast(planning.Point, created_point)
 
         return {
             "obj_id": {
@@ -289,7 +290,7 @@ def create_rule(rule_data: RuleCreate, proto_user_id: int = 0):
             effect=rule_data.effect,
             components=rule_data.components,
         )
-        created_rule = content_api_functions._create_object(obj=new_rule, proto_user_id=proto_user_id).to_pydantic()
+        created_rule = content_api_functions.save_object(obj=new_rule, proto_user_id=proto_user_id)
         created_rule = cast(planning.Rule, created_rule)
         return {
             "obj_id": {"prefix": created_rule.obj_id.prefix, "numeric": created_rule.obj_id.numeric},
@@ -398,7 +399,7 @@ def create_objective(obj_data: ObjectiveCreate, proto_user_id: int = 0):
             components=obj_data.components,
             prerequisites=prereqs,
         )
-        created = content_api_functions._create_object(obj=new_obj, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_obj, proto_user_id=proto_user_id)
         created = cast(planning.Objective, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
@@ -534,7 +535,7 @@ def create_segment(seg_data: SegmentCreate, proto_user_id: int = 0):
             start=start_id,
             end=end_id,
         )
-        created = content_api_functions._create_object(obj=new_seg, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_seg, proto_user_id=proto_user_id)
         created = cast(planning.Segment, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
@@ -699,7 +700,7 @@ def create_arc(arc_data: ArcCreate, proto_user_id: int = 0):
             description=arc_data.description,
             segments=segments,
         )
-        created = content_api_functions._create_object(obj=new_arc, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_arc, proto_user_id=proto_user_id)
         created = cast(planning.Arc, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
@@ -864,7 +865,7 @@ def create_item(item_data: ItemCreate, proto_user_id: int = 0):
             description=item_data.description,
             properties=item_data.properties,
         )
-        created = content_api_functions._create_object(obj=new_item, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_item, proto_user_id=proto_user_id)
         created = cast(planning.Item, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
@@ -1020,7 +1021,7 @@ def create_character(char_data: CharacterCreate, proto_user_id: int = 0):
             storylines=storylines,
             inventory=inventory,
         )
-        created = content_api_functions._create_object(obj=new_char, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_char, proto_user_id=proto_user_id)
         created = cast(planning.Character, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
@@ -1047,7 +1048,7 @@ def update_character(numeric: int, char_data: CharacterUpdate, proto_user_id: in
         storylines = [planning.ID(prefix=s["prefix"], numeric=s["numeric"]) for s in char_data.storylines]
         inventory = [planning.ID(prefix=i["prefix"], numeric=i["numeric"]) for i in char_data.inventory]
         updated = planning.Character(
-            obj_id=char_id,
+            obj_id=char_id,  # type: ignore[arg-type]
             name=char_data.name,
             role=char_data.role,
             backstory=char_data.backstory,
@@ -1172,7 +1173,7 @@ def create_location(loc_data: LocationCreate, proto_user_id: int = 0):
             neighboring_locations=neighbors,
             coords=loc_data.coords,
         )
-        created = content_api_functions._create_object(obj=new_loc, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_loc, proto_user_id=proto_user_id)
         created = cast(planning.Location, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
@@ -1374,6 +1375,7 @@ def list_campaigns(proto_user_id: int = 0):
     """List all campaign plans for a user."""
     try:
         campaigns = content_api_functions.retrieve_objects(obj_type=planning.CampaignPlan, proto_user_id=proto_user_id)
+        campaigns = cast(list[planning.CampaignPlan], campaigns)
         return [_serialize_campaign(c) for c in campaigns]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1415,7 +1417,8 @@ def create_campaign(camp_data: CampaignPlanCreate, proto_user_id: int = 0):
             rules=[],
             objectives=[],
         )
-        created = content_api_functions._create_object(obj=new_camp, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_camp, proto_user_id=proto_user_id)
+        created = cast(planning.CampaignPlan, created)
         return _serialize_campaign(created)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1423,27 +1426,36 @@ def create_campaign(camp_data: CampaignPlanCreate, proto_user_id: int = 0):
 
 @router.put("/campaign/campplan/{numeric}", response_model=CampaignPlanResponse)
 def update_campaign(numeric: int, camp_data: CampaignPlanUpdate, proto_user_id: int = 0):
-    """Update an existing campaign plan."""
+    """Update an existing campaign plan, including all nested objects."""
     try:
         camp_id = planning.ID(prefix="CampPlan", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=camp_id, proto_user_id=proto_user_id)
         existing = cast(planning.CampaignPlan | None, existing)
         if not existing:
             raise HTTPException(status_code=404, detail="Campaign not found")
-        # Update basic fields only - nested objects should be managed via their own endpoints
+
+        # Parse nested objects from dicts to Pydantic models
+        storypoints = [planning.Point.model_validate(p) for p in camp_data.storypoints]
+        storyline = [planning.Arc.model_validate(a) for a in camp_data.storyline]
+        characters = [planning.Character.model_validate(c) for c in camp_data.characters]
+        locations = [planning.Location.model_validate(loc) for loc in camp_data.locations]
+        items = [planning.Item.model_validate(i) for i in camp_data.items]
+        rules = [planning.Rule.model_validate(r) for r in camp_data.rules]
+        objectives = [planning.Objective.model_validate(o) for o in camp_data.objectives]
+
         updated = planning.CampaignPlan(
             obj_id=camp_id,  # type: ignore[arg-type]
             title=camp_data.title,
             version=camp_data.version,
             setting=camp_data.setting,
             summary=camp_data.summary,
-            storypoints=existing.storypoints,
-            storyline=existing.storyline,
-            characters=existing.characters,
-            locations=existing.locations,
-            items=existing.items,
-            rules=existing.rules,
-            objectives=existing.objectives,
+            storypoints=storypoints,
+            storyline=storyline,
+            characters=characters,
+            locations=locations,
+            items=items,
+            rules=rules,
+            objectives=objectives,
         )
         result = content_api_functions.update_object(obj=updated, proto_user_id=proto_user_id)
         result = cast(planning.CampaignPlan, result)
@@ -1583,7 +1595,7 @@ def create_agent_config(config_data: AgentConfigCreate, proto_user_id: int = 0):
             is_enabled=config_data.is_enabled,
             system_prompt=config_data.system_prompt,
         )
-        created = content_api_functions._create_object(obj=new_config, proto_user_id=proto_user_id).to_pydantic()
+        created = content_api_functions.save_object(obj=new_config, proto_user_id=proto_user_id)
         created = cast(planning.AgentConfig, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},

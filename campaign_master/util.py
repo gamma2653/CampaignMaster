@@ -86,7 +86,7 @@ def get_uvicorn_log_config(log_file_path: str) -> dict:
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
             "access": {
-                "format": "[%(name)s:%(levelname)s](%(asctime)s):`%(client_addr)s - %(request_line)s %(status_code)s`",
+                "format": "[%(name)s:%(levelname)s](%(asctime)s):`%(message)s`",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
         },

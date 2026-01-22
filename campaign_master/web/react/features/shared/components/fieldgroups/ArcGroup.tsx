@@ -33,12 +33,12 @@ export const ArcGroup = withFieldGroup({
                 </div>
                 <div className="pt-8">
                     <group.AppField name="name">
-                        {(field) => <field.TextField label="Segment Name" />}
+                        {(field) => <field.TextField label="Arc Name" />}
                     </group.AppField>
                 </div>
                 <div>
                     <group.AppField name="description">
-                        {(field) => <field.TextField label="Segment Description" />}
+                        {(field) => <field.TextField label="Arc Description" />}
                     </group.AppField>
                 </div>
                 <div>

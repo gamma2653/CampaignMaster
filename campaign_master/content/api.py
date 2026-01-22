@@ -256,12 +256,38 @@ def create_object(
 
 
 @perform_w_session
+def save_object(
+    obj: planning.Object,
+    session: Session | None = None,
+    proto_user_id: int = 0,
+    auto_commit: bool = True,
+) -> planning.Object:
+    """
+    Save an existing pydantic object to the database.
+
+    Use this when you already have a fully constructed pydantic object
+    (with obj_id set) that you want to persist.
+
+    This is a top-level API function that commits the transaction by default.
+    Pass auto_commit=False when using within a larger transaction context.
+    """
+    session = cast(Session, session)  # for mypy
+    db_obj = _create_object(obj, proto_user_id=proto_user_id, session=session, auto_commit=False)
+    return db_obj.to_pydantic(session=session)
+
+
+@perform_w_session
 def _retrieve_object(
     obj_id: planning.ID, session: Session | None = None, proto_user_id: int = 0
 ) -> planning.Object | None:
     """Retrieve an object by its ID."""
     session = cast(Session, session)  # for mypy
-    sql_model = PydanticToSQLModel[obj_id.__class__]
+    # Look up the object type from the prefix, then get the SQL model
+    pydantic_type = planning.PREFIX_TO_OBJECT_TYPE.get(obj_id.prefix)
+    if not pydantic_type:
+        logger.warning(f"Unknown prefix: {obj_id.prefix}")
+        return None
+    sql_model = PydanticToSQLModel[pydantic_type]
     # first get the ObjectID
     logger.debug(f"Retrieving object with ID: {obj_id} of type {sql_model.__name__}")
     db_obj_id = _retrieve_id(
@@ -368,7 +394,12 @@ def delete_object(
     Pass auto_commit=False when using within a larger transaction context.
     """
     session = cast(Session, session)  # for mypy
-    sql_model = PydanticToSQLModel[obj_id.__class__]
+    # Look up the object type from the prefix, then get the SQL model
+    pydantic_type = planning.PREFIX_TO_OBJECT_TYPE.get(obj_id.prefix)
+    if not pydantic_type:
+        logger.warning(f"Unknown prefix: {obj_id.prefix}")
+        return False
+    sql_model = PydanticToSQLModel[pydantic_type]
 
     db_obj_id = _retrieve_id(
         prefix=obj_id.prefix,

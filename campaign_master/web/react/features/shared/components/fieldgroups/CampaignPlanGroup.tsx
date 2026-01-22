@@ -123,16 +123,23 @@ export const CampaignPlanGroup = withFieldGroup({
                                     {(field) => (
                                         <div className="p-2 min-w-full">
                                             <h3 className='text-xl'>Storyline (continuous)</h3>
-                                            {group.state.values.storyline.map((_, index) => (
-                                                <div key={index} className='border p-2 mb-2'>
-                                                    {/* <h4>Storypoint {index + 1}</h4> */}
-                                                    <ArcGroup
-                                                        form={group}
-                                                        fields={`storyline[${index}]`}
-                                                        points={group.state.values.storypoints}
-                                                    />
-                                                </div>
-                                            ))}
+                                            {/* Subscribe to storypoints to ensure dropdowns update when points are added */}
+                                            <group.Subscribe selector={(state) => state.values.storypoints}>
+                                                {(storypoints) => (
+                                                    <>
+                                                        {group.state.values.storyline.map((_, index) => (
+                                                            <div key={index} className='border p-2 mb-2'>
+                                                                {/* <h4>Storypoint {index + 1}</h4> */}
+                                                                <ArcGroup
+                                                                    form={group}
+                                                                    fields={`storyline[${index}]`}
+                                                                    points={storypoints}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </group.Subscribe>
                                             <button
                                                 type="button"
                                                 className="add-button"

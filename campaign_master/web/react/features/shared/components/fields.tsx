@@ -82,17 +82,16 @@ export function PointSelectField({ label, points, id }: { label: string, points?
             <label htmlFor={id}>{label}:</label>
             <select
                 id={id}
-                value={field.state.value.numeric}
+                value={String(field.state.value.numeric)}
                 onChange={(e) => {
                     field.handleChange({
                         prefix: PREFIXES.POINT,
                         numeric: Number(e.target.value),
                     })
-                    console.log('Selected point ID:', e.target.value)
                 }
                 }>
-                {points?.map((point, index) => (
-                    <option key={index} value={point.obj_id.numeric}>
+                {points?.map((point) => (
+                    <option key={`${point.obj_id.prefix}-${point.obj_id.numeric}`} value={String(point.obj_id.numeric)}>
                         {point.obj_id.prefix}-{point.obj_id.numeric} ({point.name})
                     </option>
                 ))}
