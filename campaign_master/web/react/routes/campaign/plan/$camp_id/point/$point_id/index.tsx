@@ -4,7 +4,6 @@ import { formOptions } from '@tanstack/react-form'
 import { useAppForm } from '../../../../../../features/shared/components/ctx'
 import { PointGroup, defaultValues } from '../../../../../../features/shared/components/fieldgroups/PointGroup'
 import { PREFIXES } from '../../../../../../schemas'
-import type { Point } from '../../../../../../schemas'
 
 export const Route = createFileRoute(
   '/campaign/plan/$camp_id/point/$point_id/',
@@ -13,7 +12,7 @@ export const Route = createFileRoute(
 })
 
 function PointDetailComponent() {
-  const { camp_id, point_id } = Route.useParams()
+  const { point_id } = Route.useParams()
   const router = useRouter()
   const pointID = {
     prefix: PREFIXES.POINT,
@@ -45,7 +44,7 @@ function PointDetailComponent() {
         } else {
           alert('Failed to update point')
         }
-      } catch (err) {
+      } catch {
         alert('Error updating point')
       }
     },

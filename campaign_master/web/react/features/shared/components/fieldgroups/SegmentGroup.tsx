@@ -1,7 +1,6 @@
 import { withFieldGroup } from "../ctx";
 import type { Point, Segment } from "../../../../schemas";
 import { PREFIXES } from "../../../../schemas";
-import { PointGroup } from "./PointGroup";
 
 export const defaultValues = {
     obj_id: { prefix: PREFIXES.SEGMENT, numeric: 0 },

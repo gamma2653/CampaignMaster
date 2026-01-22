@@ -4,7 +4,6 @@ import {
   PREFIX_TO_NAME,
   ObjectSchema,
   RuleSchema,
-  ObjectiveSchema,
   PointSchema,
   SegmentSchema,
   ArcSchema,

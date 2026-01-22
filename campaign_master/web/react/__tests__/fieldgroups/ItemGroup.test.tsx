@@ -20,7 +20,7 @@ vi.mock('../../features/shared/components/ctx', () => ({
         defaultValues: Record<string, unknown>;
         render: (props: { group: unknown }) => React.ReactNode
     }) => {
-        return function MockFieldGroup({ form, fields }: { form?: unknown; fields?: unknown }) {
+        return function MockFieldGroup() {
             const mockGroup = {
                 state: { values: mockFieldValues },
                 AppField: ({ children, name }: { children: (field: unknown) => React.ReactNode; name: string }) => {

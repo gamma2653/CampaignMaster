@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CampaignCard } from '../features/planning/components/CampaignCard';
-import type { CampaignPlan, CampaignID } from '../schemas';
+import type { CampaignPlan } from '../schemas';
 
 // Mock TanStack Router
 vi.mock('@tanstack/react-router', () => ({

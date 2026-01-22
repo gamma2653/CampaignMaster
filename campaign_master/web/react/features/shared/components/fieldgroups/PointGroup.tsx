@@ -1,6 +1,5 @@
 import { withFieldGroup } from "../ctx";
 import { Point, PREFIXES, ObjectiveID } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
 import { useObjective } from "../../../../query";
 
 export const defaultValues = {

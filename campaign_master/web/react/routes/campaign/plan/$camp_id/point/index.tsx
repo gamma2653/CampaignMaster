@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { usePoint } from '../../../../../query'
-import { PREFIXES } from '../../../../../schemas'
 
 export const Route = createFileRoute('/campaign/plan/$camp_id/point/')({
   component: PointListComponent,
@@ -23,7 +22,7 @@ function PointListComponent() {
       } else {
         alert('Failed to delete point')
       }
-    } catch (err) {
+    } catch {
       alert('Error deleting point')
     }
   }

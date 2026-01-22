@@ -4,7 +4,7 @@ import React from 'react';
 
 // Mock the context hooks
 const mockHandleChange = vi.fn();
-const mockFieldState: { value: any } = { value: '' };
+const mockFieldState: { value: unknown } = { value: '' };
 const mockFormSubscribe = vi.fn();
 
 vi.mock('../features/shared/components/ctx', () => ({
@@ -13,7 +13,7 @@ vi.mock('../features/shared/components/ctx', () => ({
         handleChange: mockHandleChange,
     }),
     useFormContext: () => ({
-        Subscribe: ({ children, selector }: { children: (value: boolean) => React.ReactNode; selector: (state: { isSubmitting: boolean }) => boolean }) => {
+        Subscribe: ({ children }: { children: (value: boolean) => React.ReactNode; selector: (state: { isSubmitting: boolean }) => boolean }) => {
             return children(mockFormSubscribe());
         },
     }),

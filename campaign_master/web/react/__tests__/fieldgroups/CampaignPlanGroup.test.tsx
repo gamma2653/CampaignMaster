@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { PREFIXES } from '../../schemas';
 
@@ -24,7 +24,7 @@ const mockFieldValues: Record<string, unknown> = {
 // Mock HeadlessUI components
 vi.mock('@headlessui/react', () => ({
     Disclosure: ({ children, defaultOpen }: { children: (props: { open: boolean }) => React.ReactNode; defaultOpen?: boolean }) => {
-        const [isOpen, setIsOpen] = React.useState(defaultOpen ?? false);
+        const [isOpen] = React.useState(defaultOpen ?? false);
         return <div data-testid="disclosure">{children({ open: isOpen })}</div>;
     },
     DisclosureButton: ({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
@@ -52,14 +52,14 @@ vi.mock('../../features/shared/components/ctx', () => ({
         defaultValues: Record<string, unknown>;
         render: (props: { group: unknown }) => React.ReactNode
     }) => {
-        return function MockFieldGroup({ form, fields }: { form?: unknown; fields?: unknown }) {
+        return function MockFieldGroup() {
             const mockGroup = {
                 state: { values: mockFieldValues },
                 Subscribe: ({ children, selector }: { children: (value: unknown) => React.ReactNode; selector: (state: { values: unknown }) => unknown }) => {
                     const value = selector({ values: mockFieldValues });
                     return <>{children(value)}</>;
                 },
-                AppField: ({ children, name, mode }: { children: (field: unknown) => React.ReactNode; name: string; mode?: string }) => {
+                AppField: ({ children, name }: { children: (field: unknown) => React.ReactNode; name: string; mode?: string }) => {
                     if (!mockFieldHandlers[name]) {
                         mockFieldHandlers[name] = vi.fn();
                     }
@@ -128,49 +128,49 @@ vi.mock('../../features/shared/components/ctx', () => ({
 
 // Mock all child fieldgroups
 vi.mock('../../features/shared/components/fieldgroups/ArcGroup', () => ({
-    ArcGroup: ({ form, fields, points }: { form: unknown; fields: string; points: unknown[] }) => (
+    ArcGroup: ({ fields }: { form: unknown; fields: string; points: unknown[] }) => (
         <div data-testid={`arc-group-${fields}`}>ArcGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.ARC, numeric: 0 }, name: '', description: '', segments: [] },
 }));
 
 vi.mock('../../features/shared/components/fieldgroups/CharacterGroup', () => ({
-    CharacterGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    CharacterGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`character-group-${fields}`}>CharacterGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.CHARACTER, numeric: 0 }, name: '', role: '', backstory: '', attributes: [], skills: [], inventory: [] },
 }));
 
 vi.mock('../../features/shared/components/fieldgroups/LocationGroup', () => ({
-    LocationGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    LocationGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`location-group-${fields}`}>LocationGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.LOCATION, numeric: 0 }, name: '', description: '', coords: [0, 0] },
 }));
 
 vi.mock('../../features/shared/components/fieldgroups/ItemGroup', () => ({
-    ItemGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    ItemGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`item-group-${fields}`}>ItemGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.ITEM, numeric: 0 }, name: '', type_: '', description: '', properties: [] },
 }));
 
 vi.mock('../../features/shared/components/fieldgroups/RuleGroup', () => ({
-    RuleGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    RuleGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`rule-group-${fields}`}>RuleGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.RULE, numeric: 0 }, description: '', effect: '', components: [] },
 }));
 
 vi.mock('../../features/shared/components/fieldgroups/ObjectiveGroup', () => ({
-    ObjectiveGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    ObjectiveGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`objective-group-${fields}`}>ObjectiveGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.OBJECTIVE, numeric: 0 }, description: '', components: [], prerequisites: [] },
 }));
 
 vi.mock('../../features/shared/components/fieldgroups/PointGroup', () => ({
-    PointGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    PointGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`point-group-${fields}`}>PointGroup: {fields}</div>
     ),
     defaultValues: { obj_id: { prefix: PREFIXES.POINT, numeric: 0 }, name: '', description: '', objective: null },

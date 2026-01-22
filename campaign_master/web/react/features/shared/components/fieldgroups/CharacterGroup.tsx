@@ -122,7 +122,7 @@ export const CharacterGroup = withFieldGroup({
                                 <div key={index} className='border p-2 mb-2 '>
                                     <h4>Item {index + 1}</h4>
                                     <group.AppField name={`inventory[${index}]`}>
-                                        {(field) => <ObjectIDGroup form={group} fields={`inventory[${index}]`} />}
+                                        {() => <ObjectIDGroup form={group} fields={`inventory[${index}]`} />}
                                     </group.AppField>
                                 </div>
                             ))}

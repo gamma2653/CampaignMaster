@@ -1,6 +1,5 @@
 import { withFieldGroup } from "../ctx";
 import { Location, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
 
 export const defaultValues = {
     obj_id: {
@@ -55,7 +54,7 @@ export const LocationGroup = withFieldGroup({
                 </div>
                 <div>
                     <group.AppField name="coords">
-                        {(field) => (
+                        {() => (
                             <div>
                                 <h3>Coordinates</h3>
                                 <group.AppField name="coords[0]">

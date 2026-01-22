@@ -40,7 +40,6 @@ import {
     useCampaignPlan,
     useCampaignPlanByID,
     useRule,
-    useRuleByID,
     useObjective,
     usePoint,
     useCharacter,

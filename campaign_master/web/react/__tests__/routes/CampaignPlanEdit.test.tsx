@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { createMockCampaign } from '../test-utils';
 import { PREFIXES } from '../../schemas';
@@ -17,8 +17,8 @@ vi.mock('../../query', () => ({
 const mockUseParams = vi.fn();
 
 vi.mock('@tanstack/react-router', () => ({
-    createFileRoute: (path: string) => {
-        return (config: { component: React.ComponentType }) => {
+    createFileRoute: () => {
+        return () => {
             return {
                 useParams: mockUseParams,
             };
@@ -50,7 +50,7 @@ vi.mock('../../features/shared/components/ctx', () => ({
 
 // Mock CampaignPlanGroup
 vi.mock('../../features/shared/components/fieldgroups/CampaignPlanGroup', () => ({
-    CampaignPlanGroup: ({ form, fields }: { form: unknown; fields: unknown }) => (
+    CampaignPlanGroup: () => (
         <div data-testid="campaign-plan-group">CampaignPlanGroup Mock</div>
     ),
 }));

@@ -1,6 +1,5 @@
 import { withFieldGroup } from "../ctx";
 import { Objective, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
 
 export const defaultValues = {
     obj_id: {

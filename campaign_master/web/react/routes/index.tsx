@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Link } from '@tanstack/react-router'
 
 const HomeComponent = () => {
 

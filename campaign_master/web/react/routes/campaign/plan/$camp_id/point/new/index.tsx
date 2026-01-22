@@ -40,7 +40,7 @@ function PointCreateComponent() {
         } else {
           alert('Failed to create point')
         }
-      } catch (err) {
+      } catch {
         alert('Error creating point')
       }
     },

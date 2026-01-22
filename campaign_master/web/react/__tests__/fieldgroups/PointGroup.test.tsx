@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { createMockObjective } from '../test-utils';
 import { PREFIXES } from '../../schemas';
@@ -27,7 +27,7 @@ vi.mock('../../features/shared/components/ctx', () => ({
         render: (props: { group: unknown }) => React.ReactNode
     }) => {
         // Return a component that uses the render function
-        return function MockFieldGroup({ form, fields }: { form?: unknown; fields?: unknown }) {
+        return function MockFieldGroup() {
             const mockGroup = {
                 state: { values: mockFieldValues },
                 AppField: ({ children, name }: { children: (field: unknown) => React.ReactNode; name: string }) => {

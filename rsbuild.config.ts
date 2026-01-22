@@ -3,7 +3,7 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { tanstackRouter } from '@tanstack/router-plugin/rspack';
 
 // import { rspack } from '@rspack/core';
-const devMode = process.env.NODE_ENV !== "production";
+// const devMode = process.env.NODE_ENV !== "production";
 
 export default defineConfig({
     plugins: [pluginReact()],

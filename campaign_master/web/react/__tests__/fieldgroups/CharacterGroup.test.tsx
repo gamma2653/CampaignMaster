@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { PREFIXES } from '../../schemas';
 
@@ -22,10 +22,10 @@ vi.mock('../../features/shared/components/ctx', () => ({
         defaultValues: Record<string, unknown>;
         render: (props: { group: unknown }) => React.ReactNode
     }) => {
-        return function MockFieldGroup({ form, fields }: { form?: unknown; fields?: unknown }) {
+        return function MockFieldGroup() {
             const mockGroup = {
                 state: { values: mockFieldValues },
-                AppField: ({ children, name, mode }: { children: (field: unknown) => React.ReactNode; name: string; mode?: string }) => {
+                AppField: ({ children, name }: { children: (field: unknown) => React.ReactNode; name: string; mode?: string }) => {
                     if (!mockFieldHandlers[name]) {
                         mockFieldHandlers[name] = vi.fn();
                     }
@@ -106,7 +106,7 @@ vi.mock('../../features/shared/components/ctx', () => ({
 
 // Mock ObjectIDGroup
 vi.mock('../../features/shared/components/fieldgroups/ObjectIDGroup', () => ({
-    ObjectIDGroup: ({ form, fields }: { form: unknown; fields: string }) => (
+    ObjectIDGroup: ({ fields }: { form: unknown; fields: string }) => (
         <div data-testid={`object-id-group-${fields}`}>ObjectIDGroup: {fields}</div>
     ),
 }));

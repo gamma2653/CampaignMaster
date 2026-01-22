@@ -1,6 +1,5 @@
 import { withFieldGroup } from "../ctx";
 import { Item, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
 
 export const defaultValues = {
     obj_id: {
@@ -43,13 +42,13 @@ export const ItemGroup = withFieldGroup({
                                 {group.state.values.properties.map((_, index) => (
                                     <div key={index}>
                                         <group.AppField name={`properties[${index}]`}>
-                                            {(field) => (
+                                            {() => (
                                                 <>
                                                     <group.AppField name={`properties[${index}].name`}>
-                                                        {(field) => <field.TextField label={`Property ${index + 1}`} />}
+                                                        {(nameField) => <nameField.TextField label={`Property ${index + 1}`} />}
                                                     </group.AppField>
                                                     <group.AppField name={`properties[${index}].value`}>
-                                                        {(field) => <field.TextField label={`Value`} />}
+                                                        {(valueField) => <valueField.TextField label={`Value`} />}
                                                     </group.AppField>
                                                 </>
                                             )}

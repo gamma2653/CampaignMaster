@@ -16,15 +16,14 @@ const mockFieldValues: Record<string, unknown> = {
 
 // Mock the context
 vi.mock('../../features/shared/components/ctx', () => ({
-    withFieldGroup: ({ defaultValues, props, render: renderFn }: {
+    withFieldGroup: ({ defaultValues, render: renderFn }: {
         defaultValues: Record<string, unknown>;
-        props?: Record<string, unknown>;
         render: (props: { group: unknown; points?: unknown[] }) => React.ReactNode
     }) => {
-        return function MockFieldGroup({ form, fields, points }: { form?: unknown; fields?: unknown; points?: unknown[] }) {
+        return function MockFieldGroup({ points }: { form?: unknown; fields?: unknown; points?: unknown[] }) {
             const mockGroup = {
                 state: { values: mockFieldValues },
-                AppField: ({ children, name, mode }: { children: (field: unknown) => React.ReactNode; name: string; mode?: string }) => {
+                AppField: ({ children, name }: { children: (field: unknown) => React.ReactNode; name: string; mode?: string }) => {
                     if (!mockFieldHandlers[name]) {
                         mockFieldHandlers[name] = vi.fn();
                     }
@@ -93,7 +92,7 @@ vi.mock('../../features/shared/components/ctx', () => ({
 
 // Mock SegmentGroup
 vi.mock('../../features/shared/components/fieldgroups/SegmentGroup', () => ({
-    SegmentGroup: ({ form, fields, points }: { form: unknown; fields: string; points: unknown[] }) => (
+    SegmentGroup: ({ fields, points }: { form: unknown; fields: string; points: unknown[] }) => (
         <div data-testid={`segment-group-${fields}`}>
             SegmentGroup: {fields} (points: {points?.length ?? 0})
         </div>

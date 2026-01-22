@@ -21,7 +21,7 @@ export function TextField({ label }: { label: string }) {
     )
 }
 
-export function TextAreaField({ label, id, description }: { label: string, id?: string, description?: string }) {
+export function TextAreaField({ label, description }: { label: string, id?: string, description?: string }) {
     // The `Field` infers that it should have a `value` type of `string`
     const field = useFieldContext<string>()
     const labelEl = label ? <Label className='p-2 font-bold'>{label}:</Label> : null
