@@ -58,9 +58,12 @@ export function NumberField({ label, id }: { label: string, id?: string }) {
 
 export function IDDisplayField() {
     const field = useFieldContext<{ prefix: string; numeric: number }>()
+    const displayId = field.state.value.numeric === 0
+        ? `${field.state.value.prefix}-(New)`
+        : `${field.state.value.prefix}-${field.state.value.numeric}`
     return (
         <p className='p-2'>
-            <span className='font-bold'>ID:</span> {field.state.value.prefix}-{field.state.value.numeric}
+            <span className='font-bold'>ID:</span> {displayId}
         </p>
     )
 }

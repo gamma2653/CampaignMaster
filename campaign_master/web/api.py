@@ -8,6 +8,7 @@ from sqlalchemy.engine import Engine
 from ..content import api as content_api_functions
 from ..content import database as content_api
 from ..content import planning
+from ..content.database import transaction
 
 router = fastapi.APIRouter()
 
@@ -81,28 +82,34 @@ def get_point(numeric: int, proto_user_id: int = 0):
 def create_point(point_data: PointCreate, proto_user_id: int = 0):
     """Create a new point."""
     try:
-        # Generate new ID
-        new_id = content_api_functions.generate_id(prefix="P", proto_user_id=proto_user_id)
-
-        # Create objective ID if provided
-        objective_id = None
-        if point_data.objective:
-            objective_id = planning.ID(
-                prefix=point_data.objective["prefix"],
-                numeric=point_data.objective["numeric"],
+        # Use single transaction for ID generation and object save
+        with transaction() as session:
+            # Generate new ID
+            new_id = content_api_functions.generate_id(
+                prefix="P", proto_user_id=proto_user_id, session=session, auto_commit=False
             )
 
-        # Create Point object
-        new_point = planning.Point(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=point_data.name,
-            description=point_data.description,
-            objective=objective_id,
-        )
+            # Create objective ID if provided
+            objective_id = None
+            if point_data.objective:
+                objective_id = planning.ID(
+                    prefix=point_data.objective["prefix"],
+                    numeric=point_data.objective["numeric"],
+                )
 
-        # Save to database
-        created_point = content_api_functions.save_object(obj=new_point, proto_user_id=proto_user_id)
-        created_point = cast(planning.Point, created_point)
+            # Create Point object
+            new_point = planning.Point(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=point_data.name,
+                description=point_data.description,
+                objective=objective_id,
+            )
+
+            # Save to database (in same transaction)
+            created_point = content_api_functions.save_object(
+                obj=new_point, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created_point = cast(planning.Point, created_point)
 
         return {
             "obj_id": {
@@ -283,15 +290,20 @@ def get_rule(numeric: int, proto_user_id: int = 0):
 def create_rule(rule_data: RuleCreate, proto_user_id: int = 0):
     """Create a new rule."""
     try:
-        new_id = content_api_functions.generate_id(prefix="R", proto_user_id=proto_user_id)
-        new_rule = planning.Rule(
-            obj_id=new_id,  # type: ignore[arg-type]
-            description=rule_data.description,
-            effect=rule_data.effect,
-            components=rule_data.components,
-        )
-        created_rule = content_api_functions.save_object(obj=new_rule, proto_user_id=proto_user_id)
-        created_rule = cast(planning.Rule, created_rule)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="R", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            new_rule = planning.Rule(
+                obj_id=new_id,  # type: ignore[arg-type]
+                description=rule_data.description,
+                effect=rule_data.effect,
+                components=rule_data.components,
+            )
+            created_rule = content_api_functions.save_object(
+                obj=new_rule, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created_rule = cast(planning.Rule, created_rule)
         return {
             "obj_id": {"prefix": created_rule.obj_id.prefix, "numeric": created_rule.obj_id.numeric},
             "description": created_rule.description,
@@ -391,16 +403,21 @@ def get_objective(numeric: int, proto_user_id: int = 0):
 def create_objective(obj_data: ObjectiveCreate, proto_user_id: int = 0):
     """Create a new objective."""
     try:
-        new_id = content_api_functions.generate_id(prefix="O", proto_user_id=proto_user_id)
-        prereqs = [planning.ID(prefix=p["prefix"], numeric=p["numeric"]) for p in obj_data.prerequisites]
-        new_obj = planning.Objective(
-            obj_id=new_id,  # type: ignore[arg-type]
-            description=obj_data.description,
-            components=obj_data.components,
-            prerequisites=prereqs,
-        )
-        created = content_api_functions.save_object(obj=new_obj, proto_user_id=proto_user_id)
-        created = cast(planning.Objective, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="O", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            prereqs = [planning.ID(prefix=p["prefix"], numeric=p["numeric"]) for p in obj_data.prerequisites]
+            new_obj = planning.Objective(
+                obj_id=new_id,  # type: ignore[arg-type]
+                description=obj_data.description,
+                components=obj_data.components,
+                prerequisites=prereqs,
+            )
+            created = content_api_functions.save_object(
+                obj=new_obj, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.Objective, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "description": created.description,
@@ -525,18 +542,23 @@ def get_segment(numeric: int, proto_user_id: int = 0):
 def create_segment(seg_data: SegmentCreate, proto_user_id: int = 0):
     """Create a new segment."""
     try:
-        new_id = content_api_functions.generate_id(prefix="S", proto_user_id=proto_user_id)
-        start_id = planning.ID(prefix=seg_data.start["prefix"], numeric=seg_data.start["numeric"])
-        end_id = planning.ID(prefix=seg_data.end["prefix"], numeric=seg_data.end["numeric"])
-        new_seg = planning.Segment(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=seg_data.name,
-            description=seg_data.description,
-            start=start_id,
-            end=end_id,
-        )
-        created = content_api_functions.save_object(obj=new_seg, proto_user_id=proto_user_id)
-        created = cast(planning.Segment, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="S", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            start_id = planning.ID(prefix=seg_data.start["prefix"], numeric=seg_data.start["numeric"])
+            end_id = planning.ID(prefix=seg_data.end["prefix"], numeric=seg_data.end["numeric"])
+            new_seg = planning.Segment(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=seg_data.name,
+                description=seg_data.description,
+                start=start_id,
+                end=end_id,
+            )
+            created = content_api_functions.save_object(
+                obj=new_seg, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.Segment, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,
@@ -678,30 +700,35 @@ def get_arc(numeric: int, proto_user_id: int = 0):
 def create_arc(arc_data: ArcCreate, proto_user_id: int = 0):
     """Create a new arc."""
     try:
-        new_id = content_api_functions.generate_id(prefix="A", proto_user_id=proto_user_id)
-        # Convert segment dicts to Segment objects
-        segments = []
-        for seg_dict in arc_data.segments:
-            seg_id = planning.ID(prefix=seg_dict["obj_id"]["prefix"], numeric=seg_dict["obj_id"]["numeric"])
-            start_id = planning.ID(prefix=seg_dict["start"]["prefix"], numeric=seg_dict["start"]["numeric"])
-            end_id = planning.ID(prefix=seg_dict["end"]["prefix"], numeric=seg_dict["end"]["numeric"])
-            segments.append(
-                planning.Segment(
-                    obj_id=seg_id,  # type: ignore[arg-type]
-                    name=seg_dict.get("name", ""),
-                    description=seg_dict.get("description", ""),
-                    start=start_id,
-                    end=end_id,
-                )
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="A", proto_user_id=proto_user_id, session=session, auto_commit=False
             )
-        new_arc = planning.Arc(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=arc_data.name,
-            description=arc_data.description,
-            segments=segments,
-        )
-        created = content_api_functions.save_object(obj=new_arc, proto_user_id=proto_user_id)
-        created = cast(planning.Arc, created)
+            # Convert segment dicts to Segment objects
+            segments = []
+            for seg_dict in arc_data.segments:
+                seg_id = planning.ID(prefix=seg_dict["obj_id"]["prefix"], numeric=seg_dict["obj_id"]["numeric"])
+                start_id = planning.ID(prefix=seg_dict["start"]["prefix"], numeric=seg_dict["start"]["numeric"])
+                end_id = planning.ID(prefix=seg_dict["end"]["prefix"], numeric=seg_dict["end"]["numeric"])
+                segments.append(
+                    planning.Segment(
+                        obj_id=seg_id,  # type: ignore[arg-type]
+                        name=seg_dict.get("name", ""),
+                        description=seg_dict.get("description", ""),
+                        start=start_id,
+                        end=end_id,
+                    )
+                )
+            new_arc = planning.Arc(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=arc_data.name,
+                description=arc_data.description,
+                segments=segments,
+            )
+            created = content_api_functions.save_object(
+                obj=new_arc, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.Arc, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,
@@ -857,16 +884,21 @@ def get_item(numeric: int, proto_user_id: int = 0):
 def create_item(item_data: ItemCreate, proto_user_id: int = 0):
     """Create a new item."""
     try:
-        new_id = content_api_functions.generate_id(prefix="I", proto_user_id=proto_user_id)
-        new_item = planning.Item(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=item_data.name,
-            type_=item_data.type_,
-            description=item_data.description,
-            properties=item_data.properties,
-        )
-        created = content_api_functions.save_object(obj=new_item, proto_user_id=proto_user_id)
-        created = cast(planning.Item, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="I", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            new_item = planning.Item(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=item_data.name,
+                type_=item_data.type_,
+                description=item_data.description,
+                properties=item_data.properties,
+            )
+            created = content_api_functions.save_object(
+                obj=new_item, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.Item, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,
@@ -1008,21 +1040,26 @@ def get_character(numeric: int, proto_user_id: int = 0):
 def create_character(char_data: CharacterCreate, proto_user_id: int = 0):
     """Create a new character."""
     try:
-        new_id = content_api_functions.generate_id(prefix="C", proto_user_id=proto_user_id)
-        storylines = [planning.ID(prefix=s["prefix"], numeric=s["numeric"]) for s in char_data.storylines]
-        inventory = [planning.ID(prefix=i["prefix"], numeric=i["numeric"]) for i in char_data.inventory]
-        new_char = planning.Character(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=char_data.name,
-            role=char_data.role,
-            backstory=char_data.backstory,
-            attributes=char_data.attributes,
-            skills=char_data.skills,
-            storylines=storylines,
-            inventory=inventory,
-        )
-        created = content_api_functions.save_object(obj=new_char, proto_user_id=proto_user_id)
-        created = cast(planning.Character, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="C", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            storylines = [planning.ID(prefix=s["prefix"], numeric=s["numeric"]) for s in char_data.storylines]
+            inventory = [planning.ID(prefix=i["prefix"], numeric=i["numeric"]) for i in char_data.inventory]
+            new_char = planning.Character(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=char_data.name,
+                role=char_data.role,
+                backstory=char_data.backstory,
+                attributes=char_data.attributes,
+                skills=char_data.skills,
+                storylines=storylines,
+                inventory=inventory,
+            )
+            created = content_api_functions.save_object(
+                obj=new_char, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.Character, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,
@@ -1164,17 +1201,22 @@ def get_location(numeric: int, proto_user_id: int = 0):
 def create_location(loc_data: LocationCreate, proto_user_id: int = 0):
     """Create a new location."""
     try:
-        new_id = content_api_functions.generate_id(prefix="L", proto_user_id=proto_user_id)
-        neighbors = [planning.ID(prefix=n["prefix"], numeric=n["numeric"]) for n in loc_data.neighboring_locations]
-        new_loc = planning.Location(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=loc_data.name,
-            description=loc_data.description,
-            neighboring_locations=neighbors,
-            coords=loc_data.coords,
-        )
-        created = content_api_functions.save_object(obj=new_loc, proto_user_id=proto_user_id)
-        created = cast(planning.Location, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="L", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            neighbors = [planning.ID(prefix=n["prefix"], numeric=n["numeric"]) for n in loc_data.neighboring_locations]
+            new_loc = planning.Location(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=loc_data.name,
+                description=loc_data.description,
+                neighboring_locations=neighbors,
+                coords=loc_data.coords,
+            )
+            created = content_api_functions.save_object(
+                obj=new_loc, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.Location, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,
@@ -1401,24 +1443,29 @@ def get_campaign(numeric: int, proto_user_id: int = 0):
 def create_campaign(camp_data: CampaignPlanCreate, proto_user_id: int = 0):
     """Create a new campaign plan."""
     try:
-        new_id = content_api_functions.generate_id(prefix="CampPlan", proto_user_id=proto_user_id)
-        # For simplicity, create with empty collections - nested objects can be added separately
-        new_camp = planning.CampaignPlan(
-            obj_id=new_id,  # type: ignore[arg-type]
-            title=camp_data.title,
-            version=camp_data.version,
-            setting=camp_data.setting,
-            summary=camp_data.summary,
-            storypoints=[],
-            storyline=[],
-            characters=[],
-            locations=[],
-            items=[],
-            rules=[],
-            objectives=[],
-        )
-        created = content_api_functions.save_object(obj=new_camp, proto_user_id=proto_user_id)
-        created = cast(planning.CampaignPlan, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="CampPlan", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            # For simplicity, create with empty collections - nested objects can be added separately
+            new_camp = planning.CampaignPlan(
+                obj_id=new_id,  # type: ignore[arg-type]
+                title=camp_data.title,
+                version=camp_data.version,
+                setting=camp_data.setting,
+                summary=camp_data.summary,
+                storypoints=[],
+                storyline=[],
+                characters=[],
+                locations=[],
+                items=[],
+                rules=[],
+                objectives=[],
+            )
+            created = content_api_functions.save_object(
+                obj=new_camp, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.CampaignPlan, created)
         return _serialize_campaign(created)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1581,22 +1628,27 @@ def get_agent_config(numeric: int, proto_user_id: int = 0):
 def create_agent_config(config_data: AgentConfigCreate, proto_user_id: int = 0):
     """Create a new agent config."""
     try:
-        new_id = content_api_functions.generate_id(prefix="AG", proto_user_id=proto_user_id)
-        new_config = planning.AgentConfig(
-            obj_id=new_id,  # type: ignore[arg-type]
-            name=config_data.name,
-            provider_type=config_data.provider_type,
-            api_key=config_data.api_key,
-            base_url=config_data.base_url,
-            model=config_data.model,
-            max_tokens=config_data.max_tokens,
-            temperature=config_data.temperature,
-            is_default=config_data.is_default,
-            is_enabled=config_data.is_enabled,
-            system_prompt=config_data.system_prompt,
-        )
-        created = content_api_functions.save_object(obj=new_config, proto_user_id=proto_user_id)
-        created = cast(planning.AgentConfig, created)
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="AG", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            new_config = planning.AgentConfig(
+                obj_id=new_id,  # type: ignore[arg-type]
+                name=config_data.name,
+                provider_type=config_data.provider_type,
+                api_key=config_data.api_key,
+                base_url=config_data.base_url,
+                model=config_data.model,
+                max_tokens=config_data.max_tokens,
+                temperature=config_data.temperature,
+                is_default=config_data.is_default,
+                is_enabled=config_data.is_enabled,
+                system_prompt=config_data.system_prompt,
+            )
+            created = content_api_functions.save_object(
+                obj=new_config, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(planning.AgentConfig, created)
         return {
             "obj_id": {"prefix": created.obj_id.prefix, "numeric": created.obj_id.numeric},
             "name": created.name,

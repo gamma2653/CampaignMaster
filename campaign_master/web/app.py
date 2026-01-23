@@ -19,8 +19,7 @@ from .settings import Settings
 @asynccontextmanager
 async def setter_and_cleaner(app: fastapi.FastAPI):
     # Initialize tables
-    # create_api_db_and_tables(engine)
-    # create_auth_db_and_tables(engine)
+    content_api.create_db_and_tables()
     yield
     # Cleanup resources here
 

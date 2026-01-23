@@ -96,8 +96,10 @@ class Object(BaseModel):
             obj_id: The object ID (can be ID instance, string like "R-000001", dict, or None)
             **data: Additional fields for the model
         """
-        super().__init__(**data)
+        # Pop obj_id BEFORE calling super().__init__() to ensure we capture it
+        # before Pydantic processes the data dict
         obj_id = data.pop("obj_id", None)
+        super().__init__(**data)
         if obj_id is not None:
             if isinstance(obj_id, str):
                 self._obj_id = ID.from_str(obj_id)
