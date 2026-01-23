@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { withFieldGroup } from '../ctx';
 import { Character, ItemID, PREFIXES } from '../../../../schemas';
 import { ObjectIDGroup } from './ObjectIDGroup';
+import type { CampaignContext } from '../../../ai/types';
 
 export const defaultValues = {
   obj_id: {
@@ -33,6 +35,25 @@ export const CharacterGroup = withFieldGroup({
   // props: {} as Props,
   // render: ({ group, classNames }) => {
   render: ({ group }) => {
+    // Access parent form's values for campaign context
+    // The group here is the parent CampaignPlan form when used within CampaignPlanGroup
+    const getCampaignContext = useCallback((): CampaignContext => {
+      // Try to access campaign-level values from the parent form
+      const values = group.state.values as Record<string, unknown>;
+      return {
+        title: values.title as string | undefined,
+        setting: values.setting as string | undefined,
+        summary: values.summary as string | undefined,
+        storyline: values.storyline as CampaignContext['storyline'],
+        storypoints: values.storypoints as CampaignContext['storypoints'],
+        characters: values.characters as CampaignContext['characters'],
+        locations: values.locations as CampaignContext['locations'],
+        items: values.items as CampaignContext['items'],
+        rules: values.rules as CampaignContext['rules'],
+        objectives: values.objectives as CampaignContext['objectives'],
+      };
+    }, [group.state.values]);
+
     return (
       <div className="flex flex-col relative">
         <div className="absolute top-0 right-0">
@@ -47,6 +68,7 @@ export const CharacterGroup = withFieldGroup({
                 label="Character Name"
                 fieldName="name"
                 entityType="Character"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>
@@ -63,6 +85,7 @@ export const CharacterGroup = withFieldGroup({
                 label="Character Backstory"
                 fieldName="backstory"
                 entityType="Character"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>

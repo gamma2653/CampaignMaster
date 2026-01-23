@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { withFieldGroup } from '../ctx';
 import { Location, PREFIXES } from '../../../../schemas';
+import type { CampaignContext } from '../../../ai/types';
 
 export const defaultValues = {
   obj_id: {
@@ -25,6 +27,23 @@ export const LocationGroup = withFieldGroup({
   defaultValues,
   // props: {} as Props,
   render: ({ group }) => {
+    // Access parent form's values for campaign context
+    const getCampaignContext = useCallback((): CampaignContext => {
+      const values = group.state.values as Record<string, unknown>;
+      return {
+        title: values.title as string | undefined,
+        setting: values.setting as string | undefined,
+        summary: values.summary as string | undefined,
+        storyline: values.storyline as CampaignContext['storyline'],
+        storypoints: values.storypoints as CampaignContext['storypoints'],
+        characters: values.characters as CampaignContext['characters'],
+        locations: values.locations as CampaignContext['locations'],
+        items: values.items as CampaignContext['items'],
+        rules: values.rules as CampaignContext['rules'],
+        objectives: values.objectives as CampaignContext['objectives'],
+      };
+    }, [group.state.values]);
+
     let altitude = null;
     // Populate altitude field if coords has length 3
     if (group.state.values.coords?.length === 3) {
@@ -48,6 +67,7 @@ export const LocationGroup = withFieldGroup({
                 label="Location Name"
                 fieldName="name"
                 entityType="Location"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>
@@ -59,6 +79,7 @@ export const LocationGroup = withFieldGroup({
                 label="Location Description"
                 fieldName="description"
                 entityType="Location"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>

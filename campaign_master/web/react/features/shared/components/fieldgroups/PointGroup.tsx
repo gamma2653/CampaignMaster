@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { withFieldGroup } from '../ctx';
 import { Point, PREFIXES, ObjectiveID } from '../../../../schemas';
 import { useObjective } from '../../../../query';
+import type { CampaignContext } from '../../../ai/types';
 
 export const defaultValues = {
   obj_id: {
@@ -29,6 +31,23 @@ export const PointGroup = withFieldGroup({
     // Fetch available objectives
     const { data: objectives, isLoading: objectivesLoading } = useObjective();
 
+    // Access parent form's values for campaign context
+    const getCampaignContext = useCallback((): CampaignContext => {
+      const values = group.state.values as Record<string, unknown>;
+      return {
+        title: values.title as string | undefined,
+        setting: values.setting as string | undefined,
+        summary: values.summary as string | undefined,
+        storyline: values.storyline as CampaignContext['storyline'],
+        storypoints: values.storypoints as CampaignContext['storypoints'],
+        characters: values.characters as CampaignContext['characters'],
+        locations: values.locations as CampaignContext['locations'],
+        items: values.items as CampaignContext['items'],
+        rules: values.rules as CampaignContext['rules'],
+        objectives: values.objectives as CampaignContext['objectives'],
+      };
+    }, [group.state.values]);
+
     return (
       <div className="flex flex-col gap-2">
         <div className="ml-auto">
@@ -43,6 +62,7 @@ export const PointGroup = withFieldGroup({
                 label="Point Name"
                 fieldName="name"
                 entityType="Point"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>
@@ -54,6 +74,7 @@ export const PointGroup = withFieldGroup({
                 label="Point Description"
                 fieldName="description"
                 entityType="Point"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>

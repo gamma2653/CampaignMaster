@@ -2,6 +2,16 @@
  * TypeScript interfaces for AI completion features.
  */
 
+import type {
+  Arc,
+  Point,
+  Character,
+  Location,
+  Item,
+  Rule,
+  Objective,
+} from '../../../schemas';
+
 export interface CompletionRequest {
   prompt: string;
   context: CompletionContext;
@@ -14,11 +24,31 @@ export interface CompletionRequest {
   model: string;
 }
 
+/**
+ * Campaign context containing all sub-objects for AI completion.
+ * This provides the AI with full campaign context to generate
+ * more relevant and consistent completions.
+ */
+export interface CampaignContext {
+  title?: string;
+  setting?: string;
+  summary?: string;
+  storyline?: Arc[];
+  storypoints?: Point[];
+  characters?: Character[];
+  locations?: Location[];
+  items?: Item[];
+  rules?: Rule[];
+  objectives?: Objective[];
+}
+
 export interface CompletionContext {
   field_name: string;
   entity_type: string;
   current_text: string;
   entity_data?: Record<string, unknown>;
+  /** Full campaign context for AI to use when generating completions */
+  campaign_context?: CampaignContext;
 }
 
 export interface CompletionResponse {

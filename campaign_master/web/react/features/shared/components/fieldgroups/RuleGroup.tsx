@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { withFieldGroup } from '../ctx';
 import { Rule, PREFIXES } from '../../../../schemas';
+import type { CampaignContext } from '../../../ai/types';
 
 export const defaultValues = {
   obj_id: {
@@ -25,6 +27,23 @@ export const RuleGroup = withFieldGroup({
   defaultValues,
   // props: {} as Props,
   render: ({ group }) => {
+    // Access parent form's values for campaign context
+    const getCampaignContext = useCallback((): CampaignContext => {
+      const values = group.state.values as Record<string, unknown>;
+      return {
+        title: values.title as string | undefined,
+        setting: values.setting as string | undefined,
+        summary: values.summary as string | undefined,
+        storyline: values.storyline as CampaignContext['storyline'],
+        storypoints: values.storypoints as CampaignContext['storypoints'],
+        characters: values.characters as CampaignContext['characters'],
+        locations: values.locations as CampaignContext['locations'],
+        items: values.items as CampaignContext['items'],
+        rules: values.rules as CampaignContext['rules'],
+        objectives: values.objectives as CampaignContext['objectives'],
+      };
+    }, [group.state.values]);
+
     return (
       <div className="flex flex-col gap-2 relative">
         <div className="absolute top-0 right-0">
@@ -39,6 +58,7 @@ export const RuleGroup = withFieldGroup({
                 label="Rule Description"
                 fieldName="description"
                 entityType="Rule"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>
@@ -50,6 +70,7 @@ export const RuleGroup = withFieldGroup({
                 label="Rule Effect"
                 fieldName="effect"
                 entityType="Rule"
+                getCampaignContext={getCampaignContext}
               />
             )}
           </group.AppField>

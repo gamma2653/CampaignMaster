@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import {
   Disclosure,
   DisclosureButton,
@@ -8,6 +9,7 @@ import clsx from 'clsx';
 
 import { withFieldGroup } from '../ctx';
 import { Arc, CampaignPlan, Point, PREFIXES } from '../../../../schemas';
+import type { CampaignContext } from '../../../ai/types';
 import { ArcGroup, defaultValues as arcDefaultValues } from './ArcGroup';
 import {
   CharacterGroup,
@@ -43,6 +45,23 @@ const defaultValues = {
 export const CampaignPlanGroup = withFieldGroup({
   defaultValues,
   render: ({ group }) => {
+    // Create a function to get the full campaign context for AI completions
+    const getCampaignContext = useCallback((): CampaignContext => {
+      const values = group.state.values;
+      return {
+        title: values.title,
+        setting: values.setting,
+        summary: values.summary,
+        storyline: values.storyline,
+        storypoints: values.storypoints,
+        characters: values.characters,
+        locations: values.locations,
+        items: values.items,
+        rules: values.rules,
+        objectives: values.objectives,
+      };
+    }, [group.state.values]);
+
     return (
       <div id="campaign-plan-group">
         <h1 className="self-center p-4 font-bold text-xl">Campaign Plan</h1>
@@ -77,14 +96,24 @@ export const CampaignPlanGroup = withFieldGroup({
                 <div className="p-2 min-w-full">
                   <group.AppField name="setting">
                     {(field) => (
-                      <field.TextField label="Campaign Plan Setting" />
+                      <field.AITextField
+                        label="Campaign Plan Setting"
+                        fieldName="setting"
+                        entityType="CampaignPlan"
+                        getCampaignContext={getCampaignContext}
+                      />
                     )}
                   </group.AppField>
                 </div>
                 <div className="p-2 min-w-full">
                   <group.AppField name="summary">
                     {(field) => (
-                      <field.TextAreaField label="Campaign Plan Summary" />
+                      <field.AITextAreaField
+                        label="Campaign Plan Summary"
+                        fieldName="summary"
+                        entityType="CampaignPlan"
+                        getCampaignContext={getCampaignContext}
+                      />
                     )}
                   </group.AppField>
                 </div>

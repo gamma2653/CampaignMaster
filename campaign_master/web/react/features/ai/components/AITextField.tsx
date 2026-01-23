@@ -11,7 +11,7 @@ import { CompletionPopup } from './CompletionPopup';
 import { useAI, useAIAvailable } from '../AIContext';
 import { useCompletion } from '../hooks';
 import { useFieldContext } from '../../shared/components/ctx';
-import type { CompletionContext } from '../types';
+import type { CompletionContext, CampaignContext } from '../types';
 
 interface AITextFieldProps {
   label: string;
@@ -21,6 +21,8 @@ interface AITextFieldProps {
   entityType?: string;
   /** Function to get additional entity context data */
   getEntityData?: () => Record<string, unknown>;
+  /** Function to get the full campaign context for AI completions */
+  getCampaignContext?: () => CampaignContext;
 }
 
 export function AITextField({
@@ -28,6 +30,7 @@ export function AITextField({
   fieldName,
   entityType,
   getEntityData,
+  getCampaignContext,
 }: AITextFieldProps) {
   const field = useFieldContext<string>();
   const { defaultAgent } = useAI();
@@ -46,7 +49,7 @@ export function AITextField({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       // Ctrl+Space triggers AI completion
-      if (e.ctrlKey && e.code === 'Space' && aiAvailable && defaultAgent) {
+      if (e.shiftKey && e.code === 'Space' && aiAvailable && defaultAgent) {
         e.preventDefault();
 
         const context: CompletionContext = {
@@ -54,6 +57,7 @@ export function AITextField({
           entity_type: entityType || 'unknown',
           current_text: field.state.value,
           entity_data: getEntityData?.(),
+          campaign_context: getCampaignContext?.(),
         };
 
         // Show loading popup
@@ -98,6 +102,7 @@ export function AITextField({
       fieldName,
       entityType,
       getEntityData,
+      getCampaignContext,
       label,
       completion,
     ],

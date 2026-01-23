@@ -19,7 +19,17 @@ class CompletionRequest:
     context: dict[str, Any] = field(default_factory=dict)
     """
     Contextual information about the completion request.
-    May include: field_name, entity_type, current_text, entity_data.
+    May include: field_name, entity_type, current_text, entity_data, campaign_context.
+
+    campaign_context contains the full campaign data including:
+    - title, setting, summary: Campaign metadata
+    - characters: List of character objects with name, role, backstory, etc.
+    - locations: List of location objects with name, description, etc.
+    - storypoints: List of story point objects
+    - storyline: List of arc objects
+    - items: List of item objects
+    - rules: List of rule objects
+    - objectives: List of objective objects
     """
 
     max_tokens: int = 500

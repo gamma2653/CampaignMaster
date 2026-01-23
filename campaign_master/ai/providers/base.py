@@ -85,10 +85,12 @@ Your role:
 - Be concise but descriptive - aim for quality over quantity
 - Match the tone and style of any existing content
 - Consider the context of the entity type being edited
+- Use the provided campaign context to maintain consistency with existing characters, locations, and story elements
 
 When completing text:
 - Continue naturally from where the user left off
-- Maintain consistency with any provided entity data
+- Maintain consistency with any provided entity data and campaign context
+- Reference existing characters, locations, or story elements when appropriate
 - Use appropriate vocabulary for the field type (e.g., dramatic for backstories, precise for rules)"""
 
         if request.system_prompt:
@@ -123,6 +125,68 @@ When completing text:
                     entity_info.append(f"  {key}: {value}")
             if entity_info:
                 parts.append("Current Entity Data:\n" + "\n".join(entity_info))
+
+        # Add campaign context if available
+        if "campaign_context" in context and context["campaign_context"]:
+            campaign = context["campaign_context"]
+            campaign_parts = []
+
+            # Campaign metadata
+            if campaign.get("title"):
+                campaign_parts.append(f"Campaign: {campaign['title']}")
+            if campaign.get("setting"):
+                campaign_parts.append(f"Setting: {campaign['setting']}")
+            if campaign.get("summary"):
+                campaign_parts.append(f"Summary: {campaign['summary']}")
+
+            # Characters (names and roles only for brevity)
+            if campaign.get("characters"):
+                chars = [
+                    f"{c.get('name', 'Unknown')} ({c.get('role', 'unknown role')})"
+                    for c in campaign["characters"]
+                    if c.get("name")
+                ]
+                if chars:
+                    campaign_parts.append(f"Characters: {', '.join(chars)}")
+
+            # Locations
+            if campaign.get("locations"):
+                locs = [loc.get("name") for loc in campaign["locations"] if loc.get("name")]
+                if locs:
+                    campaign_parts.append(f"Locations: {', '.join(locs)}")
+
+            # Story points
+            if campaign.get("storypoints"):
+                points = [p.get("name") for p in campaign["storypoints"] if p.get("name")]
+                if points:
+                    campaign_parts.append(f"Story Points: {', '.join(points)}")
+
+            # Arcs
+            if campaign.get("storyline"):
+                arcs = [a.get("name") for a in campaign["storyline"] if a.get("name")]
+                if arcs:
+                    campaign_parts.append(f"Story Arcs: {', '.join(arcs)}")
+
+            # Items
+            if campaign.get("items"):
+                items = [i.get("name") for i in campaign["items"] if i.get("name")]
+                if items:
+                    campaign_parts.append(f"Items: {', '.join(items)}")
+
+            # Rules
+            if campaign.get("rules"):
+                rules = [r.get("name") for r in campaign["rules"] if r.get("name")]
+                if rules:
+                    campaign_parts.append(f"Rules: {', '.join(rules)}")
+
+            # Objectives
+            if campaign.get("objectives"):
+                objectives = [o.get("name") for o in campaign["objectives"] if o.get("name")]
+                if objectives:
+                    campaign_parts.append(f"Objectives: {', '.join(objectives)}")
+
+            if campaign_parts:
+                parts.append("Campaign Context:\n" + "\n".join(campaign_parts))
 
         # Add the actual prompt/text to complete
         if request.prompt:
