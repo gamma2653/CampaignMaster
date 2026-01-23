@@ -282,7 +282,7 @@ class Rule(ObjectBase):
                 return existing
             # logger.debug("Creating new Rule from pydantic using ObjectID: %s", obj)
             db_obj = cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=obj_id_db.id,  # Reuse the already-retrieved ObjectID
                 description=obj.description,
                 effect=obj.effect,
                 components=[RuleComponent(value=comp) for comp in obj.components],
@@ -367,19 +367,14 @@ class Objective(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             objective = cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 description=obj.description,
                 components=[ObjectiveComponent(value=comp) for comp in obj.components],
             )
@@ -450,21 +445,11 @@ class Point(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
             # Check for existing
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id
-                        == ObjectID.from_pydantic(
-                            obj.obj_id,
-                            proto_user_id=proto_user_id,
-                            session=session,
-                        ).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             # Get the objective_id if an objective is specified
@@ -473,7 +458,7 @@ class Point(ObjectBase):
                 objective_obj_id = ObjectID.from_pydantic(obj.objective, proto_user_id=proto_user_id, session=session)
 
             return cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 description=obj.description,
                 objective_id=objective_obj_id.id if objective_obj_id else None,
@@ -535,15 +520,10 @@ class Segment(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             # Try to find the start and end points in the database
@@ -551,7 +531,7 @@ class Segment(ObjectBase):
             end_obj_id = ObjectID.from_pydantic(obj.end, proto_user_id=proto_user_id, session=session)
 
             return cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 description=obj.description,
                 start_id=start_obj_id.id if start_obj_id.numeric != 0 else None,
@@ -611,19 +591,14 @@ class Arc(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 description=obj.description,
                 segments=[
@@ -714,19 +689,14 @@ class Item(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 type_=obj.type_,
                 description=obj.description,
@@ -859,19 +829,14 @@ class Character(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             character = cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 role=obj.role,
                 backstory=obj.backstory,
@@ -1021,19 +986,14 @@ class Location(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             location = cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 description=obj.description,
                 coords=(
@@ -1223,19 +1183,14 @@ class CampaignPlan(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             campaign_plan = cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 title=obj.title,
                 version=obj.version,
                 setting=obj.setting,
@@ -1326,19 +1281,14 @@ class AgentConfig(ObjectBase):
         """Create from pydantic. Does NOT commit - caller handles that."""
 
         def perform(session: Session) -> "Self":
-            existing = (
-                session.execute(
-                    select(cls).where(
-                        cls.id == ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id
-                    )
-                )
-                .scalars()
-                .first()
-            )
+            # Generate/retrieve ObjectID ONCE and reuse
+            db_obj_id = ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session)
+
+            existing = session.execute(select(cls).where(cls.id == db_obj_id.id)).scalars().first()
             if existing:
                 return existing
             return cls(
-                id=ObjectID.from_pydantic(obj.obj_id, proto_user_id=proto_user_id, session=session).id,
+                id=db_obj_id.id,
                 name=obj.name,
                 provider_type=obj.provider_type,
                 api_key=obj.api_key,
