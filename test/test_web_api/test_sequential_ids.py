@@ -34,9 +34,9 @@ class TestSequentialIDCreation:
         assert response.status_code == 200
 
         result = response.json()
-        assert result["obj_id"]["numeric"] == 1, (
-            f"First {resource_name} should have numeric ID 1, got {result['obj_id']['numeric']}"
-        )
+        assert (
+            result["obj_id"]["numeric"] == 1
+        ), f"First {resource_name} should have numeric ID 1, got {result['obj_id']['numeric']}"
 
     @pytest.mark.parametrize(
         "resource_name",
@@ -58,9 +58,13 @@ class TestSequentialIDCreation:
             assert response.status_code == 200
             numerics.append(response.json()["obj_id"]["numeric"])
 
-        assert numerics == [1, 2, 3, 4, 5], (
-            f"Expected sequential IDs [1, 2, 3, 4, 5] for {resource_name}, got {numerics}"
-        )
+        assert numerics == [
+            1,
+            2,
+            3,
+            4,
+            5,
+        ], f"Expected sequential IDs [1, 2, 3, 4, 5] for {resource_name}, got {numerics}"
 
     def test_point_ids_sequential_from_fresh_database(
         self,
@@ -195,10 +199,29 @@ class TestSequentialIDsAcrossResourceTypes:
             ("/api/campaign/p", {"name": "Point", "description": "", "objective": None}),
             ("/api/campaign/o", {"description": "Objective", "components": [], "prerequisites": []}),
             ("/api/campaign/r", {"description": "Rule", "effect": "", "components": []}),
-            ("/api/campaign/s", {"name": "Segment", "description": "", "start": {"prefix": "P", "numeric": 1}, "end": {"prefix": "P", "numeric": 1}}),
+            (
+                "/api/campaign/s",
+                {
+                    "name": "Segment",
+                    "description": "",
+                    "start": {"prefix": "P", "numeric": 1},
+                    "end": {"prefix": "P", "numeric": 1},
+                },
+            ),
             ("/api/campaign/a", {"name": "Arc", "description": "", "segments": []}),
             ("/api/campaign/i", {"name": "Item", "type_": "misc", "description": "", "properties": {}}),
-            ("/api/campaign/c", {"name": "Character", "role": "", "backstory": "", "attributes": {}, "skills": {}, "storylines": [], "inventory": []}),
+            (
+                "/api/campaign/c",
+                {
+                    "name": "Character",
+                    "role": "",
+                    "backstory": "",
+                    "attributes": {},
+                    "skills": {},
+                    "storylines": [],
+                    "inventory": [],
+                },
+            ),
             ("/api/campaign/l", {"name": "Location", "description": "", "neighboring_locations": [], "coords": None}),
         ]
 
@@ -206,9 +229,9 @@ class TestSequentialIDsAcrossResourceTypes:
             response = test_client.post(endpoint, json=create_data)
             assert response.status_code == 200, f"Failed to create at {endpoint}: {response.text}"
             result = response.json()
-            assert result["obj_id"]["numeric"] == 1, (
-                f"First resource at {endpoint} should have numeric 1, got {result['obj_id']['numeric']}"
-            )
+            assert (
+                result["obj_id"]["numeric"] == 1
+            ), f"First resource at {endpoint} should have numeric 1, got {result['obj_id']['numeric']}"
 
 
 class TestSequentialIDsAfterDeletion:
@@ -243,9 +266,9 @@ class TestSequentialIDsAfterDeletion:
 
         # Create a new resource - should be ID 4, not 2
         r4 = test_client.post(endpoint, json=create_data)
-        assert r4.json()["obj_id"]["numeric"] == 4, (
-            f"After deleting ID 2, next ID should be 4, got {r4.json()['obj_id']['numeric']}"
-        )
+        assert (
+            r4.json()["obj_id"]["numeric"] == 4
+        ), f"After deleting ID 2, next ID should be 4, got {r4.json()['obj_id']['numeric']}"
 
     def test_sequence_continues_after_deleting_last_id(
         self,
@@ -301,6 +324,6 @@ class TestSequentialIDsListOrder:
 
         # Extract numeric IDs and verify they are sequential
         numerics = [r["obj_id"]["numeric"] for r in results]
-        assert numerics == [1, 2, 3, 4, 5] or numerics == sorted(numerics), (
-            f"List should return IDs in order, got {numerics}"
-        )
+        assert numerics == [1, 2, 3, 4, 5] or numerics == sorted(
+            numerics
+        ), f"List should return IDs in order, got {numerics}"
