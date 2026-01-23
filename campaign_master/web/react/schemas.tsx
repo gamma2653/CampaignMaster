@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 // For API data validation and type safety
 
@@ -8,247 +8,284 @@ import { z } from 'zod'
 //  Necessary for endpoint generation in `query.tsx`
 // NOTE: Must be a bijection (one-to-one mapping) between names and prefix literals
 export const PREFIXES = {
-    MISC: 'MISC',
-    RULE: 'R',
-    OBJECTIVE: 'O',
-    POINT: 'P',
-    SEGMENT: 'S',
-    ARC: 'A',
-    ITEM: 'I',
-    CHARACTER: 'C',
-    LOCATION: 'L',
-    CAMPAIGN_PLAN: 'CampPlan',
-    AGENT_CONFIG: 'AG',
-} as const
-export type PREFIXES_T = typeof PREFIXES[keyof typeof PREFIXES]
+  MISC: 'MISC',
+  RULE: 'R',
+  OBJECTIVE: 'O',
+  POINT: 'P',
+  SEGMENT: 'S',
+  ARC: 'A',
+  ITEM: 'I',
+  CHARACTER: 'C',
+  LOCATION: 'L',
+  CAMPAIGN_PLAN: 'CampPlan',
+  AGENT_CONFIG: 'AG',
+} as const;
+export type PREFIXES_T = (typeof PREFIXES)[keyof typeof PREFIXES];
 
 export const PREFIX_TO_NAME = {
-    [PREFIXES.MISC]: "Miscellaneous",
-    [PREFIXES.RULE]: "Rule",
-    [PREFIXES.OBJECTIVE]: "Objective",
-    [PREFIXES.POINT]: "Point",
-    [PREFIXES.SEGMENT]: "Segment",
-    [PREFIXES.ARC]: "Arc",
-    [PREFIXES.ITEM]: "Item",
-    [PREFIXES.CHARACTER]: "Character",
-    [PREFIXES.LOCATION]: "Location",
-    [PREFIXES.CAMPAIGN_PLAN]: "Campaign Plan",
-    [PREFIXES.AGENT_CONFIG]: "Agent Config",
-}
+  [PREFIXES.MISC]: 'Miscellaneous',
+  [PREFIXES.RULE]: 'Rule',
+  [PREFIXES.OBJECTIVE]: 'Objective',
+  [PREFIXES.POINT]: 'Point',
+  [PREFIXES.SEGMENT]: 'Segment',
+  [PREFIXES.ARC]: 'Arc',
+  [PREFIXES.ITEM]: 'Item',
+  [PREFIXES.CHARACTER]: 'Character',
+  [PREFIXES.LOCATION]: 'Location',
+  [PREFIXES.CAMPAIGN_PLAN]: 'Campaign Plan',
+  [PREFIXES.AGENT_CONFIG]: 'Agent Config',
+};
 // Zod prototype schemas
 const AnyIDSchema = z.object({
-    numeric: z.number().int().nonnegative().catch(0).default(0),
-    prefix: z.string().min(1).catch(PREFIXES.MISC).default(PREFIXES.MISC),
-})
+  numeric: z.number().int().nonnegative().catch(0).default(0),
+  prefix: z.string().min(1).catch(PREFIXES.MISC).default(PREFIXES.MISC),
+});
 
 const RuleIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.RULE),
-})
+  prefix: z.literal(PREFIXES.RULE),
+});
 const ObjectiveIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.OBJECTIVE),
-})
+  prefix: z.literal(PREFIXES.OBJECTIVE),
+});
 const PointIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.POINT),
-})
+  prefix: z.literal(PREFIXES.POINT),
+});
 const SegmentIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.SEGMENT),
-})
+  prefix: z.literal(PREFIXES.SEGMENT),
+});
 const ArcIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.ARC),
-})
+  prefix: z.literal(PREFIXES.ARC),
+});
 const ItemIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.ITEM),
-})
+  prefix: z.literal(PREFIXES.ITEM),
+});
 const CharacterIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.CHARACTER),
-})
+  prefix: z.literal(PREFIXES.CHARACTER),
+});
 const LocationIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.LOCATION),
-})
+  prefix: z.literal(PREFIXES.LOCATION),
+});
 const CampaignIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.CAMPAIGN_PLAN),
-})
+  prefix: z.literal(PREFIXES.CAMPAIGN_PLAN),
+});
 const AgentConfigIDSchema = AnyIDSchema.extend({
-    prefix: z.literal(PREFIXES.AGENT_CONFIG),
-})
-
+  prefix: z.literal(PREFIXES.AGENT_CONFIG),
+});
 
 export const ObjectSchema = z.object({
-    obj_id: AnyIDSchema,
-})
+  obj_id: AnyIDSchema,
+});
 
 export const PointSchema = ObjectSchema.extend({
-    obj_id: PointIDSchema,
-    name: z.string().min(1).catch('Unnamed Point').default('Unnamed Point'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    objective: z.nullable(ObjectiveIDSchema),
-})
+  obj_id: PointIDSchema,
+  name: z.string().min(1).catch('Unnamed Point').default('Unnamed Point'),
+  description: z
+    .string()
+    .min(1)
+    .catch('No description')
+    .default('No description'),
+  objective: z.nullable(ObjectiveIDSchema),
+});
 
 export const SegmentSchema = ObjectSchema.extend({
-    obj_id: SegmentIDSchema,
-    name: z.string().min(1).catch('Unnamed Segment').default('Unnamed Segment'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    start: PointIDSchema,
-    end: PointIDSchema,
-})
+  obj_id: SegmentIDSchema,
+  name: z.string().min(1).catch('Unnamed Segment').default('Unnamed Segment'),
+  description: z
+    .string()
+    .min(1)
+    .catch('No description')
+    .default('No description'),
+  start: PointIDSchema,
+  end: PointIDSchema,
+});
 
 export const ArcSchema = ObjectSchema.extend({
-    obj_id: ArcIDSchema,
-    name: z.string().min(1).catch('Unnamed Arc').default('Unnamed Arc'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    segments: z.array(SegmentSchema),
-})
+  obj_id: ArcIDSchema,
+  name: z.string().min(1).catch('Unnamed Arc').default('Unnamed Arc'),
+  description: z
+    .string()
+    .min(1)
+    .catch('No description')
+    .default('No description'),
+  segments: z.array(SegmentSchema),
+});
 
 export const RuleSchema = ObjectSchema.extend({
-    obj_id: RuleIDSchema,
-    description: z.string().default(''),
-    effect: z.string().default(''),
-    components: z.array(z.string()).default([]),
-})
+  obj_id: RuleIDSchema,
+  description: z.string().default(''),
+  effect: z.string().default(''),
+  components: z.array(z.string()).default([]),
+});
 
 export const ObjectiveSchema = ObjectSchema.extend({
-    obj_id: ObjectiveIDSchema,
-    description: z.string().default(''),
-    components: z.array(z.string()).default([]),
-    prerequisites: z.array(AnyIDSchema).default([]),
-})
+  obj_id: ObjectiveIDSchema,
+  description: z.string().default(''),
+  components: z.array(z.string()).default([]),
+  prerequisites: z.array(AnyIDSchema).default([]),
+});
 
 export const ItemSchema = ObjectSchema.extend({
-    obj_id: ItemIDSchema,
-    name: z.string().min(1).catch('Unnamed Item').default('Unnamed Item'),
-    type_: z.string().min(1).catch('Misc').default('Misc'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    properties: z.record(z.string(), z.string()).default({}),
-})
+  obj_id: ItemIDSchema,
+  name: z.string().min(1).catch('Unnamed Item').default('Unnamed Item'),
+  type_: z.string().min(1).catch('Misc').default('Misc'),
+  description: z
+    .string()
+    .min(1)
+    .catch('No description')
+    .default('No description'),
+  properties: z.record(z.string(), z.string()).default({}),
+});
 
 export const CharacterSchema = ObjectSchema.extend({
-    obj_id: CharacterIDSchema,
-    name: z.string().min(1).catch('Unnamed Character').default('Unnamed Character'),
-    role: z.string().min(1).catch('No role').default('No role'),
-    backstory: z.string().min(1).catch('No backstory').default('No backstory'),
-    attributes: z.record(z.string(), z.number()).default({}),
-    skills: z.record(z.string(), z.number()).default({}),
-    storylines: z.array(ArcIDSchema).default([]),
-    inventory: z.array(ItemIDSchema).default([]),
-})
+  obj_id: CharacterIDSchema,
+  name: z
+    .string()
+    .min(1)
+    .catch('Unnamed Character')
+    .default('Unnamed Character'),
+  role: z.string().min(1).catch('No role').default('No role'),
+  backstory: z.string().min(1).catch('No backstory').default('No backstory'),
+  attributes: z.record(z.string(), z.number()).default({}),
+  skills: z.record(z.string(), z.number()).default({}),
+  storylines: z.array(ArcIDSchema).default([]),
+  inventory: z.array(ItemIDSchema).default([]),
+});
 
 export const LocationSchema = ObjectSchema.extend({
-    obj_id: LocationIDSchema,
-    name: z.string().min(1).catch('Unnamed Location').default('Unnamed Location'),
-    description: z.string().min(1).catch('No description').default('No description'),
-    neighboring_locations: z.array(LocationIDSchema).default([]),
-    coords: z.optional(
-        z.union([
-            z.tuple([z.number(), z.number()]),
-            z.tuple([z.number(), z.number(), z.number()]),
-        ])
-    )
-})
+  obj_id: LocationIDSchema,
+  name: z.string().min(1).catch('Unnamed Location').default('Unnamed Location'),
+  description: z
+    .string()
+    .min(1)
+    .catch('No description')
+    .default('No description'),
+  neighboring_locations: z.array(LocationIDSchema).default([]),
+  coords: z.optional(
+    z.union([
+      z.tuple([z.number(), z.number()]),
+      z.tuple([z.number(), z.number(), z.number()]),
+    ]),
+  ),
+});
 
 export const CampaignSchema = ObjectSchema.extend({
-    obj_id: CampaignIDSchema,
-    title: z.string().min(1).catch('Unnamed Campaign').default('Unnamed Campaign'),
-    version: z.string().min(1).catch('0.0.0').default('0.0.0'),
-    setting: z.string().min(1).catch('Generic').default('Generic'),
-    summary: z.string().min(1).catch('No summary').default('No summary'),
-    storyline: z.array(ArcSchema).catch([]).default([]),
-    storypoints: z.array(PointSchema).catch([]).default([]),
-    characters: z.array(CharacterSchema).catch([]).default([]),
-    locations: z.array(LocationSchema).catch([]).default([]),
-    items: z.array(ItemSchema).catch([]).default([]),
-    rules: z.array(RuleSchema).catch([]).default([]),
-    objectives: z.array(ObjectiveSchema).catch([]).default([]),
-})
+  obj_id: CampaignIDSchema,
+  title: z
+    .string()
+    .min(1)
+    .catch('Unnamed Campaign')
+    .default('Unnamed Campaign'),
+  version: z.string().min(1).catch('0.0.0').default('0.0.0'),
+  setting: z.string().min(1).catch('Generic').default('Generic'),
+  summary: z.string().min(1).catch('No summary').default('No summary'),
+  storyline: z.array(ArcSchema).catch([]).default([]),
+  storypoints: z.array(PointSchema).catch([]).default([]),
+  characters: z.array(CharacterSchema).catch([]).default([]),
+  locations: z.array(LocationSchema).catch([]).default([]),
+  items: z.array(ItemSchema).catch([]).default([]),
+  rules: z.array(RuleSchema).catch([]).default([]),
+  objectives: z.array(ObjectiveSchema).catch([]).default([]),
+});
 
 export const AgentConfigSchema = ObjectSchema.extend({
-    obj_id: AgentConfigIDSchema,
-    name: z.string().default(''),
-    provider_type: z.string().default(''),
-    api_key: z.string().default(''),
-    base_url: z.string().default(''),
-    model: z.string().default(''),
-    max_tokens: z.number().int().default(500),
-    temperature: z.number().default(0.7),
-    is_default: z.boolean().default(false),
-    is_enabled: z.boolean().default(true),
-    system_prompt: z.string().default(''),
-})
+  obj_id: AgentConfigIDSchema,
+  name: z.string().default(''),
+  provider_type: z.string().default(''),
+  api_key: z.string().default(''),
+  base_url: z.string().default(''),
+  model: z.string().default(''),
+  max_tokens: z.number().int().default(500),
+  temperature: z.number().default(0.7),
+  is_default: z.boolean().default(false),
+  is_enabled: z.boolean().default(true),
+  system_prompt: z.string().default(''),
+});
 
 // Higher order type (ID)
-export type AnyID = z.infer<typeof AnyIDSchema>
-export type RuleID = z.infer<typeof RuleIDSchema>
-export type ObjectiveID = z.infer<typeof ObjectiveIDSchema>
-export type PointID = z.infer<typeof PointIDSchema>
-export type SegmentID = z.infer<typeof SegmentIDSchema>
-export type ArcID = z.infer<typeof ArcIDSchema>
-export type ItemID = z.infer<typeof ItemIDSchema>
-export type CharacterID = z.infer<typeof CharacterIDSchema>
-export type LocationID = z.infer<typeof LocationIDSchema>
-export type CampaignID = z.infer<typeof CampaignIDSchema>
-export type AgentConfigID = z.infer<typeof AgentConfigIDSchema>
+export type AnyID = z.infer<typeof AnyIDSchema>;
+export type RuleID = z.infer<typeof RuleIDSchema>;
+export type ObjectiveID = z.infer<typeof ObjectiveIDSchema>;
+export type PointID = z.infer<typeof PointIDSchema>;
+export type SegmentID = z.infer<typeof SegmentIDSchema>;
+export type ArcID = z.infer<typeof ArcIDSchema>;
+export type ItemID = z.infer<typeof ItemIDSchema>;
+export type CharacterID = z.infer<typeof CharacterIDSchema>;
+export type LocationID = z.infer<typeof LocationIDSchema>;
+export type CampaignID = z.infer<typeof CampaignIDSchema>;
+export type AgentConfigID = z.infer<typeof AgentConfigIDSchema>;
 // Lower order types
-export type Object = z.infer<typeof ObjectSchema>
-export type Rule = z.infer<typeof RuleSchema>
-export type Objective = z.infer<typeof ObjectiveSchema>
-export type Point = z.infer<typeof PointSchema>
-export type Segment = z.infer<typeof SegmentSchema>
-export type Arc = z.infer<typeof ArcSchema>
-export type Item = z.infer<typeof ItemSchema>
-export type Character = z.infer<typeof CharacterSchema>
-export type Location = z.infer<typeof LocationSchema>
-export type CampaignPlan = z.infer<typeof CampaignSchema>
-export type AgentConfig = z.infer<typeof AgentConfigSchema>
-export type AnyObject = Object | Rule | Objective | Point | Segment | Arc | Item | Character | Location | CampaignPlan | AgentConfig
-
+export type Object = z.infer<typeof ObjectSchema>;
+export type Rule = z.infer<typeof RuleSchema>;
+export type Objective = z.infer<typeof ObjectiveSchema>;
+export type Point = z.infer<typeof PointSchema>;
+export type Segment = z.infer<typeof SegmentSchema>;
+export type Arc = z.infer<typeof ArcSchema>;
+export type Item = z.infer<typeof ItemSchema>;
+export type Character = z.infer<typeof CharacterSchema>;
+export type Location = z.infer<typeof LocationSchema>;
+export type CampaignPlan = z.infer<typeof CampaignSchema>;
+export type AgentConfig = z.infer<typeof AgentConfigSchema>;
+export type AnyObject =
+  | Object
+  | Rule
+  | Objective
+  | Point
+  | Segment
+  | Arc
+  | Item
+  | Character
+  | Location
+  | CampaignPlan
+  | AgentConfig;
 
 // Util function
 export const getUrlSegment = (idObj: AnyID) => {
-    return `${idObj.prefix.toLowerCase()}/${idObj.numeric}`
-}
+  return `${idObj.prefix.toLowerCase()}/${idObj.numeric}`;
+};
 
 // Create/Update types for mutations
-export type RuleCreate = Omit<Rule, 'obj_id'>
-export type RuleUpdate = Rule
-export type ObjectiveCreate = Omit<Objective, 'obj_id'>
-export type ObjectiveUpdate = Objective
-export type PointCreate = Omit<Point, 'obj_id'>
-export type PointUpdate = Point
-export type SegmentCreate = Omit<Segment, 'obj_id'>
-export type SegmentUpdate = Segment
-export type ArcCreate = Omit<Arc, 'obj_id'>
-export type ArcUpdate = Arc
-export type ItemCreate = Omit<Item, 'obj_id'>
-export type ItemUpdate = Item
-export type CharacterCreate = Omit<Character, 'obj_id'>
-export type CharacterUpdate = Character
-export type LocationCreate = Omit<Location, 'obj_id'>
-export type LocationUpdate = Location
-export type CampaignPlanCreate = Omit<CampaignPlan, 'obj_id'>
-export type CampaignPlanUpdate = CampaignPlan
-export type AgentConfigCreate = Omit<AgentConfig, 'obj_id'>
-export type AgentConfigUpdate = AgentConfig
+export type RuleCreate = Omit<Rule, 'obj_id'>;
+export type RuleUpdate = Rule;
+export type ObjectiveCreate = Omit<Objective, 'obj_id'>;
+export type ObjectiveUpdate = Objective;
+export type PointCreate = Omit<Point, 'obj_id'>;
+export type PointUpdate = Point;
+export type SegmentCreate = Omit<Segment, 'obj_id'>;
+export type SegmentUpdate = Segment;
+export type ArcCreate = Omit<Arc, 'obj_id'>;
+export type ArcUpdate = Arc;
+export type ItemCreate = Omit<Item, 'obj_id'>;
+export type ItemUpdate = Item;
+export type CharacterCreate = Omit<Character, 'obj_id'>;
+export type CharacterUpdate = Character;
+export type LocationCreate = Omit<Location, 'obj_id'>;
+export type LocationUpdate = Location;
+export type CampaignPlanCreate = Omit<CampaignPlan, 'obj_id'>;
+export type CampaignPlanUpdate = CampaignPlan;
+export type AgentConfigCreate = Omit<AgentConfig, 'obj_id'>;
+export type AgentConfigUpdate = AgentConfig;
 
 export default {
-    AnyIDSchema,
-    ObjectSchema,
-    RuleIDSchema,
-    RuleSchema,
-    ObjectiveIDSchema,
-    ObjectiveSchema,
-    PointIDSchema,
-    PointSchema,
-    SegmentIDSchema,
-    SegmentSchema,
-    ArcIDSchema,
-    ArcSchema,
-    ItemIDSchema,
-    ItemSchema,
-    CharacterIDSchema,
-    CharacterSchema,
-    LocationIDSchema,
-    LocationSchema,
-    CampaignIDSchema,
-    CampaignSchema,
-    AgentConfigIDSchema,
-    AgentConfigSchema,
-}
+  AnyIDSchema,
+  ObjectSchema,
+  RuleIDSchema,
+  RuleSchema,
+  ObjectiveIDSchema,
+  ObjectiveSchema,
+  PointIDSchema,
+  PointSchema,
+  SegmentIDSchema,
+  SegmentSchema,
+  ArcIDSchema,
+  ArcSchema,
+  ItemIDSchema,
+  ItemSchema,
+  CharacterIDSchema,
+  CharacterSchema,
+  LocationIDSchema,
+  LocationSchema,
+  CampaignIDSchema,
+  CampaignSchema,
+  AgentConfigIDSchema,
+  AgentConfigSchema,
+};

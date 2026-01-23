@@ -12,7 +12,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as CampaignIndexRouteImport } from './routes/campaign/index'
+import { Route as SettingsAgentsRouteImport } from './routes/settings/agents'
 import { Route as CampaignPlansIndexRouteImport } from './routes/campaign/plans/index'
 import { Route as CampaignPlanIndexRouteImport } from './routes/campaign/plan/index'
 import { Route as CampaignExecuteIndexRouteImport } from './routes/campaign/execute/index'
@@ -50,9 +52,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CampaignIndexRoute = CampaignIndexRouteImport.update({
   id: '/campaign/',
   path: '/campaign/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsAgentsRoute = SettingsAgentsRouteImport.update({
+  id: '/settings/agents',
+  path: '/settings/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampaignPlansIndexRoute = CampaignPlansIndexRouteImport.update({
@@ -201,7 +213,9 @@ const CampaignPlanCamp_idArcArc_idSegmentSeg_idPointPoint_idIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutLazyRoute
+  '/settings/agents': typeof SettingsAgentsRoute
   '/campaign/': typeof CampaignIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/campaign/execute/$camp_id': typeof CampaignExecuteCamp_idRoute
   '/campaign/execute/': typeof CampaignExecuteIndexRoute
   '/campaign/plan/': typeof CampaignPlanIndexRoute
@@ -230,7 +244,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutLazyRoute
+  '/settings/agents': typeof SettingsAgentsRoute
   '/campaign': typeof CampaignIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/campaign/execute/$camp_id': typeof CampaignExecuteCamp_idRoute
   '/campaign/execute': typeof CampaignExecuteIndexRoute
   '/campaign/plan': typeof CampaignPlanIndexRoute
@@ -260,7 +276,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutLazyRoute
+  '/settings/agents': typeof SettingsAgentsRoute
   '/campaign/': typeof CampaignIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/campaign/execute/$camp_id': typeof CampaignExecuteCamp_idRoute
   '/campaign/execute/': typeof CampaignExecuteIndexRoute
   '/campaign/plan/': typeof CampaignPlanIndexRoute
@@ -291,7 +309,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/settings/agents'
     | '/campaign/'
+    | '/settings/'
     | '/campaign/execute/$camp_id'
     | '/campaign/execute/'
     | '/campaign/plan/'
@@ -320,7 +340,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/settings/agents'
     | '/campaign'
+    | '/settings'
     | '/campaign/execute/$camp_id'
     | '/campaign/execute'
     | '/campaign/plan'
@@ -349,7 +371,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/settings/agents'
     | '/campaign/'
+    | '/settings/'
     | '/campaign/execute/$camp_id'
     | '/campaign/execute/'
     | '/campaign/plan/'
@@ -379,7 +403,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutLazyRoute: typeof AboutLazyRoute
+  SettingsAgentsRoute: typeof SettingsAgentsRoute
   CampaignIndexRoute: typeof CampaignIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
   CampaignExecuteCamp_idRoute: typeof CampaignExecuteCamp_idRoute
   CampaignExecuteIndexRoute: typeof CampaignExecuteIndexRoute
   CampaignPlanIndexRoute: typeof CampaignPlanIndexRoute
@@ -422,11 +448,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/campaign/': {
       id: '/campaign/'
       path: '/campaign'
       fullPath: '/campaign/'
       preLoaderRoute: typeof CampaignIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/agents': {
+      id: '/settings/agents'
+      path: '/settings/agents'
+      fullPath: '/settings/agents'
+      preLoaderRoute: typeof SettingsAgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campaign/plans/': {
@@ -603,7 +643,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutLazyRoute: AboutLazyRoute,
+  SettingsAgentsRoute: SettingsAgentsRoute,
   CampaignIndexRoute: CampaignIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
   CampaignExecuteCamp_idRoute: CampaignExecuteCamp_idRoute,
   CampaignExecuteIndexRoute: CampaignExecuteIndexRoute,
   CampaignPlanIndexRoute: CampaignPlanIndexRoute,

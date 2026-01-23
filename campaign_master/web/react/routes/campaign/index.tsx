@@ -1,8 +1,6 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-
+import { createFileRoute, Link } from '@tanstack/react-router';
 
 const RouteComponent = () => {
-
   return (
     <div>
       <h1>Campaign Master</h1>
@@ -10,9 +8,9 @@ const RouteComponent = () => {
       <br />
       <Link to="/campaign/execute">Go to Campaign Execute</Link>
     </div>
-  )
-}
+  );
+};
 
 export const Route = createFileRoute('/campaign/')({
   component: RouteComponent,
-})
+});

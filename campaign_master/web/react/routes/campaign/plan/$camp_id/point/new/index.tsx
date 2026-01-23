@@ -1,15 +1,18 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { formOptions } from '@tanstack/react-form'
-import { useAppForm } from '../../../../../../features/shared/components/ctx'
-import { PointGroup, defaultValues } from '../../../../../../features/shared/components/fieldgroups/PointGroup'
+import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { formOptions } from '@tanstack/react-form';
+import { useAppForm } from '../../../../../../features/shared/components/ctx';
+import {
+  PointGroup,
+  defaultValues,
+} from '../../../../../../features/shared/components/fieldgroups/PointGroup';
 
 export const Route = createFileRoute('/campaign/plan/$camp_id/point/new/')({
   component: PointCreateComponent,
-})
+});
 
 function PointCreateComponent() {
-  const { camp_id } = Route.useParams()
-  const router = useRouter()
+  const { camp_id } = Route.useParams();
+  const router = useRouter();
 
   const pointOpts = formOptions({
     defaultValues,
@@ -25,28 +28,28 @@ function PointCreateComponent() {
             description: value.description,
             objective: value.objective,
           }),
-        })
+        });
 
         if (response.ok) {
-          const created = await response.json()
-          alert('Point created successfully!')
+          const created = await response.json();
+          alert('Point created successfully!');
           router.navigate({
             to: '/campaign/plan/$camp_id/point/$point_id',
             params: {
               camp_id,
               point_id: created.obj_id.numeric.toString(),
             },
-          })
+          });
         } else {
-          alert('Failed to create point')
+          alert('Failed to create point');
         }
       } catch {
-        alert('Error creating point')
+        alert('Error creating point');
       }
     },
-  })
+  });
 
-  const form = useAppForm(pointOpts)
+  const form = useAppForm(pointOpts);
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -54,9 +57,9 @@ function PointCreateComponent() {
 
       <form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="space-y-4"
       >
@@ -72,5 +75,5 @@ function PointCreateComponent() {
         </form.AppForm>
       </form>
     </div>
-  )
+  );
 }

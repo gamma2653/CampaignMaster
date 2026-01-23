@@ -9,6 +9,7 @@ CampaignMaster is a companion application for TTRPG game masters, supporting cam
 ## Development Setup
 
 ### Python Environment
+
 ```bash
 # Install dependencies using Poetry
 poetry install
@@ -18,6 +19,7 @@ poetry shell
 ```
 
 ### Frontend (Web Mode Only)
+
 ```bash
 # Install Node dependencies
 npm install
@@ -26,14 +28,17 @@ npm install
 ## Running the Application
 
 ### GUI Mode
+
 ```bash
 python -m campaign_master --gui [--debug]
 ```
 
 ### Web Mode
+
 ```bash
 python -m campaign_master --web [--debug] [--host 127.0.0.1] [--port 8000]
 ```
+
 Note: Web mode builds the frontend first, then prompts before starting the server.
 
 ## Testing
@@ -140,6 +145,7 @@ All business objects inherit from `planning.Object`:
 ## Frontend Architecture (Web Mode)
 
 ### Tech Stack
+
 - **Build Tool**: Rsbuild (faster alternative to Webpack)
 - **Framework**: React 19 with TypeScript
 - **Routing**: TanStack Router (file-based routing in `web/react/routes/`)
@@ -149,6 +155,7 @@ All business objects inherit from `planning.Object`:
 - **Validation**: Zod
 
 ### Frontend Build Process
+
 ```bash
 # Development server (separate from Python backend)
 npm run dev
@@ -187,6 +194,7 @@ npm run build
 ## Important Patterns
 
 ### ID References Over Object Embedding
+
 Objects store references to other objects using the `ID` type, not embedded objects. This prevents circular dependencies and allows lazy loading.
 
 ```python
@@ -214,6 +222,7 @@ class Character(Object):
 #### Usage Patterns
 
 **Simple Operation (Automatic Session)**
+
 ```python
 from campaign_master.content import api as content_api
 
@@ -222,6 +231,7 @@ rule = content_api.create_object(planning.Rule, proto_user_id=0)
 ```
 
 **Manual Transaction (Multiple Operations)**
+
 ```python
 from campaign_master.content.database import transaction
 
@@ -237,6 +247,7 @@ with transaction() as session:
 ```
 
 **Error Handling**
+
 ```python
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -257,6 +268,7 @@ except SQLAlchemyError as e:
 6. Let decorator handle rollback on errors
 
 **Example: Internal Helper**
+
 ```python
 @perform_w_session
 def _internal_helper(
@@ -268,6 +280,7 @@ def _internal_helper(
 ```
 
 **Example: Public API Function**
+
 ```python
 @perform_w_session
 def public_function(
@@ -281,6 +294,7 @@ def public_function(
 ```
 
 ### GUI Widget Generation
+
 GUI widgets (`gui/widgets/planning.py`) dynamically generate forms from Pydantic models. Field types and validation rules are introspected from the model definitions.
 
 ## Recent Major Changes
@@ -292,6 +306,7 @@ The codebase recently migrated from SQLModel to separate SQLAlchemy + Pydantic m
 - "Fix pydantic-sqlalchemy issues" - Integration stabilization
 
 **Files affected:**
+
 - `content/database.py` (NEW): Database initialization and session management
 - `content/models.py` (NEW): SQLAlchemy ORM models
 - `content/db.py`: May be deprecated/duplicate - check before modifying
@@ -300,6 +315,7 @@ The codebase recently migrated from SQLModel to separate SQLAlchemy + Pydantic m
 ## Logging
 
 Centralized logger factory in `util.py`:
+
 ```python
 from campaign_master.util import get_basic_logger
 logger = get_basic_logger(__name__)
@@ -310,6 +326,7 @@ Control log level via `CM_LOG_LEVEL` environment variable.
 ## Technologies Used
 
 ### Backend
+
 - **Pydantic**: Business logic validation
 - **FastAPI**: Web API framework
 - **SQLAlchemy**: Database ORM
@@ -317,6 +334,7 @@ Control log level via `CM_LOG_LEVEL` environment variable.
 - **uvicorn**: Development web server
 
 ### Frontend
+
 - **Rsbuild**: Build tooling
 - **TypeScript**: Type-safe React
 - **TanStack**: Router, Query, Form libraries

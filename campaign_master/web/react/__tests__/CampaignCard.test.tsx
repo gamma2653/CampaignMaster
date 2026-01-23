@@ -5,8 +5,22 @@ import type { CampaignPlan } from '../schemas';
 
 // Mock TanStack Router
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, params, className }: { children: React.ReactNode; to: string; params?: Record<string, string>; className?: string }) => (
-    <a href={to.replace('$camp_id', params?.camp_id || '')} className={className} data-testid="edit-link">
+  Link: ({
+    children,
+    to,
+    params,
+    className,
+  }: {
+    children: React.ReactNode;
+    to: string;
+    params?: Record<string, string>;
+    className?: string;
+  }) => (
+    <a
+      href={to.replace('$camp_id', params?.camp_id || '')}
+      className={className}
+      data-testid="edit-link"
+    >
       {children}
     </a>
   ),
@@ -20,19 +34,53 @@ const mockCampaign: CampaignPlan = {
   summary: 'This is a test campaign for unit testing purposes.',
   storyline: [],
   storypoints: [
-    { obj_id: { prefix: 'P', numeric: 1 }, name: 'Point 1', description: 'Desc', objective: null },
-    { obj_id: { prefix: 'P', numeric: 2 }, name: 'Point 2', description: 'Desc', objective: null },
+    {
+      obj_id: { prefix: 'P', numeric: 1 },
+      name: 'Point 1',
+      description: 'Desc',
+      objective: null,
+    },
+    {
+      obj_id: { prefix: 'P', numeric: 2 },
+      name: 'Point 2',
+      description: 'Desc',
+      objective: null,
+    },
   ],
   characters: [
-    { obj_id: { prefix: 'C', numeric: 1 }, name: 'Hero', role: 'PC', backstory: '', attributes: {}, skills: {}, storylines: [], inventory: [] },
+    {
+      obj_id: { prefix: 'C', numeric: 1 },
+      name: 'Hero',
+      role: 'PC',
+      backstory: '',
+      attributes: {},
+      skills: {},
+      storylines: [],
+      inventory: [],
+    },
   ],
   locations: [
-    { obj_id: { prefix: 'L', numeric: 1 }, name: 'Village', description: 'A village', neighboring_locations: [] },
-    { obj_id: { prefix: 'L', numeric: 2 }, name: 'Forest', description: 'A forest', neighboring_locations: [] },
+    {
+      obj_id: { prefix: 'L', numeric: 1 },
+      name: 'Village',
+      description: 'A village',
+      neighboring_locations: [],
+    },
+    {
+      obj_id: { prefix: 'L', numeric: 2 },
+      name: 'Forest',
+      description: 'A forest',
+      neighboring_locations: [],
+    },
   ],
   items: [],
   rules: [
-    { obj_id: { prefix: 'R', numeric: 1 }, description: 'Rule 1', effect: '', components: [] },
+    {
+      obj_id: { prefix: 'R', numeric: 1 },
+      description: 'Rule 1',
+      effect: '',
+      components: [],
+    },
   ],
   objectives: [],
 };
@@ -57,7 +105,9 @@ describe('CampaignCard', () => {
 
   it('should render campaign summary', () => {
     render(<CampaignCard campaign={mockCampaign} onDelete={mockOnDelete} />);
-    expect(screen.getByText('This is a test campaign for unit testing purposes.')).toBeInTheDocument();
+    expect(
+      screen.getByText('This is a test campaign for unit testing purposes.'),
+    ).toBeInTheDocument();
   });
 
   it('should truncate long summaries', () => {
@@ -65,7 +115,9 @@ describe('CampaignCard', () => {
       ...mockCampaign,
       summary: 'A'.repeat(150),
     };
-    render(<CampaignCard campaign={longSummaryCampaign} onDelete={mockOnDelete} />);
+    render(
+      <CampaignCard campaign={longSummaryCampaign} onDelete={mockOnDelete} />,
+    );
     const truncated = screen.getByText(/^A+\.\.\.$/);
     expect(truncated.textContent?.length).toBeLessThan(150);
   });
@@ -99,8 +151,13 @@ describe('CampaignCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete "Test Campaign"?');
-    expect(mockOnDelete).toHaveBeenCalledWith({ prefix: 'CampPlan', numeric: 42 });
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Are you sure you want to delete "Test Campaign"?',
+    );
+    expect(mockOnDelete).toHaveBeenCalledWith({
+      prefix: 'CampPlan',
+      numeric: 42,
+    });
 
     confirmSpy.mockRestore();
   });
@@ -119,13 +176,17 @@ describe('CampaignCard', () => {
 
   it('should display "Untitled Campaign" when title is empty', () => {
     const untitledCampaign = { ...mockCampaign, title: '' };
-    render(<CampaignCard campaign={untitledCampaign} onDelete={mockOnDelete} />);
+    render(
+      <CampaignCard campaign={untitledCampaign} onDelete={mockOnDelete} />,
+    );
     expect(screen.getByText('Untitled Campaign')).toBeInTheDocument();
   });
 
   it('should display "No summary provided" when summary is empty', () => {
     const noSummaryCampaign = { ...mockCampaign, summary: '' };
-    render(<CampaignCard campaign={noSummaryCampaign} onDelete={mockOnDelete} />);
+    render(
+      <CampaignCard campaign={noSummaryCampaign} onDelete={mockOnDelete} />,
+    );
     expect(screen.getByText('No summary provided')).toBeInTheDocument();
   });
 });

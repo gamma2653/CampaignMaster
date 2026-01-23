@@ -1,10 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute(
   '/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id/point/$point_id/',
 )({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
   return (
@@ -12,5 +12,5 @@ function RouteComponent() {
       Hello
       "/campaign/plan/$camp_id/arc/$arc_id/segment/$seg_id/point/$point_id/"!
     </div>
-  )
+  );
 }

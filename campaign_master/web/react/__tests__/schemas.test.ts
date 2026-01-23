@@ -39,7 +39,9 @@ describe('PREFIXES', () => {
 describe('getUrlSegment', () => {
   it('should create lowercase URL segments from ID objects', () => {
     expect(getUrlSegment({ prefix: 'R', numeric: 1 })).toBe('r/1');
-    expect(getUrlSegment({ prefix: 'CampPlan', numeric: 42 })).toBe('campplan/42');
+    expect(getUrlSegment({ prefix: 'CampPlan', numeric: 42 })).toBe(
+      'campplan/42',
+    );
     expect(getUrlSegment({ prefix: 'C', numeric: 0 })).toBe('c/0');
   });
 });
@@ -89,7 +91,7 @@ describe('RuleSchema', () => {
     expect(() =>
       RuleSchema.parse({
         obj_id: { prefix: 'C', numeric: 1 },
-      })
+      }),
     ).toThrow();
   });
 });

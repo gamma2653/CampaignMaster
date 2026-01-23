@@ -1,34 +1,35 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { usePoint } from '../../../../../query'
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { usePoint } from '../../../../../query';
 
 export const Route = createFileRoute('/campaign/plan/$camp_id/point/')({
   component: PointListComponent,
-})
+});
 
 function PointListComponent() {
-  const { camp_id } = Route.useParams()
-  const { data: points, isLoading, error } = usePoint()
+  const { camp_id } = Route.useParams();
+  const { data: points, isLoading, error } = usePoint();
 
   const handleDelete = async (numeric: number) => {
-    if (!confirm('Are you sure you want to delete this point?')) return
+    if (!confirm('Are you sure you want to delete this point?')) return;
 
     try {
       const response = await fetch(`/api/campaign/p/${numeric}`, {
         method: 'DELETE',
-      })
+      });
       if (response.ok) {
         // Refresh the page or invalidate query
-        window.location.reload()
+        window.location.reload();
       } else {
-        alert('Failed to delete point')
+        alert('Failed to delete point');
       }
     } catch {
-      alert('Error deleting point')
+      alert('Error deleting point');
     }
-  }
+  };
 
-  if (isLoading) return <div className="p-4">Loading points...</div>
-  if (error) return <div className="p-4 text-red-500">Error loading points</div>
+  if (isLoading) return <div className="p-4">Loading points...</div>;
+  if (error)
+    return <div className="p-4 text-red-500">Error loading points</div>;
 
   return (
     <div className="p-4">
@@ -69,7 +70,8 @@ function PointListComponent() {
                   </p>
                   {point.objective && (
                     <p className="text-sm text-gray-600 mt-1">
-                      Objective: {point.objective.prefix}-{point.objective.numeric}
+                      Objective: {point.objective.prefix}-
+                      {point.objective.numeric}
                     </p>
                   )}
                   <p className="mt-2 text-gray-700">{point.description}</p>
@@ -86,5 +88,5 @@ function PointListComponent() {
         </div>
       )}
     </div>
-  )
+  );
 }

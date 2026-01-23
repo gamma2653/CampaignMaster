@@ -1,20 +1,19 @@
-import { withFieldGroup } from "../ctx";
-import { Character, ItemID, PREFIXES } from "../../../../schemas";
-import { ObjectIDGroup } from "./ObjectIDGroup";
+import { withFieldGroup } from '../ctx';
+import { Character, ItemID, PREFIXES } from '../../../../schemas';
+import { ObjectIDGroup } from './ObjectIDGroup';
 
 export const defaultValues = {
-    obj_id: {
-        prefix: PREFIXES.CHARACTER,
-        numeric: 0,
-    },
-    name: '',
-    role: '',
-    backstory: '',
-    attributes: [] as { name: string; value: number }[],
-    skills: [] as { name: string; value: number }[],
-    inventory: [] as ItemID[],
-} as Character
-
+  obj_id: {
+    prefix: PREFIXES.CHARACTER,
+    numeric: 0,
+  },
+  name: '',
+  role: '',
+  backstory: '',
+  attributes: [] as { name: string; value: number }[],
+  skills: [] as { name: string; value: number }[],
+  inventory: [] as ItemID[],
+} as Character;
 
 // type Props = {
 //     classNames?: {
@@ -30,109 +29,159 @@ export const defaultValues = {
 // }
 
 export const CharacterGroup = withFieldGroup({
-    defaultValues,
-    // props: {} as Props,
-    // render: ({ group, classNames }) => {
-    render: ({ group }) => {
-        return (
-            <div className="flex flex-col relative">
-                <div className="absolute top-0 right-0">
-                    <group.AppField name="obj_id">
-                        {(field) => <field.IDDisplayField />}
-                    </group.AppField>
-                </div>
-                <div className="pt-8">
-                    <group.AppField name="name">
-                        {(field) => <field.TextField label="Character Name" />}
-                    </group.AppField>
-                </div>
-                <div>
-                    <group.AppField name="role">
-                        {(field) => <field.TextField label="Character Role" />}
-                    </group.AppField>
-                </div>
-                <div>
-                    <group.AppField name="backstory">
-                        {(field) => <field.TextAreaField label="Character Backstory" />}
-                    </group.AppField>
-                </div>
-                <group.AppField name="attributes" mode="array">
-                    {(field) => (
-                        <div>
-                            <h3>Attributes</h3>
-                            {group.state.values.attributes.map((_, index) => (
-                                <div key={index} className='border p-2 mb-2 '>
-                                    <h4>Attribute {index + 1}</h4>
-                                    <group.AppField name={`attributes[${index}].name`}>
-                                        {(subField) => <subField.TextField label="Attribute Name" />}
-                                    </group.AppField>
-                                    <group.AppField name={`attributes[${index}].value`}>
-                                        {(subField) => <subField.NumberField label="Attribute Value" />}
-                                    </group.AppField>
-                                </div>
-                            ))}
-                            <input type="text" placeholder="New Attribute Name" id="new-attribute-name" />
-                            <button type="button" className="add-button" onClick={() => {
-                                const new_attr_name_field = document.getElementById('new-attribute-name') as HTMLInputElement;
-                                field.pushValue({
-                                    name: new_attr_name_field?.value || 'Unnamed Attribute',
-                                    value: 0,
-                                });
-                                new_attr_name_field.value = '';
-                            }}>
-                                Add Attribute
-                            </button>
-                        </div>
+  defaultValues,
+  // props: {} as Props,
+  // render: ({ group, classNames }) => {
+  render: ({ group }) => {
+    return (
+      <div className="flex flex-col relative">
+        <div className="absolute top-0 right-0">
+          <group.AppField name="obj_id">
+            {(field) => <field.IDDisplayField />}
+          </group.AppField>
+        </div>
+        <div className="pt-8">
+          <group.AppField name="name">
+            {(field) => (
+              <field.AITextField
+                label="Character Name"
+                fieldName="name"
+                entityType="Character"
+              />
+            )}
+          </group.AppField>
+        </div>
+        <div>
+          <group.AppField name="role">
+            {(field) => <field.TextField label="Character Role" />}
+          </group.AppField>
+        </div>
+        <div>
+          <group.AppField name="backstory">
+            {(field) => (
+              <field.AITextAreaField
+                label="Character Backstory"
+                fieldName="backstory"
+                entityType="Character"
+              />
+            )}
+          </group.AppField>
+        </div>
+        <group.AppField name="attributes" mode="array">
+          {(field) => (
+            <div>
+              <h3>Attributes</h3>
+              {group.state.values.attributes.map((_, index) => (
+                <div key={index} className="border p-2 mb-2 ">
+                  <h4>Attribute {index + 1}</h4>
+                  <group.AppField name={`attributes[${index}].name`}>
+                    {(subField) => (
+                      <subField.TextField label="Attribute Name" />
                     )}
-                </group.AppField>
-                <group.AppField name="skills">
-                    {(field) => (
-                        <div>
-                            <h3>Skills</h3>
-                            {group.state.values.skills.map((_, index) => (
-                                <div key={index} className='border p-2 mb-2 '>
-                                    <h4>Skill {index + 1}</h4>
-                                    <group.AppField name={`skills[${index}].name`}>
-                                        {(subField) => <subField.TextField label="Skill Name" />}
-                                    </group.AppField>
-                                    <group.AppField name={`skills[${index}].value`}>
-                                        {(subField) => <subField.NumberField label="Skill Value" />}
-                                    </group.AppField>
-                                </div>
-                            ))}
-                            <input type="text" placeholder="New Skill Name" id="new-skill-name" />
-                            <button type="button" className="add-button" onClick={() => {
-                                const new_skill_name_field = document.getElementById('new-skill-name') as HTMLInputElement;
-                                field.pushValue({
-                                    name: new_skill_name_field?.value || 'Unnamed Skill',
-                                    value: 0,
-                                });
-                                new_skill_name_field.value = '';
-                            }}>
-                                Add Skill
-                            </button>
-                        </div>
+                  </group.AppField>
+                  <group.AppField name={`attributes[${index}].value`}>
+                    {(subField) => (
+                      <subField.NumberField label="Attribute Value" />
                     )}
-                </group.AppField>
-                <group.AppField name="inventory" mode="array">
-                    {(field) => (
-                        <div>
-                            <h3>Inventory</h3>
-                            {group.state.values.inventory.map((_, index) => (
-                                <div key={index} className='border p-2 mb-2 '>
-                                    <h4>Item {index + 1}</h4>
-                                    <group.AppField name={`inventory[${index}]`}>
-                                        {() => <ObjectIDGroup form={group} fields={`inventory[${index}]`} />}
-                                    </group.AppField>
-                                </div>
-                            ))}
-                            <button type="button" className="add-button" onClick={() => field.pushValue({ prefix: PREFIXES.ITEM, numeric: 0 } as ItemID)}>
-                                Add Item
-                            </button>
-                        </div>
-                    )}
-                </group.AppField>
+                  </group.AppField>
+                </div>
+              ))}
+              <input
+                type="text"
+                placeholder="New Attribute Name"
+                id="new-attribute-name"
+              />
+              <button
+                type="button"
+                className="add-button"
+                onClick={() => {
+                  const new_attr_name_field = document.getElementById(
+                    'new-attribute-name',
+                  ) as HTMLInputElement;
+                  field.pushValue({
+                    name: new_attr_name_field?.value || 'Unnamed Attribute',
+                    value: 0,
+                  });
+                  new_attr_name_field.value = '';
+                }}
+              >
+                Add Attribute
+              </button>
             </div>
-        )
-    }
-})
+          )}
+        </group.AppField>
+        <group.AppField name="skills">
+          {(field) => (
+            <div>
+              <h3>Skills</h3>
+              {group.state.values.skills.map((_, index) => (
+                <div key={index} className="border p-2 mb-2 ">
+                  <h4>Skill {index + 1}</h4>
+                  <group.AppField name={`skills[${index}].name`}>
+                    {(subField) => <subField.TextField label="Skill Name" />}
+                  </group.AppField>
+                  <group.AppField name={`skills[${index}].value`}>
+                    {(subField) => <subField.NumberField label="Skill Value" />}
+                  </group.AppField>
+                </div>
+              ))}
+              <input
+                type="text"
+                placeholder="New Skill Name"
+                id="new-skill-name"
+              />
+              <button
+                type="button"
+                className="add-button"
+                onClick={() => {
+                  const new_skill_name_field = document.getElementById(
+                    'new-skill-name',
+                  ) as HTMLInputElement;
+                  field.pushValue({
+                    name: new_skill_name_field?.value || 'Unnamed Skill',
+                    value: 0,
+                  });
+                  new_skill_name_field.value = '';
+                }}
+              >
+                Add Skill
+              </button>
+            </div>
+          )}
+        </group.AppField>
+        <group.AppField name="inventory" mode="array">
+          {(field) => (
+            <div>
+              <h3>Inventory</h3>
+              {group.state.values.inventory.map((_, index) => (
+                <div key={index} className="border p-2 mb-2 ">
+                  <h4>Item {index + 1}</h4>
+                  <group.AppField name={`inventory[${index}]`}>
+                    {() => (
+                      <ObjectIDGroup
+                        form={group}
+                        fields={`inventory[${index}]`}
+                      />
+                    )}
+                  </group.AppField>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="add-button"
+                onClick={() =>
+                  field.pushValue({
+                    prefix: PREFIXES.ITEM,
+                    numeric: 0,
+                  } as ItemID)
+                }
+              >
+                Add Item
+              </button>
+            </div>
+          )}
+        </group.AppField>
+      </div>
+    );
+  },
+});

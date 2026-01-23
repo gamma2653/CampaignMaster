@@ -1,25 +1,28 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { usePointByID } from '../../../../../../query'
-import { formOptions } from '@tanstack/react-form'
-import { useAppForm } from '../../../../../../features/shared/components/ctx'
-import { PointGroup, defaultValues } from '../../../../../../features/shared/components/fieldgroups/PointGroup'
-import { PREFIXES } from '../../../../../../schemas'
+import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { usePointByID } from '../../../../../../query';
+import { formOptions } from '@tanstack/react-form';
+import { useAppForm } from '../../../../../../features/shared/components/ctx';
+import {
+  PointGroup,
+  defaultValues,
+} from '../../../../../../features/shared/components/fieldgroups/PointGroup';
+import { PREFIXES } from '../../../../../../schemas';
 
 export const Route = createFileRoute(
   '/campaign/plan/$camp_id/point/$point_id/',
 )({
   component: PointDetailComponent,
-})
+});
 
 function PointDetailComponent() {
-  const { point_id } = Route.useParams()
-  const router = useRouter()
+  const { point_id } = Route.useParams();
+  const router = useRouter();
   const pointID = {
     prefix: PREFIXES.POINT,
     numeric: parseInt(point_id),
-  }
+  };
 
-  const { data: point, isLoading, error } = usePointByID(pointID)
+  const { data: point, isLoading, error } = usePointByID(pointID);
 
   const pointOpts = formOptions({
     defaultValues: point || defaultValues,
@@ -36,25 +39,25 @@ function PointDetailComponent() {
             description: value.description,
             objective: value.objective,
           }),
-        })
+        });
 
         if (response.ok) {
-          alert('Point updated successfully!')
-          router.invalidate()
+          alert('Point updated successfully!');
+          router.invalidate();
         } else {
-          alert('Failed to update point')
+          alert('Failed to update point');
         }
       } catch {
-        alert('Error updating point')
+        alert('Error updating point');
       }
     },
-  })
+  });
 
-  const form = useAppForm(pointOpts)
+  const form = useAppForm(pointOpts);
 
-  if (isLoading) return <div className="p-4">Loading point...</div>
-  if (error) return <div className="p-4 text-red-500">Error loading point</div>
-  if (!point) return <div className="p-4">Point not found</div>
+  if (isLoading) return <div className="p-4">Loading point...</div>;
+  if (error) return <div className="p-4 text-red-500">Error loading point</div>;
+  if (!point) return <div className="p-4">Point not found</div>;
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
@@ -62,9 +65,9 @@ function PointDetailComponent() {
 
       <form
         onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
         className="space-y-4"
       >
@@ -80,5 +83,5 @@ function PointDetailComponent() {
         </form.AppForm>
       </form>
     </div>
-  )
+  );
 }

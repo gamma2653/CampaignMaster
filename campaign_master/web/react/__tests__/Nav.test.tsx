@@ -3,15 +3,27 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import Navbar from '../features/shared/components/nav';
 
 // Mock image imports
-vi.mock('../../../../../assets/images/icons/book2.png', () => ({ default: 'book-icon.png' }));
-vi.mock('../../../../../assets/images/Me.jpg', () => ({ default: 'profile.jpg' }));
+vi.mock('../../../../../assets/images/icons/book2.png', () => ({
+  default: 'book-icon.png',
+}));
+vi.mock('../../../../../assets/images/Me.jpg', () => ({
+  default: 'profile.jpg',
+}));
 
 // Mock TanStack Router
 const mockNavigate = vi.fn();
 const mockInvalidate = vi.fn();
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, className }: { children: React.ReactNode; to: string; className?: string }) => (
+  Link: ({
+    children,
+    to,
+    className,
+  }: {
+    children: React.ReactNode;
+    to: string;
+    className?: string;
+  }) => (
     <a href={to} className={className} data-testid="nav-link">
       {children}
     </a>
@@ -55,17 +67,23 @@ describe('Navbar', () => {
 
   it('should render New Campaign button', () => {
     render(<Navbar />);
-    expect(screen.getByRole('button', { name: 'New Campaign' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'New Campaign' }),
+    ).toBeInTheDocument();
   });
 
   it('should render notifications button', () => {
     render(<Navbar />);
-    expect(screen.getByRole('button', { name: 'View notifications' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'View notifications' }),
+    ).toBeInTheDocument();
   });
 
   it('should render user menu button', () => {
     render(<Navbar />);
-    expect(screen.getByRole('button', { name: 'Open user menu' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Open user menu' }),
+    ).toBeInTheDocument();
   });
 
   it('should call create mutation when New Campaign is clicked', () => {
@@ -90,7 +108,7 @@ describe('Navbar', () => {
       expect.objectContaining({
         onSuccess: expect.any(Function),
         onError: expect.any(Function),
-      })
+      }),
     );
   });
 
@@ -101,7 +119,9 @@ describe('Navbar', () => {
     });
 
     render(<Navbar />);
-    expect(screen.getByRole('button', { name: 'Creating...' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Creating...' }),
+    ).toBeInTheDocument();
   });
 
   it('should disable button when mutation is pending', () => {
@@ -143,7 +163,9 @@ describe('Navbar', () => {
     // Simulate error
     callbacks.onError(new Error('Failed to create'));
 
-    expect(alertSpy).toHaveBeenCalledWith('Failed to create campaign: Failed to create');
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Failed to create campaign: Failed to create',
+    );
     expect(mockInvalidate).toHaveBeenCalled();
 
     alertSpy.mockRestore();
@@ -151,6 +173,8 @@ describe('Navbar', () => {
 
   it('should render mobile menu button', () => {
     render(<Navbar />);
-    expect(screen.getByRole('button', { name: 'Open main menu' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Open main menu' }),
+    ).toBeInTheDocument();
   });
 });

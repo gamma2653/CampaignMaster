@@ -38,10 +38,12 @@ def initialize_app(settings_: Settings):
     settings = settings_
     engine = content_api.engine
 
-    # Import and register API router
+    # Import and register API routers
     from .api import router as api_router
+    from .ai_api import router as ai_router
 
     app.include_router(api_router, prefix="/api")
+    app.include_router(ai_router, prefix="/api")
     # app.include_router(auth_router, prefix="/auth")
     app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
     app.add_api_route("/", index, methods=["GET"])

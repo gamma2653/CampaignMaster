@@ -5,7 +5,15 @@ import type { CampaignPlan } from '../schemas';
 
 // Mock TanStack Router
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, className }: { children: React.ReactNode; to: string; className?: string }) => (
+  Link: ({
+    children,
+    to,
+    className,
+  }: {
+    children: React.ReactNode;
+    to: string;
+    className?: string;
+  }) => (
     <a href={to} className={className}>
       {children}
     </a>
@@ -83,7 +91,9 @@ describe('CampaignPlansList', () => {
     });
 
     render(<CampaignPlansList />);
-    expect(screen.getByText('Error loading campaigns: Network error')).toBeInTheDocument();
+    expect(
+      screen.getByText('Error loading campaigns: Network error'),
+    ).toBeInTheDocument();
   });
 
   it('should display empty state when no campaigns', () => {
@@ -94,7 +104,9 @@ describe('CampaignPlansList', () => {
     });
 
     render(<CampaignPlansList />);
-    expect(screen.getByText(/You don't have any campaigns yet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/You don't have any campaigns yet/),
+    ).toBeInTheDocument();
   });
 
   it('should display empty state when data is undefined', () => {
@@ -105,7 +117,9 @@ describe('CampaignPlansList', () => {
     });
 
     render(<CampaignPlansList />);
-    expect(screen.getByText(/You don't have any campaigns yet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/You don't have any campaigns yet/),
+    ).toBeInTheDocument();
   });
 
   it('should render campaign cards when data is available', () => {
@@ -128,7 +142,9 @@ describe('CampaignPlansList', () => {
     });
 
     render(<CampaignPlansList />);
-    expect(screen.getByRole('heading', { name: 'My Campaign Plans' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'My Campaign Plans' }),
+    ).toBeInTheDocument();
   });
 
   it('should call delete mutation when campaign is deleted', () => {
