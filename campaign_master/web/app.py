@@ -39,8 +39,8 @@ def initialize_app(settings_: Settings):
     engine = content_api.engine
 
     # Import and register API routers
-    from .api import router as api_router
     from .ai_api import router as ai_router
+    from .api import router as api_router
 
     app.include_router(api_router, prefix="/api")
     app.include_router(ai_router, prefix="/api")
