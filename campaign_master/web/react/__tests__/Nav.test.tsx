@@ -40,6 +40,18 @@ vi.mock('../query', () => ({
   useCreateCampaignPlan: () => mockUseCreateCampaignPlan(),
 }));
 
+// Mock AI context
+vi.mock('../features/ai/AIContext', () => ({
+  useAI: () => ({
+    enabled: true,
+    setEnabled: vi.fn(),
+    defaultAgent: null,
+    agents: [],
+    isLoading: false,
+    refreshAgents: vi.fn(),
+  }),
+}));
+
 describe('Navbar', () => {
   beforeEach(() => {
     mockUseCreateCampaignPlan.mockReturnValue({

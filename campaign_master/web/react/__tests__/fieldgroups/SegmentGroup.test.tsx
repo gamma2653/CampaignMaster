@@ -118,6 +118,27 @@ vi.mock('../../features/shared/components/ctx', () => ({
                 </select>
               </div>
             ),
+            AITextField: ({ label }: { label: string }) => (
+              <div>
+                <label>{label}:</label>
+                <input
+                  type="text"
+                  value={String(getValue() ?? '')}
+                  onChange={(e) => mockFieldHandlers[name](e.target.value)}
+                  data-testid={`text-field-${name}`}
+                />
+              </div>
+            ),
+            AITextAreaField: ({ label }: { label: string }) => (
+              <div>
+                <label>{label}:</label>
+                <textarea
+                  value={String(getValue() ?? '')}
+                  onChange={(e) => mockFieldHandlers[name](e.target.value)}
+                  data-testid={`textarea-field-${name}`}
+                />
+              </div>
+            ),
           };
           return <>{children(mockField)}</>;
         },
