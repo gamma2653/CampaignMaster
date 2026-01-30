@@ -5,6 +5,7 @@ import {
   useUpdateProfile,
   useChangePassword,
   useUploadProfilePicture,
+  useAuthenticatedImage,
 } from '../auth';
 import { UserCircleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 
@@ -34,6 +35,8 @@ function ProfilePage() {
     type: 'success' | 'error';
     text: string;
   } | null>(null);
+
+  const profilePicUrl = useAuthenticatedImage(user?.profile_picture);
 
   const [pictureMsg, setPictureMsg] = useState<{
     type: 'success' | 'error';
@@ -165,9 +168,9 @@ function ProfilePage() {
           </h2>
           <div className="flex items-center gap-6">
             <div className="shrink-0">
-              {user?.profile_picture ? (
+              {profilePicUrl ? (
                 <img
-                  src={user.profile_picture}
+                  src={profilePicUrl}
                   alt="Profile"
                   className="h-20 w-20 rounded-full object-cover border-2 border-white/10"
                 />

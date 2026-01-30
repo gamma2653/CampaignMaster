@@ -24,7 +24,12 @@ import me from '../../../../../assets/images/Me.jpg';
 import { useCreateCampaignPlan } from '../../../query';
 import { useRouter } from '@tanstack/react-router';
 import { useAI } from '../../ai/AIContext';
-import { useLogout, useCurrentUser, clearAuthToken } from '../../../auth';
+import {
+  useLogout,
+  useCurrentUser,
+  clearAuthToken,
+  useAuthenticatedImage,
+} from '../../../auth';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -42,6 +47,7 @@ export default function Navbar() {
   const { enabled: aiEnabled, setEnabled: setAIEnabled } = useAI();
   const logoutMutation = useLogout();
   const { data: currentUser } = useCurrentUser();
+  const profilePicUrl = useAuthenticatedImage(currentUser?.profile_picture);
 
   const handleSignOut = () => {
     logoutMutation.mutate(undefined, {
@@ -154,10 +160,10 @@ export default function Navbar() {
               <MenuButton className="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
                 <span className="absolute -inset-1.5" />
                 <span className="sr-only">Open user menu</span>
-                {currentUser?.profile_picture ? (
+                {profilePicUrl ? (
                   <img
                     alt=""
-                    src={currentUser.profile_picture}
+                    src={profilePicUrl}
                     className="size-8 rounded-full bg-gray-800 object-cover outline -outline-offset-1 outline-white/10"
                   />
                 ) : (

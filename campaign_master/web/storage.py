@@ -29,7 +29,7 @@ class LocalStorage(StorageBackend):
         file_path.parent.mkdir(parents=True, exist_ok=True)
         contents = await file.read()
         file_path.write_bytes(contents)
-        return f"/uploads/{key}"
+        return f"/api/auth/uploads/{key}"
 
     async def delete(self, key: str) -> None:
         file_path = self.upload_dir / key
@@ -106,5 +106,5 @@ def get_storage() -> StorageBackend:
             endpoint=settings.s3_endpoint,
         )
     else:
-        _storage = LocalStorage(settings.upload_dir / "profile_pictures")
+        _storage = LocalStorage(settings.upload_dir)
     return _storage

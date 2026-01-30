@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 const AUTH_TOKEN_KEY = 'cm_auth_token';
@@ -12,6 +13,49 @@ export function setAuthToken(token: string): void {
 
 export function clearAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+export function useAuthenticatedImage(url: string | null | undefined): string | null {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!url || !url.startsWith('/api/auth/uploads/')) {
+      setBlobUrl(url ?? null);
+      return;
+    }
+
+    let revoked = false;
+    const token = getAuthToken();
+    if (!token) {
+      setBlobUrl(null);
+      return;
+    }
+
+    fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch image');
+        return res.blob();
+      })
+      .then((blob) => {
+        if (!revoked) {
+          setBlobUrl(URL.createObjectURL(blob));
+        }
+      })
+      .catch(() => {
+        if (!revoked) setBlobUrl(null);
+      });
+
+    return () => {
+      revoked = true;
+      if (blobUrl && blobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [url]);
+
+  return blobUrl;
 }
 
 export interface UserResponse {

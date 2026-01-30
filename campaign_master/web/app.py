@@ -45,10 +45,9 @@ def initialize_app(settings_: Settings):
     app.include_router(ai_router, prefix="/api")
     app.include_router(auth_router, prefix="/api/auth")
 
-    # Serve uploaded files (profile pictures, etc.) in dev/local mode
-    upload_dir = settings.upload_dir
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
+    # Upload directory is still needed for local storage, but files are
+    # served through the authenticated /api/auth/uploads/ endpoint.
+    settings.upload_dir.mkdir(parents=True, exist_ok=True)
 
     app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
     app.add_api_route("/", index, methods=["GET"])

@@ -1,8 +1,10 @@
+import pathlib
 import uuid
 
 import bcrypt
 import fastapi
 from fastapi import Depends, Header, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session as SASession
@@ -322,7 +324,7 @@ async def upload_profile_picture(
         # Delete old picture if exists
         old_picture = db_user.profile_picture
         if old_picture:
-            old_key = old_picture.removeprefix("/uploads/")
+            old_key = old_picture.split("/uploads/", 1)[-1] if "/uploads/" in old_picture else old_picture
             try:
                 await storage.delete(old_key)
             except Exception as e:
@@ -337,3 +339,25 @@ async def upload_profile_picture(
         raise
     finally:
         session.close()
+
+
+@router.get("/uploads/{file_path:path}")
+async def get_upload(
+    file_path: str,
+    user: AuthUser = Depends(get_authenticated_user),
+):
+    """Serve uploaded files with header-based authentication."""
+    # Prevent directory traversal
+    from .settings import Settings
+
+    settings = Settings()
+    upload_dir = settings.upload_dir.resolve()
+    requested = (upload_dir / file_path).resolve()
+
+    if not str(requested).startswith(str(upload_dir)):
+        raise fastapi.HTTPException(status_code=400, detail="Invalid file path")
+
+    if not requested.is_file():
+        raise fastapi.HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(requested)

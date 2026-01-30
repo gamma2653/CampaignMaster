@@ -244,6 +244,9 @@ __marimo__/
 # tanstack
 .tanstack/
 
+# Uploads (user data)
+uploads/
+
 # Claude Code
 .claude/
 tmpclaude-*
