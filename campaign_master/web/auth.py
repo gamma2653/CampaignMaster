@@ -30,9 +30,7 @@ def ensure_admin_user() -> None:
     """
     session = get_session_factory()()
     try:
-        existing = session.execute(
-            select(AuthUser).where(AuthUser.proto_user_id == 0)
-        ).scalar_one_or_none()
+        existing = session.execute(select(AuthUser).where(AuthUser.proto_user_id == 0)).scalar_one_or_none()
 
         if existing is not None:
             return
