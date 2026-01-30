@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import Navbar from '../features/shared/components/nav';
 
 // Mock image imports
@@ -40,6 +42,16 @@ vi.mock('../query', () => ({
   useCreateCampaignPlan: () => mockUseCreateCampaignPlan(),
 }));
 
+// Mock auth hooks
+const mockLogoutMutate = vi.fn();
+vi.mock('../auth', () => ({
+  useLogout: () => ({
+    mutate: mockLogoutMutate,
+    isPending: false,
+  }),
+  clearAuthToken: vi.fn(),
+}));
+
 // Mock AI context
 vi.mock('../features/ai/AIContext', () => ({
   useAI: () => ({
@@ -52,6 +64,17 @@ vi.mock('../features/ai/AIContext', () => ({
   }),
 }));
 
+function renderNavbar() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <Navbar />
+    </QueryClientProvider>,
+  );
+}
+
 describe('Navbar', () => {
   beforeEach(() => {
     mockUseCreateCampaignPlan.mockReturnValue({
@@ -62,44 +85,44 @@ describe('Navbar', () => {
   });
 
   it('should render the navbar', () => {
-    render(<Navbar />);
+    renderNavbar();
     expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
   it('should render the logo link to home', () => {
-    render(<Navbar />);
+    renderNavbar();
     const logoLink = screen.getAllByTestId('nav-link')[0];
     expect(logoLink).toHaveAttribute('href', '/');
   });
 
   it('should render My Campaign Plans link', () => {
-    render(<Navbar />);
+    renderNavbar();
     expect(screen.getByText('My Campaign Plans')).toBeInTheDocument();
   });
 
   it('should render New Campaign button', () => {
-    render(<Navbar />);
+    renderNavbar();
     expect(
       screen.getByRole('button', { name: 'New Campaign' }),
     ).toBeInTheDocument();
   });
 
   it('should render notifications button', () => {
-    render(<Navbar />);
+    renderNavbar();
     expect(
       screen.getByRole('button', { name: 'View notifications' }),
     ).toBeInTheDocument();
   });
 
   it('should render user menu button', () => {
-    render(<Navbar />);
+    renderNavbar();
     expect(
       screen.getByRole('button', { name: 'Open user menu' }),
     ).toBeInTheDocument();
   });
 
   it('should call create mutation when New Campaign is clicked', () => {
-    render(<Navbar />);
+    renderNavbar();
 
     fireEvent.click(screen.getByRole('button', { name: 'New Campaign' }));
 
@@ -130,7 +153,7 @@ describe('Navbar', () => {
       isPending: true,
     });
 
-    render(<Navbar />);
+    renderNavbar();
     expect(
       screen.getByRole('button', { name: 'Creating...' }),
     ).toBeInTheDocument();
@@ -142,12 +165,12 @@ describe('Navbar', () => {
       isPending: true,
     });
 
-    render(<Navbar />);
+    renderNavbar();
     expect(screen.getByRole('button', { name: 'Creating...' })).toBeDisabled();
   });
 
   it('should navigate to new campaign on success', () => {
-    render(<Navbar />);
+    renderNavbar();
 
     fireEvent.click(screen.getByRole('button', { name: 'New Campaign' }));
 
@@ -164,7 +187,7 @@ describe('Navbar', () => {
   it('should show alert and invalidate on error', () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    render(<Navbar />);
+    renderNavbar();
 
     fireEvent.click(screen.getByRole('button', { name: 'New Campaign' }));
 
@@ -184,7 +207,7 @@ describe('Navbar', () => {
   });
 
   it('should render mobile menu button', () => {
-    render(<Navbar />);
+    renderNavbar();
     expect(
       screen.getByRole('button', { name: 'Open main menu' }),
     ).toBeInTheDocument();

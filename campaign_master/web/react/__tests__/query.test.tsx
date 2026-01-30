@@ -74,7 +74,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/campplan');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/campplan', {
+        headers: {},
+      });
       expect(result.current.data).toEqual(mockCampaigns);
     });
   });
@@ -97,7 +99,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/campplan/42');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/campplan/42', {
+        headers: {},
+      });
       expect(result.current.data).toEqual(mockCampaign);
     });
   });
@@ -119,7 +123,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/r');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/r', {
+        headers: {},
+      });
       expect(result.current.data).toEqual(mockRules);
     });
   });
@@ -138,7 +144,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/o');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/o', {
+        headers: {},
+      });
     });
   });
 
@@ -156,7 +164,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/p');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/p', {
+        headers: {},
+      });
     });
   });
 
@@ -174,7 +184,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/c');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/c', {
+        headers: {},
+      });
     });
   });
 
@@ -192,7 +204,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/l');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/l', {
+        headers: {},
+      });
     });
   });
 
@@ -210,7 +224,9 @@ describe('Query Hooks', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/i');
+      expect(mockFetch).toHaveBeenCalledWith('/api/campaign/i', {
+        headers: {},
+      });
     });
   });
 });
