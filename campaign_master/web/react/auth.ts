@@ -43,8 +43,8 @@ export function useLogin() {
       return await response.json();
     },
     onSuccess: (data) => {
+      queryClient.clear();
       setAuthToken(data.access_token);
-      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
     },
   });
 }
@@ -67,8 +67,8 @@ export function useRegister() {
       return await response.json();
     },
     onSuccess: (data) => {
+      queryClient.clear();
       setAuthToken(data.access_token);
-      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
     },
   });
 }
@@ -87,7 +87,7 @@ export function useLogout() {
     },
     onSuccess: () => {
       clearAuthToken();
-      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      queryClient.clear();
     },
   });
 }
