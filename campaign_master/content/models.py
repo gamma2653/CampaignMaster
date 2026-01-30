@@ -1343,9 +1343,7 @@ class AuthUser(Base):
     proto_user_id: Mapped[int] = mapped_column(ForeignKey("proto_user.id"))
 
     proto_user: Mapped[ProtoUser] = relationship("ProtoUser")
-    tokens: Mapped[list["AuthToken"]] = relationship(
-        "AuthToken", back_populates="user", cascade="all, delete-orphan"
-    )
+    tokens: Mapped[list["AuthToken"]] = relationship("AuthToken", back_populates="user", cascade="all, delete-orphan")
 
 
 class AuthToken(Base):
