@@ -8,8 +8,47 @@ from sqlalchemy import select
 
 from ..content.database import get_session_factory
 from ..content.models import AuthToken, AuthUser, ProtoUser
+from ..util import get_basic_logger
+
+logger = get_basic_logger(__name__)
 
 router = fastapi.APIRouter()
+
+ADMIN_USERNAME = "admin"
+ADMIN_EMAIL = "admin@localhost"
+ADMIN_DEFAULT_PASSWORD = "admin"
+
+
+def ensure_admin_user() -> None:
+    """Ensure an AuthUser account exists for the default admin ProtoUser (id=0).
+
+    Creates the admin account with default credentials if it doesn't already exist.
+    The password should be changed after first login in production environments.
+    """
+    session = get_session_factory()()
+    try:
+        existing = session.execute(
+            select(AuthUser).where(AuthUser.proto_user_id == 0)
+        ).scalar_one_or_none()
+
+        if existing is not None:
+            return
+
+        admin = AuthUser(
+            username=ADMIN_USERNAME,
+            email=ADMIN_EMAIL,
+            full_name="Administrator",
+            hashed_password=_hash_password(ADMIN_DEFAULT_PASSWORD),
+            proto_user_id=0,
+        )
+        session.add(admin)
+        session.commit()
+        logger.info("Created default admin AuthUser for proto_user_id=0")
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 class LoginRequest(BaseModel):

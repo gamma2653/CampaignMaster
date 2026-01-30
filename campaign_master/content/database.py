@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from ..util import get_basic_logger
-from .models import Base
+from .models import Base, ProtoUser
 from .settings import GUISettings
 
 logger = get_basic_logger(__name__)
@@ -141,13 +141,34 @@ def transaction(proto_user_id: int = 0) -> Generator[Session, None, None]:
 
 def create_db_and_tables(engine: Engine | None = None) -> None:
     """
-    Create all database tables.
+    Create all database tables and ensure the default admin ProtoUser exists.
 
     Args:
         engine: Optional engine to use. If None, uses the active engine.
     """
     target_engine = engine if engine is not None else get_engine()
     Base.metadata.create_all(target_engine)
+    _ensure_default_admin_user()
+
+
+def _ensure_default_admin_user() -> None:
+    """Ensure the default admin ProtoUser (id=0) exists in the database."""
+    session = get_session_factory()()
+    try:
+        existing = session.get(ProtoUser, 0)
+        if existing is None:
+            admin_user = ProtoUser(id=0)
+            session.add(admin_user)
+            session.commit()
+            logger.info("Created default admin ProtoUser (id=0)")
+        else:
+            logger.debug("Default admin ProtoUser (id=0) already exists")
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Failed to create default admin ProtoUser: {e}")
+        raise
+    finally:
+        session.close()
 
 
 def create_example_data():

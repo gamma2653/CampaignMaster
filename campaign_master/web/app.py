@@ -15,6 +15,10 @@ from .settings import Settings
 async def setter_and_cleaner(app: fastapi.FastAPI):
     # Initialize tables
     content_api.create_db_and_tables()
+    # Ensure admin AuthUser exists for the default admin ProtoUser (id=0)
+    from .auth import ensure_admin_user
+
+    ensure_admin_user()
     yield
     # Cleanup resources here
 
