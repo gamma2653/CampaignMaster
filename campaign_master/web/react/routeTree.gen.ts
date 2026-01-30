@@ -11,6 +11,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -48,6 +49,11 @@ const AboutLazyRoute = AboutLazyRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -219,6 +225,7 @@ const CampaignPlanCamp_idArcArc_idSegmentSeg_idPointPoint_idIndexRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/about': typeof AboutLazyRoute
   '/settings/agents': typeof SettingsAgentsRoute
   '/campaign/': typeof CampaignIndexRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/about': typeof AboutLazyRoute
   '/settings/agents': typeof SettingsAgentsRoute
   '/campaign': typeof CampaignIndexRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/about': typeof AboutLazyRoute
   '/settings/agents': typeof SettingsAgentsRoute
   '/campaign/': typeof CampaignIndexRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/profile'
     | '/about'
     | '/settings/agents'
     | '/campaign/'
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/profile'
     | '/about'
     | '/settings/agents'
     | '/campaign'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/profile'
     | '/about'
     | '/settings/agents'
     | '/campaign/'
@@ -415,6 +427,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
   AboutLazyRoute: typeof AboutLazyRoute
   SettingsAgentsRoute: typeof SettingsAgentsRoute
   CampaignIndexRoute: typeof CampaignIndexRoute
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutLazyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -663,6 +683,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
   AboutLazyRoute: AboutLazyRoute,
   SettingsAgentsRoute: SettingsAgentsRoute,
   CampaignIndexRoute: CampaignIndexRoute,

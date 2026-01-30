@@ -1339,6 +1339,7 @@ class AuthUser(Base):
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(200))
+    profile_picture: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     proto_user_id: Mapped[int] = mapped_column(ForeignKey("proto_user.id"))
 

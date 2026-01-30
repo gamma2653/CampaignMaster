@@ -24,7 +24,8 @@ import me from '../../../../../assets/images/Me.jpg';
 import { useCreateCampaignPlan } from '../../../query';
 import { useRouter } from '@tanstack/react-router';
 import { useAI } from '../../ai/AIContext';
-import { useLogout, clearAuthToken } from '../../../auth';
+import { useLogout, useCurrentUser, clearAuthToken } from '../../../auth';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: 'My Campaign Plans', href: '/campaign/plans', current: true },
@@ -40,6 +41,7 @@ export default function Navbar() {
   const createMutation = useCreateCampaignPlan();
   const { enabled: aiEnabled, setEnabled: setAIEnabled } = useAI();
   const logoutMutation = useLogout();
+  const { data: currentUser } = useCurrentUser();
 
   const handleSignOut = () => {
     logoutMutation.mutate(undefined, {
@@ -152,11 +154,19 @@ export default function Navbar() {
               <MenuButton className="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
                 <span className="absolute -inset-1.5" />
                 <span className="sr-only">Open user menu</span>
-                <img
-                  alt=""
-                  src={me}
-                  className="size-8 rounded-full bg-gray-800 outline -outline-offset-1 outline-white/10"
-                />
+                {currentUser?.profile_picture ? (
+                  <img
+                    alt=""
+                    src={currentUser.profile_picture}
+                    className="size-8 rounded-full bg-gray-800 object-cover outline -outline-offset-1 outline-white/10"
+                  />
+                ) : (
+                  <img
+                    alt=""
+                    src={me}
+                    className="size-8 rounded-full bg-gray-800 outline -outline-offset-1 outline-white/10"
+                  />
+                )}
               </MenuButton>
 
               <MenuItems
@@ -164,12 +174,12 @@ export default function Navbar() {
                 className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-gray-800 py-1 outline -outline-offset-1 outline-white/10 transition data-closed:scale-95 data-closed:transform data-closed:opacity-0 data-enter:duration-100 data-enter:ease-out data-leave:duration-75 data-leave:ease-in"
               >
                 <MenuItem>
-                  <a
-                    href="#"
+                  <Link
+                    to="/profile"
                     className="block px-4 py-2 text-sm text-gray-300 data-focus:bg-white/5 data-focus:outline-hidden"
                   >
                     Your profile
-                  </a>
+                  </Link>
                 </MenuItem>
                 <MenuItem>
                   <Link

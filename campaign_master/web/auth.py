@@ -2,9 +2,10 @@ import uuid
 
 import bcrypt
 import fastapi
-from fastapi import Depends, Header
+from fastapi import Depends, Header, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.orm import Session as SASession
 
 from ..content.database import get_session_factory
 from ..content.models import AuthToken, AuthUser, ProtoUser
@@ -63,11 +64,23 @@ class RegisterRequest(BaseModel):
     full_name: str | None = None
 
 
+class ProfileUpdateRequest(BaseModel):
+    username: str | None = None
+    email: str | None = None
+    full_name: str | None = None
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserResponse(BaseModel):
     username: str
     email: str
     full_name: str | None = None
     proto_user_id: int
+    profile_picture: str | None = None
 
 
 class AuthResponse(BaseModel):
@@ -123,12 +136,7 @@ async def login(request: LoginRequest):
         return AuthResponse(
             access_token=token.token,
             token_type="bearer",
-            user=UserResponse(
-                username=user.username,
-                email=user.email,
-                full_name=user.full_name,
-                proto_user_id=user.proto_user_id,
-            ),
+            user=_user_response(user),
         )
     except Exception:
         session.rollback()
@@ -172,12 +180,7 @@ async def register(request: RegisterRequest):
         return AuthResponse(
             access_token=token.token,
             token_type="bearer",
-            user=UserResponse(
-                username=user.username,
-                email=user.email,
-                full_name=user.full_name,
-                proto_user_id=user.proto_user_id,
-            ),
+            user=_user_response(user),
         )
     except Exception:
         session.rollback()
@@ -186,14 +189,19 @@ async def register(request: RegisterRequest):
         session.close()
 
 
-@router.get("/me", response_model=UserResponse)
-async def get_current_user(user: AuthUser = Depends(get_authenticated_user)):
+def _user_response(user: AuthUser) -> UserResponse:
     return UserResponse(
         username=user.username,
         email=user.email,
         full_name=user.full_name,
         proto_user_id=user.proto_user_id,
+        profile_picture=user.profile_picture,
     )
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user(user: AuthUser = Depends(get_authenticated_user)):
+    return _user_response(user)
 
 
 @router.post("/logout")
@@ -214,3 +222,118 @@ async def logout(request: fastapi.Request):
             session.close()
 
     return {"message": "Logged out"}
+
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    request: ProfileUpdateRequest,
+    user: AuthUser = Depends(get_authenticated_user),
+):
+    session = get_session_factory()()
+    try:
+        db_user = session.execute(
+            select(AuthUser).where(AuthUser.id == user.id)
+        ).scalar_one()
+
+        if request.username is not None and request.username != db_user.username:
+            existing = session.execute(
+                select(AuthUser).where(AuthUser.username == request.username)
+            ).scalar_one_or_none()
+            if existing is not None:
+                raise fastapi.HTTPException(status_code=409, detail="Username already taken")
+            db_user.username = request.username
+
+        if request.email is not None and request.email != db_user.email:
+            existing = session.execute(
+                select(AuthUser).where(AuthUser.email == request.email)
+            ).scalar_one_or_none()
+            if existing is not None:
+                raise fastapi.HTTPException(status_code=409, detail="Email already registered")
+            db_user.email = request.email
+
+        if request.full_name is not None:
+            db_user.full_name = request.full_name
+
+        session.commit()
+        session.refresh(db_user)
+        return _user_response(db_user)
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@router.put("/password")
+async def change_password(
+    request: PasswordChangeRequest,
+    user: AuthUser = Depends(get_authenticated_user),
+):
+    session = get_session_factory()()
+    try:
+        db_user = session.execute(
+            select(AuthUser).where(AuthUser.id == user.id)
+        ).scalar_one()
+
+        if not _verify_password(request.current_password, db_user.hashed_password):
+            raise fastapi.HTTPException(status_code=400, detail="Current password is incorrect")
+
+        db_user.hashed_password = _hash_password(request.new_password)
+        session.commit()
+        return {"message": "Password updated successfully"}
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@router.post("/profile/picture")
+async def upload_profile_picture(
+    file: UploadFile,
+    user: AuthUser = Depends(get_authenticated_user),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise fastapi.HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: JPEG, PNG, GIF, WebP",
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise fastapi.HTTPException(status_code=400, detail="File too large. Maximum size is 5MB")
+    await file.seek(0)
+
+    from .storage import generate_file_key, get_storage
+
+    storage = get_storage()
+    key = generate_file_key(user.id, file.filename or "image.png")
+
+    session = get_session_factory()()
+    try:
+        db_user = session.execute(
+            select(AuthUser).where(AuthUser.id == user.id)
+        ).scalar_one()
+
+        # Delete old picture if exists
+        old_picture = db_user.profile_picture
+        if old_picture:
+            old_key = old_picture.removeprefix("/uploads/")
+            try:
+                await storage.delete(old_key)
+            except Exception as e:
+                logger.warning("Failed to delete old profile picture: %s", e)
+
+        url = await storage.save(file, key)
+        db_user.profile_picture = url
+        session.commit()
+        return {"profile_picture_url": url}
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

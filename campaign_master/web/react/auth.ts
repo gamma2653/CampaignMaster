@@ -14,11 +14,12 @@ export function clearAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-interface UserResponse {
+export interface UserResponse {
   username: string;
   email: string;
   full_name: string | null;
   proto_user_id: number;
+  profile_picture: string | null;
 }
 
 interface AuthResponse {
@@ -104,5 +105,84 @@ export function useCurrentUser() {
       return await response.json();
     },
     enabled: !!getAuthToken(),
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      username?: string;
+      email?: string;
+      full_name?: string | null;
+    }): Promise<UserResponse> => {
+      const token = getAuthToken();
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to update profile');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (data: {
+      current_password: string;
+      new_password: string;
+    }): Promise<{ message: string }> => {
+      const token = getAuthToken();
+      const response = await fetch('/api/auth/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to change password');
+      }
+      return await response.json();
+    },
+  });
+}
+
+export function useUploadProfilePicture() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      file: File,
+    ): Promise<{ profile_picture_url: string }> => {
+      const token = getAuthToken();
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/auth/profile/picture', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to upload picture');
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
   });
 }

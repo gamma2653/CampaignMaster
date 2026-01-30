@@ -20,4 +20,12 @@ class Settings(BaseSettings):
     log_dir: pathlib.Path = DEFAULT_LOG_DIR
     log_filename: str = "fastapi_debug.log"
 
+    #### File upload / storage settings
+    upload_dir: pathlib.Path = pathlib.Path("uploads")
+    s3_bucket: str | None = None
+    s3_region: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
+    s3_endpoint: str | None = None
+
     model_config = SettingsConfigDict(env_prefix="CM_")
