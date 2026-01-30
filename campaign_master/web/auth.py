@@ -9,7 +9,6 @@ from sqlalchemy import select
 from ..content.database import get_session_factory
 from ..content.models import AuthToken, AuthUser, ProtoUser
 
-
 router = fastapi.APIRouter()
 
 
@@ -56,9 +55,7 @@ async def get_authenticated_user(authorization: str | None = Header(default=None
 
     session = get_session_factory()()
     try:
-        token = session.execute(
-            select(AuthToken).where(AuthToken.token == token_str)
-        ).scalar_one_or_none()
+        token = session.execute(select(AuthToken).where(AuthToken.token == token_str)).scalar_one_or_none()
 
         if token is None:
             raise fastapi.HTTPException(status_code=401, detail="Invalid or expired token")
@@ -75,9 +72,7 @@ async def get_authenticated_user(authorization: str | None = Header(default=None
 async def login(request: LoginRequest):
     session = get_session_factory()()
     try:
-        user = session.execute(
-            select(AuthUser).where(AuthUser.username == request.username)
-        ).scalar_one_or_none()
+        user = session.execute(select(AuthUser).where(AuthUser.username == request.username)).scalar_one_or_none()
 
         if user is None or not _verify_password(request.password, user.hashed_password):
             raise fastapi.HTTPException(status_code=401, detail="Invalid username or password")
@@ -108,9 +103,7 @@ async def register(request: RegisterRequest):
     session = get_session_factory()()
     try:
         existing = session.execute(
-            select(AuthUser).where(
-                (AuthUser.username == request.username) | (AuthUser.email == request.email)
-            )
+            select(AuthUser).where((AuthUser.username == request.username) | (AuthUser.email == request.email))
         ).scalar_one_or_none()
 
         if existing is not None:
@@ -171,9 +164,7 @@ async def logout(request: fastapi.Request):
         token_str = auth_header.removeprefix("Bearer ")
         session = get_session_factory()()
         try:
-            token = session.execute(
-                select(AuthToken).where(AuthToken.token == token_str)
-            ).scalar_one_or_none()
+            token = session.execute(select(AuthToken).where(AuthToken.token == token_str)).scalar_one_or_none()
             if token:
                 session.delete(token)
                 session.commit()

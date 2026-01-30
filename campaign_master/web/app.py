@@ -7,9 +7,8 @@ from fastapi.staticfiles import StaticFiles
 
 from ..content import database as content_api
 from ..util import get_uvicorn_log_config
-from .settings import Settings
-
 from .auth import router as auth_router
+from .settings import Settings
 
 
 @asynccontextmanager
