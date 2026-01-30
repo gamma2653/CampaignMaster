@@ -92,7 +92,7 @@ class TestSequentialIDCreation:
 
 
 class TestSequentialIDsPerUser:
-    """Tests that each proto_user_id has its own ID sequence starting from 1."""
+    """Tests that each authenticated user has its own ID sequence starting from 1."""
 
     @pytest.mark.parametrize(
         "resource_name",
@@ -101,6 +101,7 @@ class TestSequentialIDsPerUser:
     def test_different_users_get_independent_sequences(
         self,
         test_client: TestClient,
+        register_user: Callable,
         resource_name: str,
     ):
         """Different users should each have their own ID sequence starting at 1."""
@@ -108,36 +109,40 @@ class TestSequentialIDsPerUser:
         endpoint = config["endpoint"]
         create_data = config["create_data"]
 
-        # Create 2 resources for user 0
-        response1_u0 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 0})
-        response2_u0 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 0})
+        # Create 2 resources for default user
+        response1_u0 = test_client.post(endpoint, json=create_data)
+        response2_u0 = test_client.post(endpoint, json=create_data)
 
-        # Create 2 resources for user 1
-        response1_u1 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 1})
-        response2_u1 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 1})
+        # Create 2 resources for a different user
+        client2, _ = register_user(f"seq_{resource_name}_u2", f"seq_{resource_name}_u2@example.com")
+        response1_u1 = client2.post(endpoint, json=create_data)
+        response2_u1 = client2.post(endpoint, json=create_data)
 
-        # User 0 should have IDs 1 and 2
+        # Default user should have IDs 1 and 2
         assert response1_u0.json()["obj_id"]["numeric"] == 1
         assert response2_u0.json()["obj_id"]["numeric"] == 2
 
-        # User 1 should ALSO have IDs 1 and 2 (independent sequence)
+        # User 2 should ALSO have IDs 1 and 2 (independent sequence)
         assert response1_u1.json()["obj_id"]["numeric"] == 1
         assert response2_u1.json()["obj_id"]["numeric"] == 2
 
     def test_interleaved_user_creation_maintains_sequences(
         self,
         test_client: TestClient,
+        register_user: Callable,
     ):
         """Interleaving creation between users should maintain correct sequences."""
         endpoint = "/api/campaign/p"
         create_data = {"name": "Test Point", "description": "Test", "objective": None}
 
+        client2, _ = register_user("interleave_u2", "interleave_u2@example.com")
+
         # Interleave creations: user0, user1, user0, user1, user0
-        r1 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 0})  # user0: 1
-        r2 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 1})  # user1: 1
-        r3 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 0})  # user0: 2
-        r4 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 1})  # user1: 2
-        r5 = test_client.post(endpoint, json=create_data, params={"proto_user_id": 0})  # user0: 3
+        r1 = test_client.post(endpoint, json=create_data)  # user0: 1
+        r2 = client2.post(endpoint, json=create_data)  # user1: 1
+        r3 = test_client.post(endpoint, json=create_data)  # user0: 2
+        r4 = client2.post(endpoint, json=create_data)  # user1: 2
+        r5 = test_client.post(endpoint, json=create_data)  # user0: 3
 
         # Verify user 0 sequence
         assert r1.json()["obj_id"]["numeric"] == 1

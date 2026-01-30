@@ -24,6 +24,7 @@ import me from '../../../../../assets/images/Me.jpg';
 import { useCreateCampaignPlan } from '../../../query';
 import { useRouter } from '@tanstack/react-router';
 import { useAI } from '../../ai/AIContext';
+import { useLogout, clearAuthToken } from '../../../auth';
 
 const navigation = [
   { name: 'My Campaign Plans', href: '/campaign/plans', current: true },
@@ -38,6 +39,17 @@ export default function Navbar() {
   const router = useRouter();
   const createMutation = useCreateCampaignPlan();
   const { enabled: aiEnabled, setEnabled: setAIEnabled } = useAI();
+  const logoutMutation = useLogout();
+
+  const handleSignOut = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => navigate({ to: '/login' }),
+      onError: () => {
+        clearAuthToken();
+        navigate({ to: '/login' });
+      },
+    });
+  };
 
   const handleCreateNew = async () => {
     createMutation.mutate(
@@ -197,12 +209,12 @@ export default function Navbar() {
                 </MenuItem>
                 <div className="border-t border-gray-700 my-1" />
                 <MenuItem>
-                  <a
-                    href="#"
-                    className="block px-4 py-2 text-sm text-gray-300 data-focus:bg-white/5 data-focus:outline-hidden"
+                  <button
+                    onClick={handleSignOut}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-300 data-focus:bg-white/5 data-focus:outline-hidden"
                   >
                     Sign out
-                  </a>
+                  </button>
                 </MenuItem>
               </MenuItems>
             </Menu>

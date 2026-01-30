@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Self
 
-from sqlalchemy import ForeignKey, select
+from sqlalchemy import DateTime, ForeignKey, String, select
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, relationship
 
 from ..util import get_basic_logger
@@ -403,6 +404,7 @@ class Objective(ObjectBase):
 
     def update_from_pydantic(self, obj: "planning.Objective", session: Session) -> None:
         """Update this Objective's fields from a Pydantic Objective model."""
+        proto_user_id = self.obj_id(session=session).proto_user_id
         self.description = obj.description
         # Clear existing components before setting new ones (to avoid orphan constraint errors)
         for comp in self.components:
@@ -412,7 +414,7 @@ class Objective(ObjectBase):
         # Update prerequisites relationship
         self.prerequisites.clear()
         for prereq_id in obj.prerequisites:
-            prereq_obj_id = ObjectID.from_pydantic(prereq_id, proto_user_id=0, session=session)
+            prereq_obj_id = ObjectID.from_pydantic(prereq_id, proto_user_id=proto_user_id, session=session)
             prereq = session.execute(select(Objective).where(Objective.id == prereq_obj_id.id)).scalars().first()
             if prereq:
                 self.prerequisites.append(prereq)
@@ -477,12 +479,13 @@ class Point(ObjectBase):
 
     def update_from_pydantic(self, obj: "planning.Point", session: Session) -> None:
         """Update this Point's fields from a Pydantic Point model."""
+        proto_user_id = self.obj_id(session=session).proto_user_id
         self.name = obj.name
         self.description = obj.description
 
         if obj.objective:
             # Find the objective by ID
-            obj_id = ObjectID.from_pydantic(obj.objective, proto_user_id=0, session=session)
+            obj_id = ObjectID.from_pydantic(obj.objective, proto_user_id=proto_user_id, session=session)
             self.objective_id = obj_id.id
         else:
             self.objective_id = None
@@ -551,17 +554,18 @@ class Segment(ObjectBase):
 
     def update_from_pydantic(self, obj: "planning.Segment", session: Session) -> None:
         """Update this Segment's fields from a Pydantic Segment model."""
+        proto_user_id = self.obj_id(session=session).proto_user_id
         self.name = obj.name
         self.description = obj.description
         # Update start point reference
         if obj.start:
-            start_obj_id = ObjectID.from_pydantic(obj.start, proto_user_id=0, session=session)
+            start_obj_id = ObjectID.from_pydantic(obj.start, proto_user_id=proto_user_id, session=session)
             self.start_id = start_obj_id.id if start_obj_id.numeric != 0 else None
         else:
             self.start_id = None
         # Update end point reference
         if obj.end:
-            end_obj_id = ObjectID.from_pydantic(obj.end, proto_user_id=0, session=session)
+            end_obj_id = ObjectID.from_pydantic(obj.end, proto_user_id=proto_user_id, session=session)
             self.end_id = end_obj_id.id if end_obj_id.numeric != 0 else None
         else:
             self.end_id = None
@@ -875,6 +879,7 @@ class Character(ObjectBase):
 
     def update_from_pydantic(self, obj: "planning.Character", session: Session) -> None:
         """Update this Character's fields from a Pydantic Character model."""
+        proto_user_id = self.obj_id(session=session).proto_user_id
         self.name = obj.name
         self.role = obj.role
         self.backstory = obj.backstory
@@ -890,7 +895,7 @@ class Character(ObjectBase):
         # Update inventory relationship
         self.inventory.clear()
         for item_id in obj.inventory:
-            item_obj_id = ObjectID.from_pydantic(item_id, proto_user_id=0, session=session)
+            item_obj_id = ObjectID.from_pydantic(item_id, proto_user_id=proto_user_id, session=session)
             item = session.execute(select(Item).where(Item.id == item_obj_id.id)).scalars().first()
             if item:
                 self.inventory.append(item)
@@ -898,7 +903,7 @@ class Character(ObjectBase):
         # Update storylines relationship
         self.storylines.clear()
         for arc_id in obj.storylines:
-            arc_obj_id = ObjectID.from_pydantic(arc_id, proto_user_id=0, session=session)
+            arc_obj_id = ObjectID.from_pydantic(arc_id, proto_user_id=proto_user_id, session=session)
             arc = session.execute(select(Arc).where(Arc.id == arc_obj_id.id)).scalars().first()
             if arc:
                 self.storylines.append(arc)
@@ -1027,6 +1032,7 @@ class Location(ObjectBase):
 
     def update_from_pydantic(self, obj: "planning.Location", session: Session) -> None:
         """Update this Location's fields from a Pydantic Location model."""
+        proto_user_id = self.obj_id(session=session).proto_user_id
         self.name = obj.name
         self.description = obj.description
         # Update coords if provided
@@ -1049,7 +1055,7 @@ class Location(ObjectBase):
         # Update neighboring_locations relationship
         self.neighboring_locations.clear()
         for neighbor_id in obj.neighboring_locations:
-            neighbor_obj_id = ObjectID.from_pydantic(neighbor_id, proto_user_id=0, session=session)
+            neighbor_obj_id = ObjectID.from_pydantic(neighbor_id, proto_user_id=proto_user_id, session=session)
             neighbor = session.execute(select(Location).where(Location.id == neighbor_obj_id.id)).scalars().first()
             if neighbor:
                 self.neighboring_locations.append(neighbor)
@@ -1324,6 +1330,33 @@ class AgentConfig(ObjectBase):
         self.is_default = obj.is_default
         self.is_enabled = obj.is_enabled
         self.system_prompt = obj.system_prompt
+
+
+class AuthUser(Base):
+    __tablename__ = "auth_user"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(150), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    hashed_password: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    proto_user_id: Mapped[int] = mapped_column(ForeignKey("proto_user.id"))
+
+    proto_user: Mapped[ProtoUser] = relationship("ProtoUser")
+    tokens: Mapped[list["AuthToken"]] = relationship(
+        "AuthToken", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class AuthToken(Base):
+    __tablename__ = "auth_token"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    token: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("auth_user.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[AuthUser] = relationship("AuthUser", back_populates="tokens")
 
 
 PydanticToSQLModel: dict[type[planning.Object] | type[planning.ID], type[ObjectBase] | type[ObjectID]] = {

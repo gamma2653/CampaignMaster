@@ -44,8 +44,18 @@ import type {
   AgentConfigUpdate,
 } from './schemas';
 import { PREFIXES, getUrlSegment } from './schemas';
+import { getAuthToken } from './auth';
 
 const BASE_API_URL = '/api/campaign/';
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 const generateShallowQueries = <IDType extends AnyID, RetType extends Object>(
   prefixes: string[],
@@ -56,7 +66,9 @@ const generateShallowQueries = <IDType extends AnyID, RetType extends Object>(
       queryFn: async (): Promise<Array<RetType>> => {
         const response = await fetch(
           `${BASE_API_URL}${prefixes.map((p) => p.toLowerCase()).join('/')}`,
+          { headers: authHeaders() },
         );
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         return await response.json();
       },
     });
@@ -65,7 +77,10 @@ const generateShallowQueries = <IDType extends AnyID, RetType extends Object>(
     return useQuery({
       queryKey: [prefixes, id],
       queryFn: async (): Promise<RetType> => {
-        const response = await fetch(`${BASE_API_URL}${getUrlSegment(id)}`);
+        const response = await fetch(`${BASE_API_URL}${getUrlSegment(id)}`, {
+          headers: authHeaders(),
+        });
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         return await response.json();
       },
     });
@@ -99,7 +114,9 @@ const generateNestedQuery = <
       queryFn: async (): Promise<RetType> => {
         const response = await fetch(
           `${BASE_API_URL}/${baseEndpoint}/${[...parentIDs, id].map((id) => getUrlSegment(id)).join('/')}`,
+          { headers: authHeaders() },
         );
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         return await response.json();
       },
     });
@@ -157,7 +174,7 @@ const generateCreateMutation = <CreateType, RetType extends Object>(
       mutationFn: async (data: CreateType): Promise<RetType> => {
         const response = await fetch(`${BASE_API_URL}${prefix.toLowerCase()}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(data),
         });
         if (!response.ok) throw new Error('Create failed');
@@ -185,7 +202,7 @@ const generateUpdateMutation = <
           `${BASE_API_URL}${prefix.toLowerCase()}/${id.numeric}`,
           {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(data),
           },
         );
@@ -208,6 +225,7 @@ const generateDeleteMutation = (prefix: string) => {
           `${BASE_API_URL}${prefix.toLowerCase()}/${id.numeric}`,
           {
             method: 'DELETE',
+            headers: authHeaders(),
           },
         );
         if (!response.ok) throw new Error('Delete failed');

@@ -9,11 +9,7 @@ from ..content import database as content_api
 from ..util import get_uvicorn_log_config
 from .settings import Settings
 
-# from .auth import router as auth_router, create_db_and_tables as create_auth_db_and_tables
-# from .api import router as api_router, create_db_and_tables as create_api_db_and_tables
-
-
-# Mount auth router
+from .auth import router as auth_router
 
 
 @asynccontextmanager
@@ -44,7 +40,7 @@ def initialize_app(settings_: Settings):
 
     app.include_router(api_router, prefix="/api")
     app.include_router(ai_router, prefix="/api")
-    # app.include_router(auth_router, prefix="/auth")
+    app.include_router(auth_router, prefix="/api/auth")
     app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
     app.add_api_route("/", index, methods=["GET"])
     app.add_api_route("/{full_path:path}", spa_router, methods=["GET"])

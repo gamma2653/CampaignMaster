@@ -256,6 +256,7 @@ def create_test_resource(test_client: TestClient) -> Callable[[str, dict | None,
     Factory fixture for creating test resources via the API.
 
     Returns a function that creates a resource and returns the response data.
+    Uses the default authenticated test_client (which already has auth headers).
     """
 
     def _create_resource(
@@ -267,11 +268,37 @@ def create_test_resource(test_client: TestClient) -> Callable[[str, dict | None,
         endpoint = config["endpoint"]
         create_data = data if data is not None else config["create_data"].copy()
 
-        response = test_client.post(endpoint, json=create_data, params={"proto_user_id": proto_user_id})
+        response = test_client.post(endpoint, json=create_data)
         assert response.status_code == 200, f"Failed to create {resource_name}: {response.text}"
         return response.json()
 
     return _create_resource
+
+
+@pytest.fixture
+def register_user(test_app) -> Callable[[str, str, str], tuple[TestClient, str]]:
+    """
+    Factory fixture that registers a new user and returns an authenticated TestClient.
+
+    Returns (client_with_auth_headers, token).
+    """
+
+    def _register(username: str, email: str, password: str = "testpass123") -> tuple[TestClient, str]:
+        client = TestClient(test_app)
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "username": username,
+                "email": email,
+                "password": password,
+            },
+        )
+        assert response.status_code == 200, f"Failed to register {username}: {response.text}"
+        token = response.json()["access_token"]
+        client.headers["Authorization"] = f"Bearer {token}"
+        return client, token
+
+    return _register
 
 
 @pytest.fixture

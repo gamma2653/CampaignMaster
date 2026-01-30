@@ -42,20 +42,45 @@ def db_session(test_engine: Engine):
 
 
 @pytest.fixture(scope="function")
-def test_client(db_session) -> Iterator[TestClient]:
+def test_app(db_session) -> fastapi.FastAPI:
+    """
+    Creates a fresh FastAPI app with API and auth routers for testing.
+    """
+    app = fastapi.FastAPI()
+
+    from campaign_master.web.api import router as api_router
+    from campaign_master.web.auth import router as auth_router
+
+    app.include_router(api_router, prefix="/api")
+    app.include_router(auth_router, prefix="/api/auth")
+
+    return app
+
+
+def _register_user(client: TestClient, username: str, email: str, password: str = "testpass123") -> str:
+    """Register a user and return the auth token."""
+    response = client.post(
+        "/api/auth/register",
+        json={
+            "username": username,
+            "email": email,
+            "password": password,
+        },
+    )
+    assert response.status_code == 200, f"Failed to register user: {response.text}"
+    return response.json()["access_token"]
+
+
+@pytest.fixture(scope="function")
+def test_client(test_app: fastapi.FastAPI) -> Iterator[TestClient]:
     """
     TestClient for API tests, uses test database.
 
-    Depends on db_session to ensure clean database state.
-    Creates a fresh FastAPI app with only the API router for testing.
+    Registers a default test user and includes auth headers
+    on all requests via a wrapper.
     """
-    # Create a fresh FastAPI app for each test
-    test_app = fastapi.FastAPI()
-
-    # Import and register API router
-    from campaign_master.web.api import router as api_router
-
-    test_app.include_router(api_router, prefix="/api")
-
     with TestClient(test_app) as client:
+        # Register a default test user
+        token = _register_user(client, "testuser", "test@example.com")
+        client.headers["Authorization"] = f"Bearer {token}"
         yield client

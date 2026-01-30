@@ -1,7 +1,7 @@
 from typing import cast
 
 import fastapi
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.engine import Engine
 
@@ -9,6 +9,8 @@ from ..content import api as content_api_functions
 from ..content import database as content_api
 from ..content import planning
 from ..content.database import transaction
+from ..content.models import AuthUser
+from .auth import get_authenticated_user
 
 router = fastapi.APIRouter()
 
@@ -36,8 +38,9 @@ class PointResponse(BaseModel):
 
 # Point CRUD endpoints
 @router.get("/campaign/p", response_model=list[PointResponse])
-def list_points(proto_user_id: int = 0):
+def list_points(user: AuthUser = Depends(get_authenticated_user)):
     """List all points for a user."""
+    proto_user_id = user.proto_user_id
     try:
         points = content_api_functions.retrieve_objects(obj_type=planning.Point, proto_user_id=proto_user_id)
         points = cast(list[planning.Point], points)
@@ -55,8 +58,9 @@ def list_points(proto_user_id: int = 0):
 
 
 @router.get("/campaign/p/{numeric}", response_model=PointResponse)
-def get_point(numeric: int, proto_user_id: int = 0):
+def get_point(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific point by ID."""
+    proto_user_id = user.proto_user_id
     try:
         point_id = planning.ID(prefix="P", numeric=numeric)
         point = content_api_functions.retrieve_object(obj_id=point_id, proto_user_id=proto_user_id)
@@ -79,8 +83,9 @@ def get_point(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/p", response_model=PointResponse)
-def create_point(point_data: PointCreate, proto_user_id: int = 0):
+def create_point(point_data: PointCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new point."""
+    proto_user_id = user.proto_user_id
     try:
         # Use single transaction for ID generation and object save
         with transaction() as session:
@@ -132,8 +137,9 @@ def create_point(point_data: PointCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/p/{numeric}", response_model=PointResponse)
-def update_point(numeric: int, point_data: PointUpdate, proto_user_id: int = 0):
+def update_point(numeric: int, point_data: PointUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing point."""
+    proto_user_id = user.proto_user_id
     try:
         # Verify point exists
         point_id = planning.ID(prefix="P", numeric=numeric)
@@ -179,8 +185,9 @@ def update_point(numeric: int, point_data: PointUpdate, proto_user_id: int = 0):
 
 
 @router.delete("/campaign/p/{numeric}")
-def delete_point(numeric: int, proto_user_id: int = 0):
+def delete_point(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete a point."""
+    proto_user_id = user.proto_user_id
     try:
         point_id = planning.ID(prefix="P", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=point_id, proto_user_id=proto_user_id)
@@ -195,8 +202,9 @@ def delete_point(numeric: int, proto_user_id: int = 0):
 
 # Objective list endpoint for dropdown
 @router.get("/campaign/o")
-def list_objectives(proto_user_id: int = 0):
+def list_objectives(user: AuthUser = Depends(get_authenticated_user)):
     """List all objectives for a user."""
+    proto_user_id = user.proto_user_id
     try:
         objectives = content_api_functions.retrieve_objects(obj_type=planning.Objective, proto_user_id=proto_user_id)
         objectives = cast(list[planning.Objective], objectives)
@@ -247,8 +255,9 @@ class RuleResponse(BaseModel):
 
 
 @router.get("/campaign/r", response_model=list[RuleResponse])
-def list_rules(proto_user_id: int = 0):
+def list_rules(user: AuthUser = Depends(get_authenticated_user)):
     """List all rules for a user."""
+    proto_user_id = user.proto_user_id
     try:
         rules = content_api_functions.retrieve_objects(obj_type=planning.Rule, proto_user_id=proto_user_id)
         rules = cast(list[planning.Rule], rules)
@@ -266,8 +275,9 @@ def list_rules(proto_user_id: int = 0):
 
 
 @router.get("/campaign/r/{numeric}", response_model=RuleResponse)
-def get_rule(numeric: int, proto_user_id: int = 0):
+def get_rule(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific rule by ID."""
+    proto_user_id = user.proto_user_id
     try:
         rule_id = planning.ID(prefix="R", numeric=numeric)
         rule = content_api_functions.retrieve_object(obj_id=rule_id, proto_user_id=proto_user_id)
@@ -287,8 +297,9 @@ def get_rule(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/r", response_model=RuleResponse)
-def create_rule(rule_data: RuleCreate, proto_user_id: int = 0):
+def create_rule(rule_data: RuleCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new rule."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -315,8 +326,9 @@ def create_rule(rule_data: RuleCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/r/{numeric}", response_model=RuleResponse)
-def update_rule(numeric: int, rule_data: RuleUpdate, proto_user_id: int = 0):
+def update_rule(numeric: int, rule_data: RuleUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing rule."""
+    proto_user_id = user.proto_user_id
     try:
         rule_id = planning.ID(prefix="R", numeric=numeric)
         existing_rule = content_api_functions.retrieve_object(obj_id=rule_id, proto_user_id=proto_user_id)
@@ -343,8 +355,9 @@ def update_rule(numeric: int, rule_data: RuleUpdate, proto_user_id: int = 0):
 
 
 @router.delete("/campaign/r/{numeric}")
-def delete_rule(numeric: int, proto_user_id: int = 0):
+def delete_rule(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete a rule."""
+    proto_user_id = user.proto_user_id
     try:
         rule_id = planning.ID(prefix="R", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=rule_id, proto_user_id=proto_user_id)
@@ -379,8 +392,9 @@ class ObjectiveResponse(BaseModel):
 
 
 @router.get("/campaign/o/{numeric}", response_model=ObjectiveResponse)
-def get_objective(numeric: int, proto_user_id: int = 0):
+def get_objective(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific objective by ID."""
+    proto_user_id = user.proto_user_id
     try:
         obj_id = planning.ID(prefix="O", numeric=numeric)
         objective = content_api_functions.retrieve_object(obj_id=obj_id, proto_user_id=proto_user_id)
@@ -400,8 +414,9 @@ def get_objective(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/o", response_model=ObjectiveResponse)
-def create_objective(obj_data: ObjectiveCreate, proto_user_id: int = 0):
+def create_objective(obj_data: ObjectiveCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new objective."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -429,8 +444,9 @@ def create_objective(obj_data: ObjectiveCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/o/{numeric}", response_model=ObjectiveResponse)
-def update_objective(numeric: int, obj_data: ObjectiveUpdate, proto_user_id: int = 0):
+def update_objective(numeric: int, obj_data: ObjectiveUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing objective."""
+    proto_user_id = user.proto_user_id
     try:
         obj_id = planning.ID(prefix="O", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=obj_id, proto_user_id=proto_user_id)
@@ -458,8 +474,9 @@ def update_objective(numeric: int, obj_data: ObjectiveUpdate, proto_user_id: int
 
 
 @router.delete("/campaign/o/{numeric}")
-def delete_objective(numeric: int, proto_user_id: int = 0):
+def delete_objective(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete an objective."""
+    proto_user_id = user.proto_user_id
     try:
         obj_id = planning.ID(prefix="O", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=obj_id, proto_user_id=proto_user_id)
@@ -497,8 +514,9 @@ class SegmentResponse(BaseModel):
 
 
 @router.get("/campaign/s", response_model=list[SegmentResponse])
-def list_segments(proto_user_id: int = 0):
+def list_segments(user: AuthUser = Depends(get_authenticated_user)):
     """List all segments for a user."""
+    proto_user_id = user.proto_user_id
     try:
         segments = content_api_functions.retrieve_objects(obj_type=planning.Segment, proto_user_id=proto_user_id)
         segments = cast(list[planning.Segment], segments)
@@ -517,8 +535,9 @@ def list_segments(proto_user_id: int = 0):
 
 
 @router.get("/campaign/s/{numeric}", response_model=SegmentResponse)
-def get_segment(numeric: int, proto_user_id: int = 0):
+def get_segment(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific segment by ID."""
+    proto_user_id = user.proto_user_id
     try:
         seg_id = planning.ID(prefix="S", numeric=numeric)
         segment = content_api_functions.retrieve_object(obj_id=seg_id, proto_user_id=proto_user_id)
@@ -539,8 +558,9 @@ def get_segment(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/s", response_model=SegmentResponse)
-def create_segment(seg_data: SegmentCreate, proto_user_id: int = 0):
+def create_segment(seg_data: SegmentCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new segment."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -571,8 +591,9 @@ def create_segment(seg_data: SegmentCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/s/{numeric}", response_model=SegmentResponse)
-def update_segment(numeric: int, seg_data: SegmentUpdate, proto_user_id: int = 0):
+def update_segment(numeric: int, seg_data: SegmentUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing segment."""
+    proto_user_id = user.proto_user_id
     try:
         seg_id = planning.ID(prefix="S", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=seg_id, proto_user_id=proto_user_id)
@@ -603,8 +624,9 @@ def update_segment(numeric: int, seg_data: SegmentUpdate, proto_user_id: int = 0
 
 
 @router.delete("/campaign/s/{numeric}")
-def delete_segment(numeric: int, proto_user_id: int = 0):
+def delete_segment(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete a segment."""
+    proto_user_id = user.proto_user_id
     try:
         seg_id = planning.ID(prefix="S", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=seg_id, proto_user_id=proto_user_id)
@@ -639,8 +661,9 @@ class ArcResponse(BaseModel):
 
 
 @router.get("/campaign/a", response_model=list[ArcResponse])
-def list_arcs(proto_user_id: int = 0):
+def list_arcs(user: AuthUser = Depends(get_authenticated_user)):
     """List all arcs for a user."""
+    proto_user_id = user.proto_user_id
     try:
         arcs = content_api_functions.retrieve_objects(obj_type=planning.Arc, proto_user_id=proto_user_id)
         arcs = cast(list[planning.Arc], arcs)
@@ -667,8 +690,9 @@ def list_arcs(proto_user_id: int = 0):
 
 
 @router.get("/campaign/a/{numeric}", response_model=ArcResponse)
-def get_arc(numeric: int, proto_user_id: int = 0):
+def get_arc(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific arc by ID."""
+    proto_user_id = user.proto_user_id
     try:
         arc_id = planning.ID(prefix="A", numeric=numeric)
         arc = content_api_functions.retrieve_object(obj_id=arc_id, proto_user_id=proto_user_id)
@@ -697,8 +721,9 @@ def get_arc(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/a", response_model=ArcResponse)
-def create_arc(arc_data: ArcCreate, proto_user_id: int = 0):
+def create_arc(arc_data: ArcCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new arc."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -749,8 +774,9 @@ def create_arc(arc_data: ArcCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/a/{numeric}", response_model=ArcResponse)
-def update_arc(numeric: int, arc_data: ArcUpdate, proto_user_id: int = 0):
+def update_arc(numeric: int, arc_data: ArcUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing arc."""
+    proto_user_id = user.proto_user_id
     try:
         arc_id = planning.ID(prefix="A", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=arc_id, proto_user_id=proto_user_id)
@@ -800,8 +826,9 @@ def update_arc(numeric: int, arc_data: ArcUpdate, proto_user_id: int = 0):
 
 
 @router.delete("/campaign/a/{numeric}")
-def delete_arc(numeric: int, proto_user_id: int = 0):
+def delete_arc(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete an arc."""
+    proto_user_id = user.proto_user_id
     try:
         arc_id = planning.ID(prefix="A", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=arc_id, proto_user_id=proto_user_id)
@@ -839,8 +866,9 @@ class ItemResponse(BaseModel):
 
 
 @router.get("/campaign/i", response_model=list[ItemResponse])
-def list_items(proto_user_id: int = 0):
+def list_items(user: AuthUser = Depends(get_authenticated_user)):
     """List all items for a user."""
+    proto_user_id = user.proto_user_id
     try:
         items = content_api_functions.retrieve_objects(obj_type=planning.Item, proto_user_id=proto_user_id)
         items = cast(list[planning.Item], items)
@@ -859,8 +887,9 @@ def list_items(proto_user_id: int = 0):
 
 
 @router.get("/campaign/i/{numeric}", response_model=ItemResponse)
-def get_item(numeric: int, proto_user_id: int = 0):
+def get_item(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific item by ID."""
+    proto_user_id = user.proto_user_id
     try:
         item_id = planning.ID(prefix="I", numeric=numeric)
         item = content_api_functions.retrieve_object(obj_id=item_id, proto_user_id=proto_user_id)
@@ -881,8 +910,9 @@ def get_item(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/i", response_model=ItemResponse)
-def create_item(item_data: ItemCreate, proto_user_id: int = 0):
+def create_item(item_data: ItemCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new item."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -911,8 +941,9 @@ def create_item(item_data: ItemCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/i/{numeric}", response_model=ItemResponse)
-def update_item(numeric: int, item_data: ItemUpdate, proto_user_id: int = 0):
+def update_item(numeric: int, item_data: ItemUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing item."""
+    proto_user_id = user.proto_user_id
     try:
         item_id = planning.ID(prefix="I", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=item_id, proto_user_id=proto_user_id)
@@ -941,8 +972,9 @@ def update_item(numeric: int, item_data: ItemUpdate, proto_user_id: int = 0):
 
 
 @router.delete("/campaign/i/{numeric}")
-def delete_item(numeric: int, proto_user_id: int = 0):
+def delete_item(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete an item."""
+    proto_user_id = user.proto_user_id
     try:
         item_id = planning.ID(prefix="I", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=item_id, proto_user_id=proto_user_id)
@@ -989,8 +1021,9 @@ class CharacterResponse(BaseModel):
 
 
 @router.get("/campaign/c", response_model=list[CharacterResponse])
-def list_characters(proto_user_id: int = 0):
+def list_characters(user: AuthUser = Depends(get_authenticated_user)):
     """List all characters for a user."""
+    proto_user_id = user.proto_user_id
     try:
         characters = content_api_functions.retrieve_objects(obj_type=planning.Character, proto_user_id=proto_user_id)
         characters = cast(list[planning.Character], characters)
@@ -1012,8 +1045,9 @@ def list_characters(proto_user_id: int = 0):
 
 
 @router.get("/campaign/c/{numeric}", response_model=CharacterResponse)
-def get_character(numeric: int, proto_user_id: int = 0):
+def get_character(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific character by ID."""
+    proto_user_id = user.proto_user_id
     try:
         char_id = planning.ID(prefix="C", numeric=numeric)
         character = content_api_functions.retrieve_object(obj_id=char_id, proto_user_id=proto_user_id)
@@ -1037,8 +1071,9 @@ def get_character(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/c", response_model=CharacterResponse)
-def create_character(char_data: CharacterCreate, proto_user_id: int = 0):
+def create_character(char_data: CharacterCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new character."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -1075,8 +1110,9 @@ def create_character(char_data: CharacterCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/c/{numeric}", response_model=CharacterResponse)
-def update_character(numeric: int, char_data: CharacterUpdate, proto_user_id: int = 0):
+def update_character(numeric: int, char_data: CharacterUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing character."""
+    proto_user_id = user.proto_user_id
     try:
         char_id = planning.ID(prefix="C", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=char_id, proto_user_id=proto_user_id)
@@ -1113,8 +1149,9 @@ def update_character(numeric: int, char_data: CharacterUpdate, proto_user_id: in
 
 
 @router.delete("/campaign/c/{numeric}")
-def delete_character(numeric: int, proto_user_id: int = 0):
+def delete_character(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete a character."""
+    proto_user_id = user.proto_user_id
     try:
         char_id = planning.ID(prefix="C", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=char_id, proto_user_id=proto_user_id)
@@ -1152,8 +1189,9 @@ class LocationResponse(BaseModel):
 
 
 @router.get("/campaign/l", response_model=list[LocationResponse])
-def list_locations(proto_user_id: int = 0):
+def list_locations(user: AuthUser = Depends(get_authenticated_user)):
     """List all locations for a user."""
+    proto_user_id = user.proto_user_id
     try:
         locations = content_api_functions.retrieve_objects(obj_type=planning.Location, proto_user_id=proto_user_id)
         locations = cast(list[planning.Location], locations)
@@ -1174,8 +1212,9 @@ def list_locations(proto_user_id: int = 0):
 
 
 @router.get("/campaign/l/{numeric}", response_model=LocationResponse)
-def get_location(numeric: int, proto_user_id: int = 0):
+def get_location(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific location by ID."""
+    proto_user_id = user.proto_user_id
     try:
         loc_id = planning.ID(prefix="L", numeric=numeric)
         location = content_api_functions.retrieve_object(obj_id=loc_id, proto_user_id=proto_user_id)
@@ -1198,8 +1237,9 @@ def get_location(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/l", response_model=LocationResponse)
-def create_location(loc_data: LocationCreate, proto_user_id: int = 0):
+def create_location(loc_data: LocationCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new location."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -1231,8 +1271,9 @@ def create_location(loc_data: LocationCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/l/{numeric}", response_model=LocationResponse)
-def update_location(numeric: int, loc_data: LocationUpdate, proto_user_id: int = 0):
+def update_location(numeric: int, loc_data: LocationUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing location."""
+    proto_user_id = user.proto_user_id
     try:
         loc_id = planning.ID(prefix="L", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=loc_id, proto_user_id=proto_user_id)
@@ -1262,8 +1303,9 @@ def update_location(numeric: int, loc_data: LocationUpdate, proto_user_id: int =
 
 
 @router.delete("/campaign/l/{numeric}")
-def delete_location(numeric: int, proto_user_id: int = 0):
+def delete_location(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete a location."""
+    proto_user_id = user.proto_user_id
     try:
         loc_id = planning.ID(prefix="L", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=loc_id, proto_user_id=proto_user_id)
@@ -1413,8 +1455,9 @@ def _serialize_campaign(campaign: planning.CampaignPlan) -> dict:
 
 
 @router.get("/campaign/campplan", response_model=list[CampaignPlanResponse])
-def list_campaigns(proto_user_id: int = 0):
+def list_campaigns(user: AuthUser = Depends(get_authenticated_user)):
     """List all campaign plans for a user."""
+    proto_user_id = user.proto_user_id
     try:
         campaigns = content_api_functions.retrieve_objects(obj_type=planning.CampaignPlan, proto_user_id=proto_user_id)
         campaigns = cast(list[planning.CampaignPlan], campaigns)
@@ -1424,8 +1467,9 @@ def list_campaigns(proto_user_id: int = 0):
 
 
 @router.get("/campaign/campplan/{numeric}", response_model=CampaignPlanResponse)
-def get_campaign(numeric: int, proto_user_id: int = 0):
+def get_campaign(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific campaign plan by ID."""
+    proto_user_id = user.proto_user_id
     try:
         camp_id = planning.ID(prefix="CampPlan", numeric=numeric)
         campaign = content_api_functions.retrieve_object(obj_id=camp_id, proto_user_id=proto_user_id)
@@ -1440,8 +1484,9 @@ def get_campaign(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/campplan", response_model=CampaignPlanResponse)
-def create_campaign(camp_data: CampaignPlanCreate, proto_user_id: int = 0):
+def create_campaign(camp_data: CampaignPlanCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new campaign plan."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -1472,8 +1517,9 @@ def create_campaign(camp_data: CampaignPlanCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/campplan/{numeric}", response_model=CampaignPlanResponse)
-def update_campaign(numeric: int, camp_data: CampaignPlanUpdate, proto_user_id: int = 0):
+def update_campaign(numeric: int, camp_data: CampaignPlanUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing campaign plan, including all nested objects."""
+    proto_user_id = user.proto_user_id
     try:
         camp_id = planning.ID(prefix="CampPlan", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=camp_id, proto_user_id=proto_user_id)
@@ -1514,8 +1560,9 @@ def update_campaign(numeric: int, camp_data: CampaignPlanUpdate, proto_user_id: 
 
 
 @router.delete("/campaign/campplan/{numeric}")
-def delete_campaign(numeric: int, proto_user_id: int = 0):
+def delete_campaign(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete a campaign plan."""
+    proto_user_id = user.proto_user_id
     try:
         camp_id = planning.ID(prefix="CampPlan", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=camp_id, proto_user_id=proto_user_id)
@@ -1571,8 +1618,9 @@ class AgentConfigResponse(BaseModel):
 
 
 @router.get("/campaign/ag", response_model=list[AgentConfigResponse])
-def list_agent_configs(proto_user_id: int = 0):
+def list_agent_configs(user: AuthUser = Depends(get_authenticated_user)):
     """List all agent configs for a user."""
+    proto_user_id = user.proto_user_id
     try:
         configs = content_api_functions.retrieve_objects(obj_type=planning.AgentConfig, proto_user_id=proto_user_id)
         configs = cast(list[planning.AgentConfig], configs)
@@ -1597,8 +1645,9 @@ def list_agent_configs(proto_user_id: int = 0):
 
 
 @router.get("/campaign/ag/{numeric}", response_model=AgentConfigResponse)
-def get_agent_config(numeric: int, proto_user_id: int = 0):
+def get_agent_config(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Get a specific agent config by ID."""
+    proto_user_id = user.proto_user_id
     try:
         config_id = planning.ID(prefix="AG", numeric=numeric)
         config = content_api_functions.retrieve_object(obj_id=config_id, proto_user_id=proto_user_id)
@@ -1625,8 +1674,9 @@ def get_agent_config(numeric: int, proto_user_id: int = 0):
 
 
 @router.post("/campaign/ag", response_model=AgentConfigResponse)
-def create_agent_config(config_data: AgentConfigCreate, proto_user_id: int = 0):
+def create_agent_config(config_data: AgentConfigCreate, user: AuthUser = Depends(get_authenticated_user)):
     """Create a new agent config."""
+    proto_user_id = user.proto_user_id
     try:
         with transaction() as session:
             new_id = content_api_functions.generate_id(
@@ -1667,8 +1717,9 @@ def create_agent_config(config_data: AgentConfigCreate, proto_user_id: int = 0):
 
 
 @router.put("/campaign/ag/{numeric}", response_model=AgentConfigResponse)
-def update_agent_config(numeric: int, config_data: AgentConfigUpdate, proto_user_id: int = 0):
+def update_agent_config(numeric: int, config_data: AgentConfigUpdate, user: AuthUser = Depends(get_authenticated_user)):
     """Update an existing agent config."""
+    proto_user_id = user.proto_user_id
     try:
         config_id = planning.ID(prefix="AG", numeric=numeric)
         existing = content_api_functions.retrieve_object(obj_id=config_id, proto_user_id=proto_user_id)
@@ -1709,8 +1760,9 @@ def update_agent_config(numeric: int, config_data: AgentConfigUpdate, proto_user
 
 
 @router.delete("/campaign/ag/{numeric}")
-def delete_agent_config(numeric: int, proto_user_id: int = 0):
+def delete_agent_config(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
     """Delete an agent config."""
+    proto_user_id = user.proto_user_id
     try:
         config_id = planning.ID(prefix="AG", numeric=numeric)
         success = content_api_functions.delete_object(obj_id=config_id, proto_user_id=proto_user_id)

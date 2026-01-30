@@ -1,50 +1,186 @@
-from typing import Annotated
+import uuid
 
+import bcrypt
 import fastapi
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.engine import Engine
+from fastapi import Depends, Header
+from pydantic import BaseModel
+from sqlalchemy import select
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+from ..content.database import get_session_factory
+from ..content.models import AuthToken, AuthUser, ProtoUser
+
+
 router = fastapi.APIRouter()
 
 
-class User(SQLModel, table=True):
-    email: str = Field(primary_key=True)
-    username: str | None = Field(default=None)
-    full_name: str | None = Field(default=None)
-    disabled: bool | None = Field(default=None)
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 
-def create_db_and_tables(engine: Engine):
-    SQLModel.metadata.create_all(engine)
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    full_name: str | None = None
 
 
-def _get_session(engine: Engine):
-    with Session(engine) as session:
-        yield session
+class UserResponse(BaseModel):
+    username: str
+    email: str
+    full_name: str | None = None
+    proto_user_id: int
 
 
-def _get_SessionDep(dep_engine: Engine):
-    return Annotated[Session, fastapi.Depends(lambda: _get_session(dep_engine))]
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserResponse
 
 
-def fake_decode_token(token: str) -> User:
-    # This doesn't provide any security at all
-    # Check the next version
-    return User(
-        email=token + "@example.com",
-        username=token,
-        full_name="Fake User",
-        disabled=False,
+def _hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
+
+
+async def get_authenticated_user(authorization: str | None = Header(default=None)) -> AuthUser:
+    """FastAPI dependency that extracts and validates the Bearer token,
+    returning the authenticated AuthUser (with proto_user_id)."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise fastapi.HTTPException(status_code=401, detail="Not authenticated")
+
+    token_str = authorization.removeprefix("Bearer ")
+
+    session = get_session_factory()()
+    try:
+        token = session.execute(
+            select(AuthToken).where(AuthToken.token == token_str)
+        ).scalar_one_or_none()
+
+        if token is None:
+            raise fastapi.HTTPException(status_code=401, detail="Invalid or expired token")
+
+        user = token.user
+        # Ensure proto_user_id is loaded before closing session
+        _ = user.proto_user_id
+        return user
+    finally:
+        session.close()
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login(request: LoginRequest):
+    session = get_session_factory()()
+    try:
+        user = session.execute(
+            select(AuthUser).where(AuthUser.username == request.username)
+        ).scalar_one_or_none()
+
+        if user is None or not _verify_password(request.password, user.hashed_password):
+            raise fastapi.HTTPException(status_code=401, detail="Invalid username or password")
+
+        token = AuthToken(token=str(uuid.uuid4()), user_id=user.id)
+        session.add(token)
+        session.commit()
+
+        return AuthResponse(
+            access_token=token.token,
+            token_type="bearer",
+            user=UserResponse(
+                username=user.username,
+                email=user.email,
+                full_name=user.full_name,
+                proto_user_id=user.proto_user_id,
+            ),
+        )
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@router.post("/register", response_model=AuthResponse)
+async def register(request: RegisterRequest):
+    session = get_session_factory()()
+    try:
+        existing = session.execute(
+            select(AuthUser).where(
+                (AuthUser.username == request.username) | (AuthUser.email == request.email)
+            )
+        ).scalar_one_or_none()
+
+        if existing is not None:
+            if existing.username == request.username:
+                raise fastapi.HTTPException(status_code=409, detail="Username already taken")
+            raise fastapi.HTTPException(status_code=409, detail="Email already registered")
+
+        # Create a ProtoUser for this new account
+        proto_user = ProtoUser()
+        session.add(proto_user)
+        session.flush()
+
+        user = AuthUser(
+            username=request.username,
+            email=request.email,
+            full_name=request.full_name,
+            hashed_password=_hash_password(request.password),
+            proto_user_id=proto_user.id,
+        )
+        session.add(user)
+        session.flush()
+
+        token = AuthToken(token=str(uuid.uuid4()), user_id=user.id)
+        session.add(token)
+        session.commit()
+
+        return AuthResponse(
+            access_token=token.token,
+            token_type="bearer",
+            user=UserResponse(
+                username=user.username,
+                email=user.email,
+                full_name=user.full_name,
+                proto_user_id=user.proto_user_id,
+            ),
+        )
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user(user: AuthUser = Depends(get_authenticated_user)):
+    return UserResponse(
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name,
+        proto_user_id=user.proto_user_id,
     )
 
 
-async def get_current_user(token: Annotated[str, fastapi.Depends(oauth2_scheme)]) -> User:
-    # Placeholder implementation for user retrieval
-    user = fake_decode_token(token)
-    return user
+@router.post("/logout")
+async def logout(request: fastapi.Request):
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token_str = auth_header.removeprefix("Bearer ")
+        session = get_session_factory()()
+        try:
+            token = session.execute(
+                select(AuthToken).where(AuthToken.token == token_str)
+            ).scalar_one_or_none()
+            if token:
+                session.delete(token)
+                session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
-
-@router.get("/users/me")
-async def read_users_me(current_user: Annotated[User, fastapi.Depends(get_current_user)]):
-    return current_user
+    return {"message": "Logged out"}

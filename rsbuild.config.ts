@@ -6,6 +6,9 @@ import { tanstackRouter } from '@tanstack/router-plugin/rspack';
 // const devMode = process.env.NODE_ENV !== "production";
 
 export default defineConfig({
+  html: {
+    title: 'Campaign Master (An AI-enabled TTRPG application)',
+  },
   plugins: [pluginReact()],
   tools: {
     rspack: {

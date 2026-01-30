@@ -282,26 +282,28 @@ class TestEdgeCases:
 
 
 class TestProtoUserIsolation:
-    """Tests for proto_user_id isolation across all operations."""
+    """Tests for user isolation across all operations."""
 
     def test_independent_id_sequences_per_user(
         self,
         test_client: TestClient,
+        register_user: Callable,
     ):
-        """Each proto_user should have independent ID sequences."""
+        """Each user should have independent ID sequences."""
         rule_data = {
             "description": "Test Rule",
             "effect": "Effect",
             "components": [],
         }
 
-        # Create rule for user 0
-        response0 = test_client.post("/api/campaign/r", json=rule_data, params={"proto_user_id": 0})
+        # Create rule for default user
+        response0 = test_client.post("/api/campaign/r", json=rule_data)
         assert response0.status_code == 200
         user0_numeric = response0.json()["obj_id"]["numeric"]
 
-        # Create rule for user 1
-        response1 = test_client.post("/api/campaign/r", json=rule_data, params={"proto_user_id": 1})
+        # Create rule for a different user
+        client2, _ = register_user("seq_user2", "seq_user2@example.com")
+        response1 = client2.post("/api/campaign/r", json=rule_data)
         assert response1.status_code == 200
         user1_numeric = response1.json()["obj_id"]["numeric"]
 
@@ -313,28 +315,31 @@ class TestProtoUserIsolation:
         self,
         test_client: TestClient,
         create_test_resource: Callable,
+        register_user: Callable,
     ):
         """Resources cannot be accessed by other users."""
-        # Create for user 0
-        item = create_test_resource("item", proto_user_id=0)
+        # Create for default user
+        item = create_test_resource("item")
         numeric = item["obj_id"]["numeric"]
 
-        # Try to access as user 1 - should 404
-        response = test_client.get(f"/api/campaign/i/{numeric}", params={"proto_user_id": 1})
+        # Try to access as different user - should 404
+        client2, _ = register_user("get_block_user", "get_block@example.com")
+        response = client2.get(f"/api/campaign/i/{numeric}")
         assert response.status_code == 404
 
-        # Access as user 0 should work
-        response = test_client.get(f"/api/campaign/i/{numeric}", params={"proto_user_id": 0})
+        # Access as original user should work
+        response = test_client.get(f"/api/campaign/i/{numeric}")
         assert response.status_code == 200
 
     def test_cross_user_access_blocked_on_update(
         self,
         test_client: TestClient,
         create_test_resource: Callable,
+        register_user: Callable,
     ):
         """Resources cannot be updated by other users."""
-        # Create for user 0
-        item = create_test_resource("item", proto_user_id=0)
+        # Create for default user
+        item = create_test_resource("item")
         numeric = item["obj_id"]["numeric"]
 
         update_data = {
@@ -345,12 +350,13 @@ class TestProtoUserIsolation:
             "properties": {},
         }
 
-        # Try to update as user 1 - should 404
-        response = test_client.put(f"/api/campaign/i/{numeric}", json=update_data, params={"proto_user_id": 1})
+        # Try to update as different user - should 404
+        client2, _ = register_user("update_block_user", "update_block@example.com")
+        response = client2.put(f"/api/campaign/i/{numeric}", json=update_data)
         assert response.status_code == 404
 
-        # Verify original still intact for user 0
-        response = test_client.get(f"/api/campaign/i/{numeric}", params={"proto_user_id": 0})
+        # Verify original still intact for default user
+        response = test_client.get(f"/api/campaign/i/{numeric}")
         assert response.status_code == 200
         assert response.json()["name"] == item["name"]  # Unchanged
 
@@ -358,43 +364,51 @@ class TestProtoUserIsolation:
         self,
         test_client: TestClient,
         create_test_resource: Callable,
+        register_user: Callable,
     ):
         """Resources cannot be deleted by other users."""
-        # Create for user 0
-        item = create_test_resource("item", proto_user_id=0)
+        # Create for default user
+        item = create_test_resource("item")
         numeric = item["obj_id"]["numeric"]
 
-        # Try to delete as user 1 - should 404
-        response = test_client.delete(f"/api/campaign/i/{numeric}", params={"proto_user_id": 1})
+        # Try to delete as different user - should 404
+        client2, _ = register_user("delete_block_user", "delete_block@example.com")
+        response = client2.delete(f"/api/campaign/i/{numeric}")
         assert response.status_code == 404
 
-        # Verify still exists for user 0
-        response = test_client.get(f"/api/campaign/i/{numeric}", params={"proto_user_id": 0})
+        # Verify still exists for default user
+        response = test_client.get(f"/api/campaign/i/{numeric}")
         assert response.status_code == 200
 
     def test_list_only_shows_own_resources(
         self,
         test_client: TestClient,
         create_test_resource: Callable,
+        register_user: Callable,
     ):
         """List endpoints only show resources for the requesting user."""
-        # Create resources for multiple users
-        create_test_resource("rule", proto_user_id=0)
-        create_test_resource("rule", proto_user_id=0)
-        create_test_resource("rule", proto_user_id=1)
+        # Create resources for default user
+        create_test_resource("rule")
+        create_test_resource("rule")
 
-        # List for user 0
-        response0 = test_client.get("/api/campaign/r", params={"proto_user_id": 0})
+        # Create resource for a different user
+        client2, _ = register_user("list_user2", "list_user2@example.com")
+        rule_data = {"description": "User2 Rule", "effect": "Effect", "components": []}
+        client2.post("/api/campaign/r", json=rule_data)
+
+        # List for default user - should see 2
+        response0 = test_client.get("/api/campaign/r")
         assert response0.status_code == 200
         assert len(response0.json()) == 2
 
-        # List for user 1
-        response1 = test_client.get("/api/campaign/r", params={"proto_user_id": 1})
+        # List for user 2 - should see 1
+        response1 = client2.get("/api/campaign/r")
         assert response1.status_code == 200
         assert len(response1.json()) == 1
 
-        # List for user 2 (has nothing)
-        response2 = test_client.get("/api/campaign/r", params={"proto_user_id": 2})
+        # A third user with no resources - should see 0
+        client3, _ = register_user("list_user3", "list_user3@example.com")
+        response2 = client3.get("/api/campaign/r")
         assert response2.status_code == 200
         assert len(response2.json()) == 0
 

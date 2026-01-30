@@ -46,39 +46,43 @@ class TestListEndpoints:
         assert created1["obj_id"]["numeric"] in numerics
         assert created2["obj_id"]["numeric"] in numerics
 
-    def test_list_with_proto_user_id_isolation(
+    def test_list_with_user_isolation(
         self,
         test_client: TestClient,
         resource_config: dict[str, Any],
         create_test_resource: Callable,
+        register_user: Callable,
     ):
-        """Resources created by different proto_user_ids should be isolated."""
+        """Resources created by different users should be isolated."""
         resource_name = resource_config["resource_name"]
         endpoint = resource_config["endpoint"]
 
-        # Create resources for user 0
-        create_test_resource(resource_name, proto_user_id=0)
+        # Create resource for default user (test_client)
+        create_test_resource(resource_name)
 
-        # Create resources for user 1
-        create_test_resource(resource_name, proto_user_id=1)
+        # Create resource for a different user
+        client2, _ = register_user("user2", "user2@example.com")
+        config = resource_config
+        response2 = client2.post(endpoint, json=config["create_data"])
+        assert response2.status_code == 200
 
-        # List for user 0 - should only see 1 resource
-        response0 = test_client.get(endpoint, params={"proto_user_id": 0})
+        # List for default user - should only see 1 resource
+        response0 = test_client.get(endpoint)
         assert response0.status_code == 200
         results0 = response0.json()
-        assert len(results0) == 1, f"User 0 should see 1 resource, got {len(results0)}"
+        assert len(results0) == 1, f"Default user should see 1 resource, got {len(results0)}"
 
-        # List for user 1 - should only see 1 resource
-        response1 = test_client.get(endpoint, params={"proto_user_id": 1})
+        # List for user 2 - should only see 1 resource
+        response1 = client2.get(endpoint)
         assert response1.status_code == 200
         results1 = response1.json()
-        assert len(results1) == 1, f"User 1 should see 1 resource, got {len(results1)}"
+        assert len(results1) == 1, f"User 2 should see 1 resource, got {len(results1)}"
 
-        # List for user 2 (no resources) - should see 0 resources
-        response2 = test_client.get(endpoint, params={"proto_user_id": 2})
-        assert response2.status_code == 200
-        results2 = response2.json()
-        assert len(results2) == 0, f"User 2 should see 0 resources, got {len(results2)}"
+        # Unauthenticated request should get 401
+        from fastapi.testclient import TestClient as TC
+
+        unauth_response = test_client.get(endpoint, headers={"Authorization": ""})
+        assert unauth_response.status_code == 401
 
 
 class TestGetSingleEndpoints:
@@ -120,22 +124,24 @@ class TestGetSingleEndpoints:
         response = test_client.get(f"{endpoint}/99999")
         assert response.status_code == 404
 
-    def test_get_with_wrong_proto_user_id_returns_404(
+    def test_get_with_wrong_user_returns_404(
         self,
         test_client: TestClient,
         resource_config: dict[str, Any],
         create_test_resource: Callable,
+        register_user: Callable,
     ):
-        """Getting a resource with wrong proto_user_id should return 404."""
+        """Getting a resource created by another user should return 404."""
         resource_name = resource_config["resource_name"]
         endpoint = resource_config["endpoint"]
 
-        # Create resource for user 0
-        created = create_test_resource(resource_name, proto_user_id=0)
+        # Create resource for default user
+        created = create_test_resource(resource_name)
         numeric = created["obj_id"]["numeric"]
 
-        # Try to get it as user 1
-        response = test_client.get(f"{endpoint}/{numeric}", params={"proto_user_id": 1})
+        # Try to get it as a different user
+        client2, _ = register_user("user_get_wrong", "user_get_wrong@example.com")
+        response = client2.get(f"{endpoint}/{numeric}")
         assert response.status_code == 404
 
 
@@ -186,21 +192,17 @@ class TestCreateEndpoints:
 
         assert numeric2 == numeric1 + 1
 
-    def test_create_with_custom_proto_user_id(
+    def test_create_requires_auth(
         self,
         test_client: TestClient,
         resource_config: dict[str, Any],
     ):
-        """Creating a resource with a custom proto_user_id should work."""
+        """Creating a resource without auth should return 401."""
         endpoint = resource_config["endpoint"]
         create_data = resource_config["create_data"]
 
-        response = test_client.post(endpoint, json=create_data, params={"proto_user_id": 42})
-        assert response.status_code == 200
-
-        result = response.json()
-        assert "obj_id" in result
-        assert result["obj_id"]["numeric"] > 0
+        response = test_client.post(endpoint, json=create_data, headers={"Authorization": ""})
+        assert response.status_code == 401
 
 
 class TestUpdateEndpoints:
@@ -245,26 +247,28 @@ class TestUpdateEndpoints:
         response = test_client.put(f"{endpoint}/99999", json=update_data)
         assert response.status_code == 404
 
-    def test_update_with_wrong_proto_user_id_returns_404(
+    def test_update_with_wrong_user_returns_404(
         self,
         test_client: TestClient,
         resource_config: dict[str, Any],
         create_test_resource: Callable,
+        register_user: Callable,
     ):
-        """Updating a resource with wrong proto_user_id should return 404."""
+        """Updating a resource created by another user should return 404."""
         resource_name = resource_config["resource_name"]
         endpoint = resource_config["endpoint"]
         update_data = resource_config["update_data"].copy()
 
-        # Create resource for user 0
-        created = create_test_resource(resource_name, proto_user_id=0)
+        # Create resource for default user
+        created = create_test_resource(resource_name)
         numeric = created["obj_id"]["numeric"]
         prefix = created["obj_id"]["prefix"]
 
         update_data["obj_id"] = {"prefix": prefix, "numeric": numeric}
 
-        # Try to update as user 1
-        response = test_client.put(f"{endpoint}/{numeric}", json=update_data, params={"proto_user_id": 1})
+        # Try to update as a different user
+        client2, _ = register_user("user_update_wrong", "user_update_wrong@example.com")
+        response = client2.put(f"{endpoint}/{numeric}", json=update_data)
         assert response.status_code == 404
 
 
@@ -305,26 +309,28 @@ class TestDeleteEndpoints:
         response = test_client.delete(f"{endpoint}/99999")
         assert response.status_code == 404
 
-    def test_delete_with_wrong_proto_user_id_returns_404(
+    def test_delete_with_wrong_user_returns_404(
         self,
         test_client: TestClient,
         resource_config: dict[str, Any],
         create_test_resource: Callable,
+        register_user: Callable,
     ):
-        """Deleting a resource with wrong proto_user_id should return 404."""
+        """Deleting a resource created by another user should return 404."""
         resource_name = resource_config["resource_name"]
         endpoint = resource_config["endpoint"]
 
-        # Create resource for user 0
-        created = create_test_resource(resource_name, proto_user_id=0)
+        # Create resource for default user
+        created = create_test_resource(resource_name)
         numeric = created["obj_id"]["numeric"]
 
-        # Try to delete as user 1
-        response = test_client.delete(f"{endpoint}/{numeric}", params={"proto_user_id": 1})
+        # Try to delete as a different user
+        client2, _ = register_user("user_del_wrong", "user_del_wrong@example.com")
+        response = client2.delete(f"{endpoint}/{numeric}")
         assert response.status_code == 404
 
-        # Verify it still exists for user 0
-        get_response = test_client.get(f"{endpoint}/{numeric}", params={"proto_user_id": 0})
+        # Verify it still exists for original user
+        get_response = test_client.get(f"{endpoint}/{numeric}")
         assert get_response.status_code == 200
 
     def test_delete_idempotent(
