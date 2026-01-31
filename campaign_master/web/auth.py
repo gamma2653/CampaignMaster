@@ -235,9 +235,7 @@ async def update_profile(
 ):
     session = get_session_factory()()
     try:
-        db_user = session.execute(
-            select(AuthUser).where(AuthUser.id == user.id)
-        ).scalar_one()
+        db_user = session.execute(select(AuthUser).where(AuthUser.id == user.id)).scalar_one()
 
         if request.username is not None and request.username != db_user.username:
             existing = session.execute(
@@ -248,9 +246,7 @@ async def update_profile(
             db_user.username = request.username
 
         if request.email is not None and request.email != db_user.email:
-            existing = session.execute(
-                select(AuthUser).where(AuthUser.email == request.email)
-            ).scalar_one_or_none()
+            existing = session.execute(select(AuthUser).where(AuthUser.email == request.email)).scalar_one_or_none()
             if existing is not None:
                 raise fastapi.HTTPException(status_code=409, detail="Email already registered")
             db_user.email = request.email
@@ -275,9 +271,7 @@ async def change_password(
 ):
     session = get_session_factory()()
     try:
-        db_user = session.execute(
-            select(AuthUser).where(AuthUser.id == user.id)
-        ).scalar_one()
+        db_user = session.execute(select(AuthUser).where(AuthUser.id == user.id)).scalar_one()
 
         if not _verify_password(request.current_password, db_user.hashed_password):
             raise fastapi.HTTPException(status_code=400, detail="Current password is incorrect")
@@ -315,9 +309,7 @@ async def upload_profile_picture(
 
     session = get_session_factory()()
     try:
-        db_user = session.execute(
-            select(AuthUser).where(AuthUser.id == user.id)
-        ).scalar_one()
+        db_user = session.execute(select(AuthUser).where(AuthUser.id == user.id)).scalar_one()
 
         # Delete old picture if exists
         old_picture = db_user.profile_picture
