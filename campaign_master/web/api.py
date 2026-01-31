@@ -1649,7 +1649,7 @@ def get_agent_config(numeric: int, user: AuthUser = Depends(get_authenticated_us
     """Get a specific agent config by ID."""
     proto_user_id = user.proto_user_id
     try:
-        config_id = planning.ID(prefix="AG", numeric=numeric)
+        config_id = planning.ID(prefix=planning.AgentConfig._default_prefix, numeric=numeric)
         config = content_api_functions.retrieve_object(obj_id=config_id, proto_user_id=proto_user_id)
         config = cast(planning.AgentConfig | None, config)
         if not config:

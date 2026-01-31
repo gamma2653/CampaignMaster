@@ -49,6 +49,11 @@ vi.mock('../auth', () => ({
     mutate: mockLogoutMutate,
     isPending: false,
   }),
+  useCurrentUser: () => ({
+    data: null,
+    isLoading: false,
+  }),
+  useAuthenticatedImage: () => null,
   clearAuthToken: vi.fn(),
 }));
 
