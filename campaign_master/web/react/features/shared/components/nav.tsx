@@ -30,7 +30,6 @@ import {
   clearAuthToken,
   useAuthenticatedImage,
 } from '../../../auth';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: 'My Campaign Plans', href: '/campaign/plans', current: true },
