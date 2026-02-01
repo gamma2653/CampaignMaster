@@ -1,5 +1,6 @@
 """Tests for GUI execution widgets (ExecutionEntryEdit and CampaignExecutionEdit)."""
 
+import os
 import sys
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
@@ -13,6 +14,9 @@ from campaign_master.content import executing, planning
 @pytest.fixture(scope="module")
 def qapp():
     """Module-scoped QApplication for all GUI tests."""
+    # Use offscreen platform on headless environments (e.g. CI)
+    if "QT_QPA_PLATFORM" not in os.environ and not os.environ.get("DISPLAY"):
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
     app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
