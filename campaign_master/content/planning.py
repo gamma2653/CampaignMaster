@@ -382,6 +382,8 @@ class CampaignPlan(Object):
     objectives: list[Objective] = []
 
 
+from .executing import CampaignExecution
+
 ALL_OBJECT_TYPES: list[type[Object]] = [
     Rule,
     Objective,
@@ -393,6 +395,7 @@ ALL_OBJECT_TYPES: list[type[Object]] = [
     Location,
     CampaignPlan,
     AgentConfig,
+    CampaignExecution,
 ]
 
 PREFIX_TO_OBJECT_TYPE = {obj_type._default_prefix: obj_type for obj_type in ALL_OBJECT_TYPES}

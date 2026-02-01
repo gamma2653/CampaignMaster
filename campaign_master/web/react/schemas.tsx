@@ -19,6 +19,7 @@ export const PREFIXES = {
   LOCATION: 'L',
   CAMPAIGN_PLAN: 'CampPlan',
   AGENT_CONFIG: 'AG',
+  EXECUTION: 'EX',
 } as const;
 export type PREFIXES_T = (typeof PREFIXES)[keyof typeof PREFIXES];
 
@@ -34,6 +35,7 @@ export const PREFIX_TO_NAME = {
   [PREFIXES.LOCATION]: 'Location',
   [PREFIXES.CAMPAIGN_PLAN]: 'Campaign Plan',
   [PREFIXES.AGENT_CONFIG]: 'Agent Config',
+  [PREFIXES.EXECUTION]: 'Campaign Execution',
 };
 // Zod prototype schemas
 const AnyIDSchema = z.object({
@@ -70,6 +72,9 @@ const CampaignIDSchema = AnyIDSchema.extend({
 });
 const AgentConfigIDSchema = AnyIDSchema.extend({
   prefix: z.literal(PREFIXES.AGENT_CONFIG),
+});
+const ExecutionIDSchema = AnyIDSchema.extend({
+  prefix: z.literal(PREFIXES.EXECUTION),
 });
 
 export const ObjectSchema = z.object({
@@ -201,6 +206,32 @@ export const AgentConfigSchema = ObjectSchema.extend({
   system_prompt: z.string().default(''),
 });
 
+export const ExecutionStatusSchema = z.enum([
+  'not_encountered',
+  'in_progress',
+  'completed',
+  'skipped',
+]);
+
+export const ExecutionEntrySchema = z.object({
+  entity_id: AnyIDSchema,
+  entity_type: z.string().default(''),
+  status: ExecutionStatusSchema.default('not_encountered'),
+  raw_notes: z.string().default(''),
+  refined_notes: z.string().default(''),
+});
+
+export const CampaignExecutionSchema = ObjectSchema.extend({
+  obj_id: ExecutionIDSchema,
+  campaign_plan_id: AnyIDSchema,
+  title: z.string().default(''),
+  session_date: z.string().default(''),
+  raw_session_notes: z.string().default(''),
+  refined_session_notes: z.string().default(''),
+  refinement_mode: z.enum(['narrative', 'structured']).default('narrative'),
+  entries: z.array(ExecutionEntrySchema).default([]),
+});
+
 // Higher order type (ID)
 export type AnyID = z.infer<typeof AnyIDSchema>;
 export type RuleID = z.infer<typeof RuleIDSchema>;
@@ -213,6 +244,7 @@ export type CharacterID = z.infer<typeof CharacterIDSchema>;
 export type LocationID = z.infer<typeof LocationIDSchema>;
 export type CampaignID = z.infer<typeof CampaignIDSchema>;
 export type AgentConfigID = z.infer<typeof AgentConfigIDSchema>;
+export type ExecutionID = z.infer<typeof ExecutionIDSchema>;
 // Lower order types
 export type Object = z.infer<typeof ObjectSchema>;
 export type Rule = z.infer<typeof RuleSchema>;
@@ -225,6 +257,9 @@ export type Character = z.infer<typeof CharacterSchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type CampaignPlan = z.infer<typeof CampaignSchema>;
 export type AgentConfig = z.infer<typeof AgentConfigSchema>;
+export type ExecutionStatus = z.infer<typeof ExecutionStatusSchema>;
+export type ExecutionEntry = z.infer<typeof ExecutionEntrySchema>;
+export type CampaignExecution = z.infer<typeof CampaignExecutionSchema>;
 export type AnyObject =
   | Object
   | Rule
@@ -236,7 +271,8 @@ export type AnyObject =
   | Character
   | Location
   | CampaignPlan
-  | AgentConfig;
+  | AgentConfig
+  | CampaignExecution;
 
 // Util function
 export const getUrlSegment = (idObj: AnyID) => {
@@ -264,6 +300,8 @@ export type CampaignPlanCreate = Omit<CampaignPlan, 'obj_id'>;
 export type CampaignPlanUpdate = CampaignPlan;
 export type AgentConfigCreate = Omit<AgentConfig, 'obj_id'>;
 export type AgentConfigUpdate = AgentConfig;
+export type CampaignExecutionCreate = Omit<CampaignExecution, 'obj_id'>;
+export type CampaignExecutionUpdate = CampaignExecution;
 
 export default {
   AnyIDSchema,
@@ -288,4 +326,8 @@ export default {
   CampaignSchema,
   AgentConfigIDSchema,
   AgentConfigSchema,
+  ExecutionIDSchema,
+  ExecutionStatusSchema,
+  ExecutionEntrySchema,
+  CampaignExecutionSchema,
 };

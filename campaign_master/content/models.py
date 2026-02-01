@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, String, select
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, relationship
 
 from ..util import get_basic_logger
-from . import planning
+from . import executing, planning
 
 logger = get_basic_logger(__name__)
 
@@ -1332,6 +1332,125 @@ class AgentConfig(ObjectBase):
         self.system_prompt = obj.system_prompt
 
 
+class ExecutionEntryDB(Base):
+    __tablename__ = "execution_entry"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("campaign_execution.id"))
+    entity_prefix: Mapped[str] = mapped_column(default="")
+    entity_numeric: Mapped[int] = mapped_column(default=0)
+    entity_type: Mapped[str] = mapped_column(default="")
+    status: Mapped[str] = mapped_column(default="not_encountered")
+    raw_notes: Mapped[str] = mapped_column(default="")
+    refined_notes: Mapped[str] = mapped_column(default="")
+
+    def to_pydantic(self, session: Session | None = None) -> "executing.ExecutionEntry":
+        return executing.ExecutionEntry(
+            entity_id=planning.ID(prefix=self.entity_prefix, numeric=self.entity_numeric),
+            entity_type=self.entity_type,
+            status=executing.ExecutionStatus(self.status),
+            raw_notes=self.raw_notes,
+            refined_notes=self.refined_notes,
+        )
+
+    @classmethod
+    def from_pydantic(cls, entry: "executing.ExecutionEntry", **kwargs) -> "ExecutionEntryDB":
+        return cls(
+            entity_prefix=entry.entity_id.prefix,
+            entity_numeric=entry.entity_id.numeric,
+            entity_type=entry.entity_type,
+            status=entry.status.value,
+            raw_notes=entry.raw_notes,
+            refined_notes=entry.refined_notes,
+        )
+
+
+class CampaignExecution(ObjectBase):
+    __tablename__ = "campaign_execution"
+    __pydantic_model__ = executing.CampaignExecution
+
+    campaign_plan_prefix: Mapped[str] = mapped_column(default="CampPlan")
+    campaign_plan_numeric: Mapped[int] = mapped_column(default=0)
+    title: Mapped[str] = mapped_column(default="")
+    session_date: Mapped[str] = mapped_column(default="")
+    raw_session_notes: Mapped[str] = mapped_column(default="")
+    refined_session_notes: Mapped[str] = mapped_column(default="")
+    refinement_mode: Mapped[str] = mapped_column(default="narrative")
+    entries: Mapped[list[ExecutionEntryDB]] = relationship(
+        "ExecutionEntryDB", backref="execution", cascade="all, delete-orphan"
+    )
+
+    def to_pydantic(self, session: Session) -> "executing.CampaignExecution":
+        return executing.CampaignExecution(
+            obj_id=self.obj_id(session=session).to_pydantic(),  # type: ignore[arg-type]
+            campaign_plan_id=planning.ID(prefix=self.campaign_plan_prefix, numeric=self.campaign_plan_numeric),
+            title=self.title,
+            session_date=self.session_date,
+            raw_session_notes=self.raw_session_notes,
+            refined_session_notes=self.refined_session_notes,
+            refinement_mode=executing.RefinementMode(self.refinement_mode),
+            entries=[entry.to_pydantic() for entry in self.entries],
+        )
+
+    @classmethod
+    def from_pydantic(
+        cls,
+        obj: "executing.CampaignExecution",
+        proto_user_id: int = 0,
+        session: Session | None = None,
+    ) -> "CampaignExecution":  # type: ignore[override]
+        def perform(session: Session) -> "CampaignExecution":
+            from . import api as content_api
+
+            obj_id_db = content_api._retrieve_id(
+                prefix=obj.obj_id.prefix,
+                numeric=obj.obj_id.numeric,
+                proto_user_id=proto_user_id,
+                session=session,
+            )
+            if not obj_id_db:
+                raise ValueError(f"No ID found for CampaignExecution: {obj.obj_id}")
+
+            existing = session.execute(select(cls).where(cls.id == obj_id_db.id)).scalars().first()
+            if existing:
+                return existing
+
+            return cls(
+                id=obj_id_db.id,
+                campaign_plan_prefix=obj.campaign_plan_id.prefix,
+                campaign_plan_numeric=obj.campaign_plan_id.numeric,
+                title=obj.title,
+                session_date=obj.session_date,
+                raw_session_notes=obj.raw_session_notes,
+                refined_session_notes=obj.refined_session_notes,
+                refinement_mode=obj.refinement_mode.value,
+                entries=[ExecutionEntryDB.from_pydantic(entry) for entry in obj.entries],
+            )
+
+        if session is None:
+            from .database import SessionLocal
+
+            with SessionLocal() as session:
+                try:
+                    return perform(session)
+                except Exception as e:
+                    session.rollback()
+                    raise
+        return perform(session)
+
+    def update_from_pydantic(self, obj: "executing.CampaignExecution", session: Session) -> None:
+        self.campaign_plan_prefix = obj.campaign_plan_id.prefix
+        self.campaign_plan_numeric = obj.campaign_plan_id.numeric
+        self.title = obj.title
+        self.session_date = obj.session_date
+        self.raw_session_notes = obj.raw_session_notes
+        self.refined_session_notes = obj.refined_session_notes
+        self.refinement_mode = obj.refinement_mode.value
+        # Clear existing entries before setting new ones
+        for entry in self.entries:
+            session.delete(entry)
+        self.entries = [ExecutionEntryDB.from_pydantic(entry) for entry in obj.entries]
+
+
 class AuthUser(Base):
     __tablename__ = "auth_user"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -1371,4 +1490,5 @@ PydanticToSQLModel: dict[type[planning.Object] | type[planning.ID], type[ObjectB
     planning.Location: Location,
     planning.CampaignPlan: CampaignPlan,
     planning.AgentConfig: AgentConfig,
+    executing.CampaignExecution: CampaignExecution,
 }

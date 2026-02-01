@@ -22,6 +22,8 @@ import type {
   AnyID,
   AgentConfig,
   AgentConfigID,
+  CampaignExecution,
+  ExecutionID,
   RuleCreate,
   RuleUpdate,
   ObjectiveCreate,
@@ -42,6 +44,8 @@ import type {
   CampaignPlanUpdate,
   AgentConfigCreate,
   AgentConfigUpdate,
+  CampaignExecutionCreate,
+  CampaignExecutionUpdate,
 } from './schemas';
 import { PREFIXES, getUrlSegment } from './schemas';
 import { getAuthToken } from './auth';
@@ -158,6 +162,8 @@ const [useAgentConfig, useAgentConfigByID] = generateShallowQueries<
   AgentConfigID,
   AgentConfig
 >([PREFIXES.AGENT_CONFIG]);
+const [useCampaignExecution, useCampaignExecutionByID] =
+  generateShallowQueries<ExecutionID, CampaignExecution>([PREFIXES.EXECUTION]);
 const usePointByCampaignAndID = generateNestedQuery<CampaignID, Point, PointID>(
   'campaign_points',
 ); // endpoint: /api/campaign/campaign_points/campplan/{campaign_numeric}/p/{point_numeric}
@@ -265,6 +271,10 @@ const useCreateAgentConfig = generateCreateMutation<
   AgentConfigCreate,
   AgentConfig
 >(PREFIXES.AGENT_CONFIG);
+const useCreateCampaignExecution = generateCreateMutation<
+  CampaignExecutionCreate,
+  CampaignExecution
+>(PREFIXES.EXECUTION);
 
 // Update mutations
 const useUpdateRule = generateUpdateMutation<RuleUpdate, Rule>(PREFIXES.RULE);
@@ -293,6 +303,10 @@ const useUpdateAgentConfig = generateUpdateMutation<
   AgentConfigUpdate,
   AgentConfig
 >(PREFIXES.AGENT_CONFIG);
+const useUpdateCampaignExecution = generateUpdateMutation<
+  CampaignExecutionUpdate,
+  CampaignExecution
+>(PREFIXES.EXECUTION);
 
 // Delete mutations
 const useDeleteRule = generateDeleteMutation(PREFIXES.RULE);
@@ -305,6 +319,7 @@ const useDeleteCharacter = generateDeleteMutation(PREFIXES.CHARACTER);
 const useDeleteLocation = generateDeleteMutation(PREFIXES.LOCATION);
 const useDeleteCampaignPlan = generateDeleteMutation(PREFIXES.CAMPAIGN_PLAN);
 const useDeleteAgentConfig = generateDeleteMutation(PREFIXES.AGENT_CONFIG);
+const useDeleteCampaignExecution = generateDeleteMutation(PREFIXES.EXECUTION);
 
 // Example of unrolled version for clarity:
 // const useRules = () => {
@@ -326,6 +341,52 @@ const useDeleteAgentConfig = generateDeleteMutation(PREFIXES.AGENT_CONFIG);
 //         },
 //     })
 // }
+
+// Custom AI refinement hooks
+const useRefineNotes = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      raw_notes: string;
+      mode: string;
+      campaign_context?: Record<string, unknown>;
+      provider_type: string;
+      api_key: string;
+      base_url?: string;
+      model: string;
+    }): Promise<{ refined_text: string; error_message: string }> => {
+      const response = await fetch('/api/ai/refine-notes', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Refinement failed');
+      return await response.json();
+    },
+  });
+};
+
+const useExtractEntityNotes = () => {
+  return useMutation({
+    mutationFn: async (data: {
+      raw_session_notes: string;
+      entity_name: string;
+      entity_type: string;
+      campaign_context?: Record<string, unknown>;
+      provider_type: string;
+      api_key: string;
+      base_url?: string;
+      model: string;
+    }): Promise<{ extracted_notes: string; error_message: string }> => {
+      const response = await fetch('/api/ai/extract-entity-notes', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Extraction failed');
+      return await response.json();
+    },
+  });
+};
 
 export {
   // Query hooks
@@ -349,6 +410,8 @@ export {
   useCampaignPlanByID,
   useAgentConfig,
   useAgentConfigByID,
+  useCampaignExecution,
+  useCampaignExecutionByID,
   usePointByCampaignAndID,
   // Create mutations
   useCreateRule,
@@ -361,6 +424,7 @@ export {
   useCreateLocation,
   useCreateCampaignPlan,
   useCreateAgentConfig,
+  useCreateCampaignExecution,
   // Update mutations
   useUpdateRule,
   useUpdateObjective,
@@ -372,6 +436,7 @@ export {
   useUpdateLocation,
   useUpdateCampaignPlan,
   useUpdateAgentConfig,
+  useUpdateCampaignExecution,
   // Delete mutations
   useDeleteRule,
   useDeleteObjective,
@@ -383,4 +448,8 @@ export {
   useDeleteLocation,
   useDeleteCampaignPlan,
   useDeleteAgentConfig,
+  useDeleteCampaignExecution,
+  // AI refinement hooks
+  useRefineNotes,
+  useExtractEntityNotes,
 };

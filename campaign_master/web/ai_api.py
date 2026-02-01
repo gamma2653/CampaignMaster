@@ -14,6 +14,8 @@ from pydantic import BaseModel
 
 from ..ai.protocol import CompletionRequest, CompletionResponse
 from ..ai.providers import PROVIDER_REGISTRY, get_available_provider_types, get_provider
+from ..ai.refinement import build_entity_extraction_prompt, build_refinement_prompt
+from ..content.executing import RefinementMode
 from ..util import get_basic_logger
 
 logger = get_basic_logger(__name__)
@@ -219,3 +221,128 @@ def list_models(provider_type: str):
     except Exception as e:
         logger.error("Error listing models: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class RefineNotesRequest(BaseModel):
+    """Request model for AI note refinement."""
+
+    raw_notes: str
+    mode: str = "narrative"  # "narrative" or "structured"
+    campaign_context: dict[str, Any] = {}
+    # Provider settings
+    provider_type: str = ""
+    api_key: str = ""
+    base_url: str = ""
+    model: str = ""
+
+
+class RefineNotesResponse(BaseModel):
+    """Response model for note refinement."""
+
+    refined_text: str
+    error_message: str = ""
+
+
+class ExtractEntityNotesRequest(BaseModel):
+    """Request model for extracting entity-specific notes."""
+
+    raw_session_notes: str
+    entity_name: str
+    entity_type: str
+    campaign_context: dict[str, Any] = {}
+    # Provider settings
+    provider_type: str = ""
+    api_key: str = ""
+    base_url: str = ""
+    model: str = ""
+
+
+class ExtractEntityNotesResponse(BaseModel):
+    """Response model for entity note extraction."""
+
+    extracted_notes: str
+    error_message: str = ""
+
+
+@router.post("/ai/refine-notes", response_model=RefineNotesResponse)
+def refine_notes(request: RefineNotesRequest):
+    """Refine session notes using AI (narrative or structured mode)."""
+    try:
+        if not request.provider_type or not request.model:
+            raise HTTPException(status_code=400, detail="provider_type and model are required")
+
+        api_key = request.api_key
+        if api_key.startswith("$"):
+            env_var = api_key[1:]
+            api_key = os.environ.get(env_var, "")
+            if not api_key:
+                raise HTTPException(status_code=400, detail=f"Environment variable {env_var} not set")
+
+        provider = get_provider(
+            provider_type=request.provider_type,
+            api_key=api_key,
+            base_url=request.base_url,
+            model=request.model,
+        )
+
+        mode = RefinementMode(request.mode)
+        completion_request = build_refinement_prompt(
+            raw_notes=request.raw_notes,
+            mode=mode,
+            campaign_context=request.campaign_context,
+        )
+
+        response = provider.complete(completion_request)
+
+        if response.finish_reason == "error":
+            return RefineNotesResponse(refined_text="", error_message=response.error_message)
+
+        return RefineNotesResponse(refined_text=response.text)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Note refinement error: %s", e)
+        return RefineNotesResponse(refined_text="", error_message=str(e))
+
+
+@router.post("/ai/extract-entity-notes", response_model=ExtractEntityNotesResponse)
+def extract_entity_notes(request: ExtractEntityNotesRequest):
+    """Extract entity-specific notes from session notes using AI."""
+    try:
+        if not request.provider_type or not request.model:
+            raise HTTPException(status_code=400, detail="provider_type and model are required")
+
+        api_key = request.api_key
+        if api_key.startswith("$"):
+            env_var = api_key[1:]
+            api_key = os.environ.get(env_var, "")
+            if not api_key:
+                raise HTTPException(status_code=400, detail=f"Environment variable {env_var} not set")
+
+        provider = get_provider(
+            provider_type=request.provider_type,
+            api_key=api_key,
+            base_url=request.base_url,
+            model=request.model,
+        )
+
+        completion_request = build_entity_extraction_prompt(
+            raw_session_notes=request.raw_session_notes,
+            entity_name=request.entity_name,
+            entity_type=request.entity_type,
+            campaign_context=request.campaign_context,
+        )
+
+        response = provider.complete(completion_request)
+
+        if response.finish_reason == "error":
+            return ExtractEntityNotesResponse(extracted_notes="", error_message=response.error_message)
+
+        return ExtractEntityNotesResponse(extracted_notes=response.text)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Entity extraction error: %s", e)
+        return ExtractEntityNotesResponse(extracted_notes="", error_message=str(e))

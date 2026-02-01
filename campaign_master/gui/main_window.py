@@ -10,8 +10,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from campaign_master.ai import AICompletionService
 from campaign_master.content import api as content_api
-from campaign_master.content import planning
+from campaign_master.content import executing, planning
 from campaign_master.gui.dialogs import AgentSettingsDialog
+from campaign_master.gui.widgets.executing import CampaignExecutionEdit
 from campaign_master.gui.widgets.planning import CampaignPlanEdit
 
 
@@ -74,6 +75,15 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         self.configure_agents_action.setShortcut("Ctrl+Shift+A")
         self.configure_agents_action.triggered.connect(self.show_agent_settings)
 
+        # Execution actions
+        self.new_execution_action = QtGui.QAction("New E&xecution", self)
+        self.new_execution_action.setShortcut("Ctrl+Shift+N")
+        self.new_execution_action.triggered.connect(self.new_execution)
+
+        self.load_execution_action = QtGui.QAction("Load Execution from &Database", self)
+        self.load_execution_action.setShortcut("Ctrl+Shift+O")
+        self.load_execution_action.triggered.connect(self.load_execution)
+
         self.enable_ai_action = QtGui.QAction("&Enable AI Completions", self)
         self.enable_ai_action.setCheckable(True)
         self.enable_ai_action.setChecked(True)
@@ -95,6 +105,11 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         file_menu.addSeparator()
 
         file_menu.addAction(self.exit_action)
+
+        # Execution menu
+        execution_menu = menubar.addMenu("E&xecution")
+        execution_menu.addAction(self.new_execution_action)
+        execution_menu.addAction(self.load_execution_action)
 
         # Edit menu
         edit_menu = menubar.addMenu("&Edit")
@@ -366,6 +381,11 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "No Campaign", "No campaign is currently open.")
             return
 
+        # Route to execution save if current editor is an execution
+        if isinstance(self.current_editor, CampaignExecutionEdit):
+            self.save_execution()
+            return
+
         try:
             # Export campaign data from editor
             campaign = self.current_editor.export_content()
@@ -417,6 +437,100 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
                     "Error Exporting Campaign",
                     f"Failed to export campaign:\n{str(e)}",
                 )
+
+    def new_execution(self):
+        """Create a new campaign execution."""
+        editor = CampaignExecutionEdit()
+        self.central_widget.addWidget(editor)
+        self.central_widget.setCurrentWidget(editor)
+        self.current_editor = editor
+        self.save_action.setEnabled(True)
+
+    def load_execution(self):
+        """Load a campaign execution from database."""
+        try:
+            executions = content_api.retrieve_objects(executing.CampaignExecution, proto_user_id=0)
+            executions = cast(list[executing.CampaignExecution], executions)
+
+            if not executions:
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "No Executions",
+                    "No executions found in the database.\n\nCreate a new execution first.",
+                )
+                return
+
+            dialog = QtWidgets.QDialog(self)
+            dialog.setWindowTitle("Load Execution from Database")
+            dialog.setMinimumWidth(500)
+            dialog.setMinimumHeight(400)
+
+            layout = QtWidgets.QVBoxLayout()
+            label = QtWidgets.QLabel("Select an execution to load:")
+            layout.addWidget(label)
+
+            list_widget = QtWidgets.QListWidget()
+            for ex in executions:
+                item_text = f"{ex.title or 'Untitled Session'} (ID: {ex.obj_id})"
+                if ex.session_date:
+                    item_text += f" - {ex.session_date}"
+                item = QtWidgets.QListWidgetItem(item_text)
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, ex)
+                list_widget.addItem(item)
+
+            list_widget.setCurrentRow(0)
+            layout.addWidget(list_widget)
+
+            button_box = QtWidgets.QDialogButtonBox(
+                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            )
+            button_box.accepted.connect(dialog.accept)
+            button_box.rejected.connect(dialog.reject)
+            layout.addWidget(button_box)
+
+            dialog.setLayout(layout)
+
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                current_item = list_widget.currentItem()
+                if current_item:
+                    ex = current_item.data(QtCore.Qt.ItemDataRole.UserRole)
+                    editor = CampaignExecutionEdit(ex)
+                    self.central_widget.addWidget(editor)
+                    self.central_widget.setCurrentWidget(editor)
+                    self.current_editor = editor
+                    self.save_action.setEnabled(True)
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Error Loading Execution",
+                f"Failed to load executions from database:\n{str(e)}",
+            )
+
+    def save_execution(self):
+        """Save the current execution to database."""
+        if not isinstance(self.current_editor, CampaignExecutionEdit):
+            return
+
+        try:
+            execution = self.current_editor.export_content()
+
+            if self.current_editor.execution is not None:
+                content_api.update_object(execution, proto_user_id=0)
+                message = "Execution saved to database successfully."
+            else:
+                content_api._create_object(execution, proto_user_id=0)
+                message = "Execution created in database successfully."
+                self.current_editor.execution = execution
+
+            QtWidgets.QMessageBox.information(self, "Save Successful", message)
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Error Saving Execution",
+                f"Failed to save execution to database:\n{str(e)}",
+            )
 
     def show_about(self):
         """Show about dialog."""

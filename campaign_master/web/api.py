@@ -7,7 +7,7 @@ from sqlalchemy.engine import Engine
 
 from ..content import api as content_api_functions
 from ..content import database as content_api
-from ..content import planning
+from ..content import executing, planning
 from ..content.database import transaction
 from ..content.models import AuthUser
 from .auth import get_authenticated_user
@@ -1768,6 +1768,201 @@ def delete_agent_config(numeric: int, user: AuthUser = Depends(get_authenticated
         success = content_api_functions.delete_object(obj_id=config_id, proto_user_id=proto_user_id)
         if not success:
             raise HTTPException(status_code=404, detail="AgentConfig not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== CampaignExecution CRUD ==============
+class ExecutionEntryData(BaseModel):
+    entity_id: dict  # {prefix, numeric}
+    entity_type: str = ""
+    status: str = "not_encountered"
+    raw_notes: str = ""
+    refined_notes: str = ""
+
+
+class ExecutionCreate(BaseModel):
+    campaign_plan_id: dict  # {prefix, numeric}
+    title: str = ""
+    session_date: str = ""
+    raw_session_notes: str = ""
+    refined_session_notes: str = ""
+    refinement_mode: str = "narrative"
+    entries: list[ExecutionEntryData] = []
+
+
+class ExecutionUpdate(BaseModel):
+    obj_id: dict
+    campaign_plan_id: dict
+    title: str = ""
+    session_date: str = ""
+    raw_session_notes: str = ""
+    refined_session_notes: str = ""
+    refinement_mode: str = "narrative"
+    entries: list[ExecutionEntryData] = []
+
+
+class ExecutionResponse(BaseModel):
+    obj_id: dict
+    campaign_plan_id: dict
+    title: str
+    session_date: str
+    raw_session_notes: str
+    refined_session_notes: str
+    refinement_mode: str
+    entries: list[ExecutionEntryData]
+
+
+def _serialize_execution(ex: executing.CampaignExecution) -> dict:
+    """Helper to serialize a CampaignExecution to a response dict."""
+    return {
+        "obj_id": {"prefix": ex.obj_id.prefix, "numeric": ex.obj_id.numeric},
+        "campaign_plan_id": {
+            "prefix": ex.campaign_plan_id.prefix,
+            "numeric": ex.campaign_plan_id.numeric,
+        },
+        "title": ex.title,
+        "session_date": ex.session_date,
+        "raw_session_notes": ex.raw_session_notes,
+        "refined_session_notes": ex.refined_session_notes,
+        "refinement_mode": ex.refinement_mode.value,
+        "entries": [
+            {
+                "entity_id": {"prefix": e.entity_id.prefix, "numeric": e.entity_id.numeric},
+                "entity_type": e.entity_type,
+                "status": e.status.value,
+                "raw_notes": e.raw_notes,
+                "refined_notes": e.refined_notes,
+            }
+            for e in ex.entries
+        ],
+    }
+
+
+def _parse_entries(entries_data: list[ExecutionEntryData]) -> list[executing.ExecutionEntry]:
+    """Parse entry data dicts into ExecutionEntry models."""
+    return [
+        executing.ExecutionEntry(
+            entity_id=planning.ID(prefix=e.entity_id["prefix"], numeric=e.entity_id["numeric"]),
+            entity_type=e.entity_type,
+            status=executing.ExecutionStatus(e.status),
+            raw_notes=e.raw_notes,
+            refined_notes=e.refined_notes,
+        )
+        for e in entries_data
+    ]
+
+
+@router.get("/campaign/ex", response_model=list[ExecutionResponse])
+def list_executions(user: AuthUser = Depends(get_authenticated_user)):
+    """List all campaign executions for a user."""
+    proto_user_id = user.proto_user_id
+    try:
+        executions = content_api_functions.retrieve_objects(
+            obj_type=executing.CampaignExecution, proto_user_id=proto_user_id
+        )
+        executions = cast(list[executing.CampaignExecution], executions)
+        return [_serialize_execution(ex) for ex in executions]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/campaign/ex/{numeric}", response_model=ExecutionResponse)
+def get_execution(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
+    """Get a specific campaign execution by ID."""
+    proto_user_id = user.proto_user_id
+    try:
+        ex_id = planning.ID(prefix="EX", numeric=numeric)
+        execution = content_api_functions.retrieve_object(obj_id=ex_id, proto_user_id=proto_user_id)
+        execution = cast(executing.CampaignExecution | None, execution)
+        if not execution:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        return _serialize_execution(execution)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/campaign/ex", response_model=ExecutionResponse)
+def create_execution(ex_data: ExecutionCreate, user: AuthUser = Depends(get_authenticated_user)):
+    """Create a new campaign execution."""
+    proto_user_id = user.proto_user_id
+    try:
+        with transaction() as session:
+            new_id = content_api_functions.generate_id(
+                prefix="EX", proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            plan_id = planning.ID(
+                prefix=ex_data.campaign_plan_id["prefix"],
+                numeric=ex_data.campaign_plan_id["numeric"],
+            )
+            entries = _parse_entries(ex_data.entries)
+            new_ex = executing.CampaignExecution(
+                obj_id=new_id,  # type: ignore[arg-type]
+                campaign_plan_id=plan_id,
+                title=ex_data.title,
+                session_date=ex_data.session_date,
+                raw_session_notes=ex_data.raw_session_notes,
+                refined_session_notes=ex_data.refined_session_notes,
+                refinement_mode=executing.RefinementMode(ex_data.refinement_mode),
+                entries=entries,
+            )
+            created = content_api_functions.save_object(
+                obj=new_ex, proto_user_id=proto_user_id, session=session, auto_commit=False
+            )
+            created = cast(executing.CampaignExecution, created)
+        return _serialize_execution(created)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/campaign/ex/{numeric}", response_model=ExecutionResponse)
+def update_execution(numeric: int, ex_data: ExecutionUpdate, user: AuthUser = Depends(get_authenticated_user)):
+    """Update an existing campaign execution."""
+    proto_user_id = user.proto_user_id
+    try:
+        ex_id = planning.ID(prefix="EX", numeric=numeric)
+        existing = content_api_functions.retrieve_object(obj_id=ex_id, proto_user_id=proto_user_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Execution not found")
+
+        plan_id = planning.ID(
+            prefix=ex_data.campaign_plan_id["prefix"],
+            numeric=ex_data.campaign_plan_id["numeric"],
+        )
+        entries = _parse_entries(ex_data.entries)
+        updated = executing.CampaignExecution(
+            obj_id=ex_id,  # type: ignore[arg-type]
+            campaign_plan_id=plan_id,
+            title=ex_data.title,
+            session_date=ex_data.session_date,
+            raw_session_notes=ex_data.raw_session_notes,
+            refined_session_notes=ex_data.refined_session_notes,
+            refinement_mode=executing.RefinementMode(ex_data.refinement_mode),
+            entries=entries,
+        )
+        result = content_api_functions.update_object(obj=updated, proto_user_id=proto_user_id)
+        result = cast(executing.CampaignExecution, result)
+        return _serialize_execution(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/campaign/ex/{numeric}")
+def delete_execution(numeric: int, user: AuthUser = Depends(get_authenticated_user)):
+    """Delete a campaign execution."""
+    proto_user_id = user.proto_user_id
+    try:
+        ex_id = planning.ID(prefix="EX", numeric=numeric)
+        success = content_api_functions.delete_object(obj_id=ex_id, proto_user_id=proto_user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Execution not found")
         return {"success": True}
     except HTTPException:
         raise
