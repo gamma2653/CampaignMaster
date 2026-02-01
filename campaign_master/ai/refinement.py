@@ -42,9 +42,7 @@ def build_refinement_prompt(
     campaign_context: dict[str, Any] | None = None,
 ) -> CompletionRequest:
     """Build a CompletionRequest for session note refinement."""
-    system_prompt = (
-        NARRATIVE_SYSTEM_PROMPT if mode == RefinementMode.NARRATIVE else STRUCTURED_SYSTEM_PROMPT
-    )
+    system_prompt = NARRATIVE_SYSTEM_PROMPT if mode == RefinementMode.NARRATIVE else STRUCTURED_SYSTEM_PROMPT
 
     prompt = f"Refine the following session notes:\n\n{raw_notes}"
 
