@@ -1,6 +1,13 @@
 """Tests for GUI execution widgets (ExecutionEntryEdit and CampaignExecutionEdit)."""
 
+import os
 import sys
+
+# Must set QT_QPA_PLATFORM before importing PySide6 so the correct
+# platform plugin is loaded (avoids abort on headless CI).
+if "QT_QPA_PLATFORM" not in os.environ and not os.environ.get("DISPLAY"):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
