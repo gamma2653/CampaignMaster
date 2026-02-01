@@ -4,7 +4,7 @@ import {
   useCreateCampaignExecution,
   useDeleteCampaignExecution,
 } from '../../../query';
-import { PREFIXES, PREFIX_TO_NAME } from '../../../schemas';
+import { PREFIXES } from '../../../schemas';
 import type { CampaignExecution, AnyID } from '../../../schemas';
 
 const RouteComponent = () => {

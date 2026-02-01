@@ -11,6 +11,8 @@ import type {
   Objective,
   Arc,
   Segment,
+  CampaignExecution,
+  ExecutionEntry,
   CampaignID,
   PointID,
   CharacterID,
@@ -20,6 +22,7 @@ import type {
   ObjectiveID,
   ArcID,
   SegmentID,
+  ExecutionID,
 } from '../schemas';
 import { PREFIXES } from '../schemas';
 
@@ -97,6 +100,10 @@ export function createMockArcID(numeric: number = 1): ArcID {
 
 export function createMockSegmentID(numeric: number = 1): SegmentID {
   return { prefix: PREFIXES.SEGMENT, numeric };
+}
+
+export function createMockExecutionID(numeric: number = 1): ExecutionID {
+  return { prefix: PREFIXES.EXECUTION, numeric };
 }
 
 // Entity Factories
@@ -189,6 +196,35 @@ export function createMockArc(overrides: Partial<Arc> = {}): Arc {
     name: 'Test Arc',
     description: 'A test arc description',
     segments: [],
+    ...overrides,
+  };
+}
+
+export function createMockExecutionEntry(
+  overrides: Partial<ExecutionEntry> = {},
+): ExecutionEntry {
+  return {
+    entity_id: createMockCharacterID(1),
+    entity_type: 'Character',
+    status: 'not_encountered',
+    raw_notes: '',
+    refined_notes: '',
+    ...overrides,
+  };
+}
+
+export function createMockExecution(
+  overrides: Partial<CampaignExecution> = {},
+): CampaignExecution {
+  return {
+    obj_id: createMockExecutionID(1),
+    campaign_plan_id: createMockCampaignID(0),
+    title: 'Test Session',
+    session_date: '2025-01-15',
+    raw_session_notes: 'The party entered the dungeon.',
+    refined_session_notes: '',
+    refinement_mode: 'narrative',
+    entries: [],
     ...overrides,
   };
 }
