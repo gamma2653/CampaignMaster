@@ -35,16 +35,12 @@ class ExecutionEntryEdit(QtWidgets.QWidget):
         layout.setContentsMargins(4, 4, 4, 4)
 
         # Entity ID display (read-only)
-        self.entity_id_label = QtWidgets.QLineEdit(
-            str(self.entry.entity_id) if self.entry else ""
-        )
+        self.entity_id_label = QtWidgets.QLineEdit(str(self.entry.entity_id) if self.entry else "")
         self.entity_id_label.setReadOnly(True)
         layout.addRow("Entity ID:", self.entity_id_label)
 
         # Entity type label
-        self.entity_type_label = QtWidgets.QLabel(
-            self.entry.entity_type if self.entry else ""
-        )
+        self.entity_type_label = QtWidgets.QLabel(self.entry.entity_type if self.entry else "")
         layout.addRow("Type:", self.entity_type_label)
 
         # Status combo box
@@ -121,14 +117,10 @@ class CampaignExecutionEdit(QtWidgets.QWidget, ThemedWidget):
         )
         meta_layout.addRow("ID:", self.obj_id)
 
-        self.title_edit = QtWidgets.QLineEdit(
-            self.execution.title if self.execution else ""
-        )
+        self.title_edit = QtWidgets.QLineEdit(self.execution.title if self.execution else "")
         meta_layout.addRow("Title:", self.title_edit)
 
-        self.session_date = QtWidgets.QLineEdit(
-            self.execution.session_date if self.execution else ""
-        )
+        self.session_date = QtWidgets.QLineEdit(self.execution.session_date if self.execution else "")
         self.session_date.setPlaceholderText("YYYY-MM-DD")
         meta_layout.addRow("Session Date:", self.session_date)
 
@@ -180,9 +172,7 @@ class CampaignExecutionEdit(QtWidgets.QWidget, ThemedWidget):
 
         notes_layout.addWidget(QtWidgets.QLabel("Refined Session Notes:"))
         self.refined_session_notes = QtWidgets.QTextEdit()
-        self.refined_session_notes.setPlainText(
-            self.execution.refined_session_notes if self.execution else ""
-        )
+        self.refined_session_notes.setPlainText(self.execution.refined_session_notes if self.execution else "")
         self.refined_session_notes.setReadOnly(True)
         self.refined_session_notes.setMinimumHeight(80)
         notes_layout.addWidget(self.refined_session_notes)
@@ -306,17 +296,13 @@ class CampaignExecutionEdit(QtWidgets.QWidget, ThemedWidget):
                 self._add_entry_widget(entry)
 
         except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                self, "Error", f"Failed to populate entries: {e}"
-            )
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to populate entries: {e}")
 
     def _refine_session_notes(self):
         """Refine session notes using AI."""
         service = AICompletionService.instance()
         if not service.is_enabled() or not service.get_current_provider():
-            QtWidgets.QMessageBox.warning(
-                self, "AI Not Available", "Configure and enable an AI agent first."
-            )
+            QtWidgets.QMessageBox.warning(self, "AI Not Available", "Configure and enable an AI agent first.")
             return
 
         raw_notes = self.raw_session_notes.toPlainText()
@@ -331,17 +317,13 @@ class CampaignExecutionEdit(QtWidgets.QWidget, ThemedWidget):
             if response and response.text:
                 self.refined_session_notes.setPlainText(response.text)
         except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                self, "Refinement Error", f"AI refinement failed: {e}"
-            )
+            QtWidgets.QMessageBox.critical(self, "Refinement Error", f"AI refinement failed: {e}")
 
     def _auto_extract_entity_notes(self):
         """Use AI to extract entity-specific notes from session notes."""
         service = AICompletionService.instance()
         if not service.is_enabled() or not service.get_current_provider():
-            QtWidgets.QMessageBox.warning(
-                self, "AI Not Available", "Configure and enable an AI agent first."
-            )
+            QtWidgets.QMessageBox.warning(self, "AI Not Available", "Configure and enable an AI agent first.")
             return
 
         raw_notes = self.raw_session_notes.toPlainText()
