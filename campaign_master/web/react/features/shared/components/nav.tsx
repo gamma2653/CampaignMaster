@@ -33,6 +33,7 @@ import {
 
 const navigation = [
   { name: 'My Campaign Plans', href: '/campaign/plans', current: true },
+  { name: 'Campaign Execute', href: '/campaign/execute', current: false },
 ] as const;
 
 function classNames(...classes: string[]) {
