@@ -1,17 +1,40 @@
 """Tests for GUI execution widgets (ExecutionEntryEdit and CampaignExecutionEdit)."""
 
 import os
+import subprocess
 import sys
-
-# Must set QT_QPA_PLATFORM before importing PySide6 so the correct
-# platform plugin is loaded (avoids abort on headless CI).
-if "QT_QPA_PLATFORM" not in os.environ and not os.environ.get("DISPLAY"):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
-
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+def _can_create_qapp() -> bool:
+    """Check whether QApplication can be created without aborting the process."""
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import os; os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen'); "
+                "from PySide6.QtWidgets import QApplication; QApplication([])",
+            ],
+            timeout=10,
+            capture_output=True,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+_gui_available = _can_create_qapp()
+pytestmark = pytest.mark.skipif(not _gui_available, reason="Cannot create QApplication")
+
+if _gui_available:
+    # Only set env and import Qt when we know it works
+    if "QT_QPA_PLATFORM" not in os.environ and not os.environ.get("DISPLAY"):
+        os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 from PySide6 import QtCore, QtWidgets
 
 from campaign_master.content import executing, planning
