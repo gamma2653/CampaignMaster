@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Self
 
 from sqlalchemy import DateTime, ForeignKey, String, select
@@ -1459,7 +1459,7 @@ class AuthUser(Base):
     full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(200))
     profile_picture: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     proto_user_id: Mapped[int] = mapped_column(ForeignKey("proto_user.id"))
 
     proto_user: Mapped[ProtoUser] = relationship("ProtoUser")
@@ -1471,7 +1471,7 @@ class AuthToken(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     token: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("auth_user.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     user: Mapped[AuthUser] = relationship("AuthUser", back_populates="tokens")

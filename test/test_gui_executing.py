@@ -159,10 +159,12 @@ class TestExecutionEntryEdit:
 class TestCampaignExecutionEdit:
     """Tests for the CampaignExecutionEdit widget."""
 
+    @patch("campaign_master.gui.widgets.planning.content_api")
     @patch("campaign_master.gui.widgets.executing.content_api")
-    def test_create_with_no_execution(self, mock_api, qapp):
+    def test_create_with_no_execution(self, mock_exec_api, mock_plan_api, qapp):
         """Widget should create without errors when no execution is provided."""
-        mock_api.retrieve_objects.return_value = []
+        mock_exec_api.retrieve_objects.return_value = []
+        mock_plan_api.generate_id.return_value = planning.ID(prefix="EX", numeric=0)
         from campaign_master.gui.widgets.executing import CampaignExecutionEdit
 
         widget = CampaignExecutionEdit()
@@ -225,10 +227,12 @@ class TestCampaignExecutionEdit:
         exported = widget.export_content()
         assert exported.title == "Edited Title"
 
+    @patch("campaign_master.gui.widgets.planning.content_api")
     @patch("campaign_master.gui.widgets.executing.content_api")
-    def test_import_content(self, mock_api, qapp):
+    def test_import_content(self, mock_exec_api, mock_plan_api, qapp):
         """import_content should update all form fields from a CampaignExecution."""
-        mock_api.retrieve_objects.return_value = []
+        mock_exec_api.retrieve_objects.return_value = []
+        mock_plan_api.generate_id.return_value = planning.ID(prefix="EX", numeric=0)
         from campaign_master.gui.widgets.executing import CampaignExecutionEdit
 
         widget = CampaignExecutionEdit()
@@ -275,10 +279,12 @@ class TestCampaignExecutionEdit:
         widget.import_content(empty_execution)
         assert len(widget.entry_widgets) == 0
 
+    @patch("campaign_master.gui.widgets.planning.content_api")
     @patch("campaign_master.gui.widgets.executing.content_api")
-    def test_populate_without_plan_shows_warning(self, mock_api, qapp):
+    def test_populate_without_plan_shows_warning(self, mock_exec_api, mock_plan_api, qapp):
         """Populate entries should show warning when no plan is selected."""
-        mock_api.retrieve_objects.return_value = []
+        mock_exec_api.retrieve_objects.return_value = []
+        mock_plan_api.generate_id.return_value = planning.ID(prefix="EX", numeric=0)
         from campaign_master.gui.widgets.executing import CampaignExecutionEdit
 
         widget = CampaignExecutionEdit()
@@ -350,10 +356,12 @@ class TestCampaignExecutionEdit:
         assert widget.auto_extract_button is not None
         assert widget.save_button is not None
 
+    @patch("campaign_master.gui.widgets.planning.content_api")
     @patch("campaign_master.gui.widgets.executing.content_api")
-    def test_session_date_placeholder(self, mock_api, qapp):
+    def test_session_date_placeholder(self, mock_exec_api, mock_plan_api, qapp):
         """Session date field should have YYYY-MM-DD placeholder."""
-        mock_api.retrieve_objects.return_value = []
+        mock_exec_api.retrieve_objects.return_value = []
+        mock_plan_api.generate_id.return_value = planning.ID(prefix="EX", numeric=0)
         from campaign_master.gui.widgets.executing import CampaignExecutionEdit
 
         widget = CampaignExecutionEdit()
