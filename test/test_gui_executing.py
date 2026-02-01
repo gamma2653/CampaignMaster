@@ -103,9 +103,7 @@ class TestExecutionEntryEdit:
         from campaign_master.gui.widgets.executing import ExecutionEntryEdit
 
         widget = ExecutionEntryEdit(entry)
-        status_values = [
-            widget.status_combo.itemData(i) for i in range(widget.status_combo.count())
-        ]
+        status_values = [widget.status_combo.itemData(i) for i in range(widget.status_combo.count())]
         for status in executing.ExecutionStatus:
             assert status.value in status_values
 
@@ -137,9 +135,7 @@ class TestExecutionEntryEdit:
 
         # Simulate user edits
         widget.raw_notes.setPlainText("Updated notes")
-        widget.status_combo.setCurrentIndex(
-            widget.status_combo.findData(executing.ExecutionStatus.COMPLETED.value)
-        )
+        widget.status_combo.setCurrentIndex(widget.status_combo.findData(executing.ExecutionStatus.COMPLETED.value))
 
         exported = widget.export_entry()
         assert exported.raw_notes == "Updated notes"
