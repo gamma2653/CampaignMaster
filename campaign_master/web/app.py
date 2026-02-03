@@ -1,4 +1,3 @@
-import pathlib
 from contextlib import asynccontextmanager
 
 import fastapi
@@ -6,7 +5,7 @@ import uvicorn
 from fastapi.staticfiles import StaticFiles
 
 from ..content import database as content_api
-from ..util import get_uvicorn_log_config
+from ..util import get_resource_path, get_uvicorn_log_config
 from .auth import router as auth_router
 from .settings import Settings
 
@@ -49,7 +48,7 @@ def initialize_app(settings_: Settings):
     # served through the authenticated /api/auth/uploads/ endpoint.
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
 
-    app.mount("/static", StaticFiles(directory=pathlib.Path("dist/static")), name="static")
+    app.mount("/static", StaticFiles(directory=get_resource_path("dist/static")), name="static")
     app.add_api_route("/", index, methods=["GET"])
     app.add_api_route("/{full_path:path}", spa_router, methods=["GET"])
 
@@ -89,7 +88,7 @@ def run_dev(host: str | None = None, port: int | None = None, debug: bool | None
 # @app.get("/")
 async def index():
     try:
-        return fastapi.responses.FileResponse(pathlib.Path("dist/index.html"))
+        return fastapi.responses.FileResponse(get_resource_path("dist/index.html"))
     except Exception as e:
         return fastapi.responses.PlainTextResponse(str(e), status_code=500)
 
@@ -98,6 +97,6 @@ async def index():
 # @app.get("/{full_path:path}")
 async def spa_router(full_path: str):
     try:
-        return fastapi.responses.FileResponse(pathlib.Path("dist/index.html"))
+        return fastapi.responses.FileResponse(get_resource_path("dist/index.html"))
     except Exception as e:
         return fastapi.responses.PlainTextResponse(str(e), status_code=500)

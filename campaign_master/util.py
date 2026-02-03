@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import threading
+from pathlib import Path
 
 # TODO: Use settings.py logging config instead
 _DEFAULT_LEVEL = "INFO"
@@ -12,6 +13,27 @@ try:
 except KeyError:
     print(f"Invalid CM_LOG_LEVEL '{_CM_LOG_LEVEL}'")
     sys.exit(1)
+
+
+def get_resource_path(relative_path: str) -> Path:
+    """
+    Get absolute path to resource, works for dev and PyInstaller bundled app.
+
+    When running as a bundled executable, PyInstaller extracts files to a
+    temporary directory accessible via sys._MEIPASS. In development, paths
+    are relative to the project root.
+
+    Args:
+        relative_path: Path relative to project root (e.g., "dist/static")
+
+    Returns:
+        Absolute Path to the resource
+    """
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        # Running as bundled executable
+        return Path(sys._MEIPASS) / relative_path
+    # Running in development
+    return Path(__file__).parent.parent / relative_path
 
 
 def get_basic_formatter() -> logging.Formatter:

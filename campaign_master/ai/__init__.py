@@ -6,7 +6,6 @@ provider backends (Anthropic, OpenAI, Ollama).
 """
 
 from .protocol import AIProvider, CompletionRequest, CompletionResponse
-from .service import AICompletionService
 
 __all__ = [
     "AIProvider",
@@ -14,3 +13,12 @@ __all__ = [
     "CompletionResponse",
     "AICompletionService",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy import for AICompletionService to avoid PySide6 dependency in web mode."""
+    if name == "AICompletionService":
+        from .service import AICompletionService
+
+        return AICompletionService
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
