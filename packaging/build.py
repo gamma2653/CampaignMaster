@@ -106,7 +106,7 @@ def create_onefile_spec(project_root: Path, base_spec: Path, target: str) -> Pat
         if in_exe_block:
             if "exclude_binaries=True" in line:
                 line = line.replace("exclude_binaries=True", "exclude_binaries=False")
-            elif "[]," in line and "scripts" in lines[i-1]:
+            elif "[]," in line and "scripts" in lines[i - 1]:
                 # Change empty list to include binaries and datas
                 if in_exe_block == "gui":
                     line = line.replace("[]", "gui_a.binaries + gui_a.datas")
@@ -164,7 +164,7 @@ def create_single_target_spec(project_root: Path, base_spec: Path, target: str, 
                 pass  # Keep the line
             elif "exclude_binaries=True" in line:
                 line = line.replace("exclude_binaries=True", "exclude_binaries=False")
-            elif "[]," in line and i > 0 and "scripts" in lines[i-1]:
+            elif "[]," in line and i > 0 and "scripts" in lines[i - 1]:
                 if target == "gui":
                     line = line.replace("[]", "gui_a.binaries + gui_a.datas")
                 else:
