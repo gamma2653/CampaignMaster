@@ -142,6 +142,7 @@ def create_single_target_spec(project_root: Path, base_spec: Path, target: str, 
     skip_prefix = "web_" if target == "gui" else "gui_"
     skip_section = False
     paren_depth = 0
+    bracket_depth = 0
 
     for i, line in enumerate(lines):
         stripped = line.strip()
@@ -150,10 +151,13 @@ def create_single_target_spec(project_root: Path, base_spec: Path, target: str, 
         if stripped.startswith(skip_prefix) and "=" in stripped:
             skip_section = True
             paren_depth = 0
+            bracket_depth = 0
 
         if skip_section:
             paren_depth += line.count("(") - line.count(")")
-            if paren_depth <= 0 and stripped.endswith(")"):
+            bracket_depth += line.count("[") - line.count("]")
+            # End skip when both parens and brackets are balanced and line ends with ) or ]
+            if paren_depth <= 0 and bracket_depth <= 0 and (stripped.endswith(")") or stripped.endswith("]")):
                 skip_section = False
             continue
 

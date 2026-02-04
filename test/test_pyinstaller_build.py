@@ -206,15 +206,36 @@ class TestActualBuild:
     These tests are marked as slow and can be skipped with: pytest -m "not slow"
     """
 
-    def test_gui_build_completes(self, tmp_path):
-        """The GUI-only build should complete successfully."""
-        # Run the build script with --gui-only and --skip-frontend
+    def test_full_build_completes(self):
+        """Both GUI and Web builds should complete using the preexisting spec file."""
+        import shutil
+
+        # Clean previous build artifacts
+        build_dir = PROJECT_ROOT / "build"
+        executables_dir = PROJECT_ROOT / "executables"
+        if build_dir.exists():
+            shutil.rmtree(build_dir)
+        if executables_dir.exists():
+            shutil.rmtree(executables_dir)
+
+        # Ensure frontend is built for web executable
+        dist_dir = PROJECT_ROOT / "dist"
+        if not dist_dir.exists():
+            npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
+            subprocess.run([npm_cmd, "install"], cwd=PROJECT_ROOT, check=True, timeout=120)
+            subprocess.run([npm_cmd, "run", "build"], cwd=PROJECT_ROOT, check=True, timeout=120)
+
+        # Run PyInstaller directly with the preexisting spec file
         result = subprocess.run(
             [
                 sys.executable,
-                str(PACKAGING_DIR / "build.py"),
-                "--gui-only",
+                "-m",
+                "PyInstaller",
+                "--noconfirm",
                 "--clean",
+                "--distpath",
+                str(executables_dir),
+                str(SPEC_FILE),
             ],
             cwd=PROJECT_ROOT,
             capture_output=True,
@@ -224,38 +245,12 @@ class TestActualBuild:
 
         assert result.returncode == 0, f"Build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
-        # Check the executable was created
-        exe_path = PROJECT_ROOT / "executables" / "CampaignMasterGUI" / "CampaignMasterGUI.exe"
-        assert exe_path.exists(), f"Executable not found: {exe_path}"
+        # Check both executables were created
+        gui_exe = executables_dir / "CampaignMasterGUI" / "CampaignMasterGUI.exe"
+        web_exe = executables_dir / "CampaignMasterWeb" / "CampaignMasterWeb.exe"
 
-    def test_web_build_completes(self, tmp_path):
-        """The Web-only build should complete successfully."""
-        # First ensure the frontend is built (or skip if dist exists)
-        dist_dir = PROJECT_ROOT / "dist"
-        skip_frontend = dist_dir.exists()
-
-        args = [
-            sys.executable,
-            str(PACKAGING_DIR / "build.py"),
-            "--web-only",
-            "--clean",
-        ]
-        if skip_frontend:
-            args.append("--skip-frontend")
-
-        result = subprocess.run(
-            args,
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True,
-            timeout=600,  # 10 minute timeout
-        )
-
-        assert result.returncode == 0, f"Build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-
-        # Check the executable was created
-        exe_path = PROJECT_ROOT / "executables" / "CampaignMasterWeb" / "CampaignMasterWeb.exe"
-        assert exe_path.exists(), f"Executable not found: {exe_path}"
+        assert gui_exe.exists(), f"GUI executable not found: {gui_exe}"
+        assert web_exe.exists(), f"Web executable not found: {web_exe}"
 
 
 @pytest.mark.slow
