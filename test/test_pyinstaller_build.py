@@ -17,6 +17,9 @@ PROJECT_ROOT = get_project_root()
 PACKAGING_DIR = PROJECT_ROOT / "packaging"
 SPEC_FILE = PACKAGING_DIR / "CampaignMaster.spec"
 
+# Executable extension is .exe on Windows, empty on other platforms
+EXE_SUFFIX = ".exe" if sys.platform == "win32" else ""
+
 
 class TestBuildModuleImport:
     """Tests for importing the build module."""
@@ -246,8 +249,8 @@ class TestActualBuild:
         assert result.returncode == 0, f"Build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
 
         # Check both executables were created
-        gui_exe = executables_dir / "CampaignMasterGUI" / "CampaignMasterGUI.exe"
-        web_exe = executables_dir / "CampaignMasterWeb" / "CampaignMasterWeb.exe"
+        gui_exe = executables_dir / "CampaignMasterGUI" / f"CampaignMasterGUI{EXE_SUFFIX}"
+        web_exe = executables_dir / "CampaignMasterWeb" / f"CampaignMasterWeb{EXE_SUFFIX}"
 
         assert gui_exe.exists(), f"GUI executable not found: {gui_exe}"
         assert web_exe.exists(), f"Web executable not found: {web_exe}"
@@ -264,7 +267,7 @@ class TestExecutableExecution:
     @pytest.fixture
     def gui_executable(self):
         """Get the path to the GUI executable if it exists."""
-        exe_path = PROJECT_ROOT / "executables" / "CampaignMasterGUI" / "CampaignMasterGUI.exe"
+        exe_path = PROJECT_ROOT / "executables" / "CampaignMasterGUI" / f"CampaignMasterGUI{EXE_SUFFIX}"
         if not exe_path.exists():
             pytest.skip("GUI executable not built")
         return exe_path
@@ -272,7 +275,7 @@ class TestExecutableExecution:
     @pytest.fixture
     def web_executable(self):
         """Get the path to the Web executable if it exists."""
-        exe_path = PROJECT_ROOT / "executables" / "CampaignMasterWeb" / "CampaignMasterWeb.exe"
+        exe_path = PROJECT_ROOT / "executables" / "CampaignMasterWeb" / f"CampaignMasterWeb{EXE_SUFFIX}"
         if not exe_path.exists():
             pytest.skip("Web executable not built")
         return exe_path
