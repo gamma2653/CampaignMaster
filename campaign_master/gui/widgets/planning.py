@@ -35,6 +35,48 @@ def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
     return {}
 
 
+def _create_edit_dialog(
+    parent: QtWidgets.QWidget,
+    title: str,
+    edit_widget: QtWidgets.QWidget,
+) -> QtWidgets.QDialog:
+    """Create a standardized edit dialog with scroll area and OK/Cancel buttons.
+
+    Args:
+        parent: Parent widget for the dialog.
+        title: Dialog window title.
+        edit_widget: The edit widget to display inside the dialog.
+
+    Returns:
+        Configured QDialog (not yet exec'd).
+    """
+    dialog = QtWidgets.QDialog(parent)
+    dialog.setWindowTitle(title)
+    dialog.setMinimumWidth(550)
+    dialog.setMinimumHeight(500)
+    dialog.resize(600, 650)
+
+    dialog_layout = QtWidgets.QVBoxLayout()
+
+    # Wrap edit widget in scroll area
+    scroll = QtWidgets.QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+    scroll.setWidget(edit_widget)
+    dialog_layout.addWidget(scroll, 1)
+
+    # OK/Cancel buttons
+    button_box = QtWidgets.QDialogButtonBox(
+        QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+    )
+    button_box.accepted.connect(dialog.accept)
+    button_box.rejected.connect(dialog.reject)
+    dialog_layout.addWidget(button_box)
+
+    dialog.setLayout(dialog_layout)
+    return dialog
+
+
 class CollapsibleSection(QtWidgets.QWidget):
     """A collapsible section widget with a header and expandable content."""
 
@@ -271,26 +313,15 @@ class IDSelectWithCreate(QtWidgets.QWidget):
             )
             return
 
-        # Open an edit dialog to create a new object
-        dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle(f"Create New {self.model_type.__name__}")
-        dialog.setMinimumWidth(400)
-        dialog_layout = QtWidgets.QVBoxLayout()
-
         # Get the edit widget class from globals
         edit_widget_class = globals()[edit_widget_class_name]
-        edit_widget = edit_widget_class(parent=dialog)
-        dialog_layout.addWidget(edit_widget)
+        edit_widget = edit_widget_class()
 
-        # Add OK/Cancel buttons
-        button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        dialog = _create_edit_dialog(
+            self,
+            f"Create New {self.model_type.__name__}",
+            edit_widget,
         )
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-        dialog_layout.addWidget(button_box)
-
-        dialog.setLayout(dialog_layout)
 
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             # Export the form data and create in database
@@ -448,11 +479,6 @@ class IDListEdit(QtWidgets.QWidget):
         id_select = IDSelect(self.model_type)
         dialog_layout.addWidget(id_select)
 
-        # button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.ButtonRole. | QtWidgets.QDialogButtonBox.Cancel)
-        # button_box.accepted.connect(id_select_dialog.accept)
-        # button_box.rejected.connect(id_select_dialog.reject)
-        # dialog_layout.addWidget(button_box)
-
         id_select_dialog.setLayout(dialog_layout)
 
         if id_select_dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
@@ -471,6 +497,19 @@ class IDListEdit(QtWidgets.QWidget):
 
 
 T = TypeVar("T", bound=planning.Object)
+
+
+# Map model types to their edit widget class names
+_EDIT_WIDGET_MAP: dict[type[planning.Object], str] = {
+    planning.Point: "PointEdit",
+    planning.Rule: "RuleEdit",
+    planning.Objective: "ObjectiveEdit",
+    planning.Segment: "SegmentEdit",
+    planning.Arc: "ArcEdit",
+    planning.Item: "ItemEdit",
+    planning.Character: "CharacterEdit",
+    planning.Location: "LocationEdit",
+}
 
 
 class ListEdit(QtWidgets.QWidget, Generic[T]):
@@ -534,49 +573,26 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         self.setMinimumHeight(100)
 
     def add_object(self):
-        # Create a mapping from model types to their edit widgets
-        edit_widget_map = {
-            planning.Point: "PointEdit",
-            planning.Rule: "RuleEdit",
-            planning.Objective: "ObjectiveEdit",
-            planning.Segment: "SegmentEdit",
-            planning.Arc: "ArcEdit",
-            planning.Item: "ItemEdit",
-            planning.Character: "CharacterEdit",
-            planning.Location: "LocationEdit",
-        }
-
         # Check if this model type has a dedicated edit widget
-        edit_widget_class_name = edit_widget_map.get(self.model_type)
+        edit_widget_class_name = _EDIT_WIDGET_MAP.get(self.model_type)
 
         if edit_widget_class_name:
-            # Open an edit dialog to create a new object
-            dialog = QtWidgets.QDialog(self)
-            dialog.setWindowTitle(f"Add {self.model_type.__name__}")
-            dialog_layout = QtWidgets.QVBoxLayout()
-
             # Get the edit widget class from globals (all edit widgets are in this module)
             edit_widget_class = globals()[edit_widget_class_name]
-            edit_widget = edit_widget_class(parent=dialog)
-            dialog_layout.addWidget(edit_widget)
+            edit_widget = edit_widget_class()
 
-            # Add OK/Cancel buttons
-            button_box = QtWidgets.QDialogButtonBox(
-                QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            dialog = _create_edit_dialog(
+                self,
+                f"Add {self.model_type.__name__}",
+                edit_widget,
             )
-            button_box.accepted.connect(dialog.accept)
-            button_box.rejected.connect(dialog.reject)
-            dialog_layout.addWidget(button_box)
-
-            dialog.setLayout(dialog_layout)
 
             if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
                 # Export the form data (which includes the ID generated by IDDisplay)
                 form_data = edit_widget.export_content()
                 # Create the object in the database using the form data
-                # Note: _create_object uses the ID from form_data instead of generating a new one
                 content_api._create_object(form_data, proto_user_id=0)
-                # Add to the list (use form_data directly since it's already a Pydantic object)
+                # Add to the list
                 self.list_widget.addItem(str(form_data.obj_id))
                 self.objects.append(cast(T, form_data))
             else:
@@ -615,38 +631,19 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
         row = self.list_widget.row(item)
         obj = self.objects[row]
 
-        edit_widget_map = {
-            planning.Point: "PointEdit",
-            planning.Rule: "RuleEdit",
-            planning.Objective: "ObjectiveEdit",
-            planning.Segment: "SegmentEdit",
-            planning.Arc: "ArcEdit",
-            planning.Item: "ItemEdit",
-            planning.Character: "CharacterEdit",
-            planning.Location: "LocationEdit",
-        }
-
-        edit_widget_class_name = edit_widget_map.get(self.model_type)
+        edit_widget_class_name = _EDIT_WIDGET_MAP.get(self.model_type)
         if not edit_widget_class_name:
             return
 
-        dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle(f"Edit {self.model_type.__name__}")
-        dialog_layout = QtWidgets.QVBoxLayout()
-
         # Pass the existing object to the edit widget to pre-populate the form
         edit_widget_class = globals()[edit_widget_class_name]
-        edit_widget = edit_widget_class(obj, parent=dialog)
-        dialog_layout.addWidget(edit_widget)
+        edit_widget = edit_widget_class(obj)
 
-        button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        dialog = _create_edit_dialog(
+            self,
+            f"Edit {self.model_type.__name__}",
+            edit_widget,
         )
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-        dialog_layout.addWidget(button_box)
-
-        dialog.setLayout(dialog_layout)
 
         if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
             # Export the updated form data
@@ -661,6 +658,26 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
     def get_objects(self) -> list[T]:
         """Return the list of objects."""
         return self.objects
+
+
+def _make_labeled_text_widget(
+    label_text: str,
+    text_edit: QtWidgets.QTextEdit,
+) -> QtWidgets.QWidget:
+    """Create a container with a label above a text edit widget."""
+    container = QtWidgets.QWidget()
+    container.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Expanding,
+        QtWidgets.QSizePolicy.Policy.Expanding,
+    )
+    layout = QtWidgets.QVBoxLayout()
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(2)
+    label = QtWidgets.QLabel(label_text)
+    layout.addWidget(label)
+    layout.addWidget(text_edit, 1)
+    container.setLayout(layout)
+    return container
 
 
 class RuleEdit(QtWidgets.QWidget, ThemedWidget):
@@ -680,27 +697,47 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Rule, "Rule")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields in form layout
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Rule, self.rule.obj_id if self.rule else None)
+        form_layout.addRow("ID:", self.obj_id)
+        container_layout.addLayout(form_layout)
+
+        # Text areas in vertical splitter
         self.description = AITextEdit(
             self.rule.description if self.rule else "",
             field_name="description",
             entity_type="Rule",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe the rule...",
         )
         self.effect = AITextEdit(
             self.rule.effect if self.rule else "",
             field_name="effect",
             entity_type="Rule",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe the rule's effect...",
         )
-        self.components = StrListEdit(self.rule.components if self.rule else [])
 
-        container.setLayout(self.form_layout)
+        text_splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        text_splitter.setChildrenCollapsible(False)
+        text_splitter.setHandleWidth(8)
+        text_splitter.addWidget(_make_labeled_text_widget("Description:", self.description))
+        text_splitter.addWidget(_make_labeled_text_widget("Effect:", self.effect))
+        text_splitter.setSizes([100, 100])
+        container_layout.addWidget(text_splitter, 1)
+
+        # Components list below
+        components_label = QtWidgets.QLabel("Components:")
+        container_layout.addWidget(components_label)
+        self.components = StrListEdit(self.rule.components if self.rule else [])
+        container_layout.addWidget(self.components)
+
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
@@ -711,12 +748,6 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
         }
         context.update(_find_campaign_context(self))
         return context
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Effect:", self.effect)
-        self.form_layout.addRow("Components:", self.components)
 
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
@@ -746,22 +777,41 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Objective, "Objective")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Objective, self.objective.obj_id if self.objective else None)
+        form_layout.addRow("ID:", self.obj_id)
+        container_layout.addLayout(form_layout)
+
+        # Description text area with label
+        desc_label = QtWidgets.QLabel("Description:")
+        container_layout.addWidget(desc_label)
         self.description = AITextEdit(
             self.objective.description if self.objective else "",
             field_name="description",
             entity_type="Objective",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe the objective...",
         )
-        self.components = StrListEdit(self.objective.components if self.objective else [])
-        self.prerequisites = IDListEdit(planning.Objective, self.objective.prerequisites if self.objective else [])
+        container_layout.addWidget(self.description, 1)
 
-        container.setLayout(self.form_layout)
+        # Components list
+        components_label = QtWidgets.QLabel("Components:")
+        container_layout.addWidget(components_label)
+        self.components = StrListEdit(self.objective.components if self.objective else [])
+        container_layout.addWidget(self.components)
+
+        # Prerequisites list
+        prereqs_label = QtWidgets.QLabel("Prerequisites:")
+        container_layout.addWidget(prereqs_label)
+        self.prerequisites = IDListEdit(planning.Objective, self.objective.prerequisites if self.objective else [])
+        container_layout.addWidget(self.prerequisites)
+
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
@@ -771,12 +821,6 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
         }
         context.update(_find_campaign_context(self))
         return context
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Components:", self.components)
-        self.form_layout.addRow("Prerequisites:", self.prerequisites)
 
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
@@ -806,27 +850,40 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Point, "Story Point")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Point, self.point.obj_id if self.point else None)
         self.name = AILineEdit(
             self.point.name if self.point else "",
             field_name="name",
             entity_type="Point",
             entity_context_func=self._get_entity_context,
+            placeholder="Story point name",
         )
+        self.objective = IDSelect(planning.Objective)
+
+        form_layout.addRow("ID:", self.obj_id)
+        form_layout.addRow("Name:", self.name)
+        form_layout.addRow("Objective ID:", self.objective)
+        container_layout.addLayout(form_layout)
+
+        # Description text area with label
+        desc_label = QtWidgets.QLabel("Description:")
+        container_layout.addWidget(desc_label)
         self.description = AITextEdit(
             self.point.description if self.point else "",
             field_name="description",
             entity_type="Point",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe this story point...",
         )
-        self.objective = IDSelect(planning.Objective)
+        container_layout.addWidget(self.description, 1)
 
-        container.setLayout(self.form_layout)
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
@@ -836,12 +893,6 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
         }
         context.update(_find_campaign_context(self))
         return context
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Name:", self.name)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Objective ID:", self.objective)
 
     def export_content(self) -> planning.Point:
         """Export the form data as a Point object."""
@@ -877,20 +928,17 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Segment, "Segment")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Segment, self.segment.obj_id if self.segment else None)
         self.name = AILineEdit(
             self.segment.name if self.segment else "",
             field_name="name",
             entity_type="Segment",
             entity_context_func=self._get_entity_context,
-        )
-        self.description = AITextEdit(
-            self.segment.description if self.segment else "",
-            field_name="description",
-            entity_type="Segment",
-            entity_context_func=self._get_entity_context,
+            placeholder="Segment name",
         )
         # Use IDSelectWithCreate to allow selecting existing Points or creating new ones
         self.start = IDSelectWithCreate(
@@ -902,10 +950,27 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
             selected_id=self.segment.end if self.segment else None,
         )
 
-        container.setLayout(self.form_layout)
+        form_layout.addRow("ID:", self.obj_id)
+        form_layout.addRow("Name:", self.name)
+        form_layout.addRow("Start Point:", self.start)
+        form_layout.addRow("End Point:", self.end)
+        container_layout.addLayout(form_layout)
+
+        # Description text area with label
+        desc_label = QtWidgets.QLabel("Description:")
+        container_layout.addWidget(desc_label)
+        self.description = AITextEdit(
+            self.segment.description if self.segment else "",
+            field_name="description",
+            entity_type="Segment",
+            entity_context_func=self._get_entity_context,
+            placeholder="Describe this segment...",
+        )
+        container_layout.addWidget(self.description, 1)
+
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
@@ -915,13 +980,6 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         }
         context.update(_find_campaign_context(self))
         return context
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Name:", self.name)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Start Point:", self.start)
-        self.form_layout.addRow("End Point:", self.end)
 
     def export_content(self) -> planning.Segment:
         """Export the form data as a Segment object."""
@@ -959,31 +1017,46 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Arc, "Story Arc")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Arc, self.arc.obj_id if self.arc else None)
         self.name = AILineEdit(
             self.arc.name if self.arc else "",
             field_name="name",
             entity_type="Arc",
             entity_context_func=self._get_entity_context,
+            placeholder="Story arc name",
         )
+        form_layout.addRow("ID:", self.obj_id)
+        form_layout.addRow("Name:", self.name)
+        container_layout.addLayout(form_layout)
+
+        # Description text area with label
+        desc_label = QtWidgets.QLabel("Description:")
+        container_layout.addWidget(desc_label)
         self.description = AITextEdit(
             self.arc.description if self.arc else "",
             field_name="description",
             entity_type="Arc",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe this story arc...",
         )
-        # Use ListEdit to properly manage segments with add/remove functionality
+        container_layout.addWidget(self.description, 1)
+
+        # Segments list
+        segments_label = QtWidgets.QLabel("Segments:")
+        container_layout.addWidget(segments_label)
         self.segments = ListEdit[planning.Segment](
             planning.Segment,
             objects=self.arc.segments if self.arc else [],
         )
+        container_layout.addWidget(self.segments)
 
-        container.setLayout(self.form_layout)
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
@@ -993,12 +1066,6 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
         }
         context.update(_find_campaign_context(self))
         return context
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Name:", self.name)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Segments:", self.segments)
 
     def export_content(self) -> planning.Arc:
         """Export the form data as an Arc object."""
@@ -1117,40 +1184,51 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Item, "Item")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Item, self.item.obj_id if self.item else None)
         self.name = AILineEdit(
             self.item.name if self.item else "",
             field_name="name",
             entity_type="Item",
             entity_context_func=self._get_entity_context,
+            placeholder="Item name",
         )
         self.type_ = AILineEdit(
             self.item.type_ if self.item else "",
             field_name="type",
             entity_type="Item",
             entity_context_func=self._get_entity_context,
+            placeholder="e.g. Weapon, Potion, Artifact",
         )
+        form_layout.addRow("ID:", self.obj_id)
+        form_layout.addRow("Name:", self.name)
+        form_layout.addRow("Type:", self.type_)
+        container_layout.addLayout(form_layout)
+
+        # Description text area with label
+        desc_label = QtWidgets.QLabel("Description:")
+        container_layout.addWidget(desc_label)
         self.description = AITextEdit(
             self.item.description if self.item else "",
             field_name="description",
             entity_type="Item",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe the item...",
         )
-        self.properties = MapEdit[str, str](self.item.properties if self.item else {})
+        container_layout.addWidget(self.description, 1)
 
-        container.setLayout(self.form_layout)
+        # Properties map
+        props_label = QtWidgets.QLabel("Properties:")
+        container_layout.addWidget(props_label)
+        self.properties = MapEdit[str, str](self.item.properties if self.item else {})
+        container_layout.addWidget(self.properties)
+
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Name:", self.name)
-        self.form_layout.addRow("Type:", self.type_)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Properties:", self.properties)
 
     def export_content(self) -> planning.Item:
         """Export the form data as an Item object."""
@@ -1191,46 +1269,69 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Character, "Character")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Character, self.character.obj_id if self.character else None)
         self.name = AILineEdit(
             self.character.name if self.character else "",
             field_name="name",
             entity_type="Character",
             entity_context_func=self._get_entity_context,
+            placeholder="Character name",
         )
         self.role = AILineEdit(
             self.character.role if self.character else "",
             field_name="role",
             entity_type="Character",
             entity_context_func=self._get_entity_context,
+            placeholder="e.g. NPC, Villain, Ally",
         )
+        form_layout.addRow("ID:", self.obj_id)
+        form_layout.addRow("Name:", self.name)
+        form_layout.addRow("Role:", self.role)
+        container_layout.addLayout(form_layout)
+
+        # Backstory text area with label
+        backstory_label = QtWidgets.QLabel("Backstory:")
+        container_layout.addWidget(backstory_label)
         self.backstory = AITextEdit(
             self.character.backstory if self.character else "",
             field_name="backstory",
             entity_type="Character",
             entity_context_func=self._get_entity_context,
+            placeholder="Write the character's backstory...",
         )
-        self.attributes = MapEdit[str, int](self.character.attributes if self.character else {})
-        self.skills = MapEdit[str, int](self.character.skills if self.character else {})
-        self.storylines = IDListEdit(planning.Arc, self.character.storylines if self.character else [])
-        self.inventory = IDListEdit(planning.Item, self.character.inventory if self.character else [])
+        container_layout.addWidget(self.backstory, 1)
 
-        container.setLayout(self.form_layout)
+        # Attributes map
+        attrs_label = QtWidgets.QLabel("Attributes:")
+        container_layout.addWidget(attrs_label)
+        self.attributes = MapEdit[str, int](self.character.attributes if self.character else {})
+        container_layout.addWidget(self.attributes)
+
+        # Skills map
+        skills_label = QtWidgets.QLabel("Skills:")
+        container_layout.addWidget(skills_label)
+        self.skills = MapEdit[str, int](self.character.skills if self.character else {})
+        container_layout.addWidget(self.skills)
+
+        # Storylines
+        storylines_label = QtWidgets.QLabel("Storylines:")
+        container_layout.addWidget(storylines_label)
+        self.storylines = IDListEdit(planning.Arc, self.character.storylines if self.character else [])
+        container_layout.addWidget(self.storylines)
+
+        # Inventory
+        inventory_label = QtWidgets.QLabel("Inventory:")
+        container_layout.addWidget(inventory_label)
+        self.inventory = IDListEdit(planning.Item, self.character.inventory if self.character else [])
+        container_layout.addWidget(self.inventory)
+
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Name:", self.name)
-        self.form_layout.addRow("Role:", self.role)
-        self.form_layout.addRow("Backstory:", self.backstory)
-        self.form_layout.addRow("Attributes:", self.attributes)
-        self.form_layout.addRow("Skills:", self.skills)
-        self.form_layout.addRow("Storylines:", self.storylines)
-        self.form_layout.addRow("Inventory:", self.inventory)
 
     def export_content(self) -> planning.Character:
         """Export the form data as a Character object."""
@@ -1285,50 +1386,64 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
     def init_ui(self):
         main_layout = QtWidgets.QVBoxLayout()
         container = self.create_themed_container(planning.Location, "Location")
-        self.form_layout = QtWidgets.QFormLayout()
+        container_layout = QtWidgets.QVBoxLayout()
 
+        # Short fields
+        form_layout = QtWidgets.QFormLayout()
         self.obj_id = IDDisplay(planning.Location, self.location.obj_id if self.location else None)
         self.name = AILineEdit(
             self.location.name if self.location else "",
             field_name="name",
             entity_type="Location",
             entity_context_func=self._get_entity_context,
-        )
-        self.description = AITextEdit(
-            self.location.description if self.location else "",
-            field_name="description",
-            entity_type="Location",
-            entity_context_func=self._get_entity_context,
-        )
-        self.neighboring_locations = IDListEdit(
-            planning.Location,
-            self.location.neighboring_locations if self.location else [],
+            placeholder="Location name",
         )
         self._latitude = QtWidgets.QLineEdit(
             str(self.location.coords[0]) if self.location and self.location.coords else ""
         )
+        self._latitude.setPlaceholderText("e.g. 40.7128")
         self._longitude = QtWidgets.QLineEdit(
             str(self.location.coords[1]) if self.location and self.location.coords else ""
         )
+        self._longitude.setPlaceholderText("e.g. -74.0060")
         self._altitude = QtWidgets.QLineEdit(
             str(self.location.coords[2])
             if self.location and self.location.coords and len(self.location.coords) == 3
             else ""
         )
+        self._altitude.setPlaceholderText("e.g. 10.0")
 
-        container.setLayout(self.form_layout)
+        form_layout.addRow("ID:", self.obj_id)
+        form_layout.addRow("Name:", self.name)
+        form_layout.addRow("Latitude:", self._latitude)
+        form_layout.addRow("Longitude:", self._longitude)
+        form_layout.addRow("Altitude (optional):", self._altitude)
+        container_layout.addLayout(form_layout)
+
+        # Description text area with label
+        desc_label = QtWidgets.QLabel("Description:")
+        container_layout.addWidget(desc_label)
+        self.description = AITextEdit(
+            self.location.description if self.location else "",
+            field_name="description",
+            entity_type="Location",
+            entity_context_func=self._get_entity_context,
+            placeholder="Describe this location...",
+        )
+        container_layout.addWidget(self.description, 1)
+
+        # Neighboring locations
+        neighbors_label = QtWidgets.QLabel("Neighboring Locations:")
+        container_layout.addWidget(neighbors_label)
+        self.neighboring_locations = IDListEdit(
+            planning.Location,
+            self.location.neighboring_locations if self.location else [],
+        )
+        container_layout.addWidget(self.neighboring_locations)
+
+        container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
-        self.update_layout()
-
-    def update_layout(self):
-        self.form_layout.addRow("ID:", self.obj_id)
-        self.form_layout.addRow("Name:", self.name)
-        self.form_layout.addRow("Description:", self.description)
-        self.form_layout.addRow("Neighboring Locations:", self.neighboring_locations)
-        self.form_layout.addRow("Latitude:", self._latitude)
-        self.form_layout.addRow("Longitude:", self._longitude)
-        self.form_layout.addRow("Altitude (optional):", self._altitude)
 
     def export_content(self) -> planning.Location:
         """Export the form data as a Location object."""
@@ -1433,7 +1548,9 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
             self.campaign_plan.obj_id if self.campaign_plan else None,
         )
         self.title = QtWidgets.QLineEdit(self.campaign_plan.title if self.campaign_plan else "")
+        self.title.setPlaceholderText("Campaign title")
         self.version = QtWidgets.QLineEdit(self.campaign_plan.version if self.campaign_plan else "")
+        self.version.setPlaceholderText("e.g. 1.0")
         top_form_layout.addRow("ID:", self.obj_id)
         top_form_layout.addRow("Title:", self.title)
         top_form_layout.addRow("Version:", self.version)
@@ -1445,56 +1562,26 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         text_splitter.setHandleWidth(8)
 
         # Setting container
-        setting_container = QtWidgets.QWidget()
-        setting_container.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        setting_layout = QtWidgets.QVBoxLayout()
-        setting_layout.setContentsMargins(0, 0, 0, 0)
-        setting_layout.setSpacing(2)
-        setting_label = QtWidgets.QLabel("Setting:")
         self.setting = AITextEdit(
             self.campaign_plan.setting if self.campaign_plan else "",
             field_name="setting",
             entity_type="CampaignPlan",
             entity_context_func=self._get_entity_context,
+            placeholder="Describe the campaign setting...",
         )
         self.setting.setMinimumHeight(30)
-        self.setting.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        setting_layout.addWidget(setting_label)
-        setting_layout.addWidget(self.setting, 1)
-        setting_container.setLayout(setting_layout)
-        text_splitter.addWidget(setting_container)
+        text_splitter.addWidget(_make_labeled_text_widget("Setting:", self.setting))
 
         # Summary container
-        summary_container = QtWidgets.QWidget()
-        summary_container.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        summary_layout = QtWidgets.QVBoxLayout()
-        summary_layout.setContentsMargins(0, 0, 0, 0)
-        summary_layout.setSpacing(2)
-        summary_label = QtWidgets.QLabel("Summary:")
         self.summary = AITextEdit(
             self.campaign_plan.summary if self.campaign_plan else "",
             field_name="summary",
             entity_type="CampaignPlan",
             entity_context_func=self._get_entity_context,
+            placeholder="Write a campaign summary...",
         )
         self.summary.setMinimumHeight(30)
-        self.summary.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        summary_layout.addWidget(summary_label)
-        summary_layout.addWidget(self.summary, 1)
-        summary_container.setLayout(summary_layout)
-        text_splitter.addWidget(summary_container)
+        text_splitter.addWidget(_make_labeled_text_widget("Summary:", self.summary))
 
         text_splitter.setSizes([100, 100])
         metadata_container_layout.addWidget(text_splitter, 1)
@@ -1580,10 +1667,6 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
         main_layout.addLayout(button_layout)
 
         self.setLayout(main_layout)
-
-    def update_layout(self):
-        # No longer needed - layout is set up in init_ui
-        pass
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""

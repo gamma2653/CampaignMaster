@@ -56,14 +56,16 @@ class ExecutionEntryEdit(QtWidgets.QWidget):
         # Raw notes
         self.raw_notes = QtWidgets.QTextEdit()
         self.raw_notes.setPlainText(self.entry.raw_notes if self.entry else "")
-        self.raw_notes.setMaximumHeight(80)
+        self.raw_notes.setMinimumHeight(60)
+        self.raw_notes.setPlaceholderText("Session notes for this entity...")
         layout.addRow("Raw Notes:", self.raw_notes)
 
         # Refined notes (read-only display)
         self.refined_notes = QtWidgets.QTextEdit()
         self.refined_notes.setPlainText(self.entry.refined_notes if self.entry else "")
         self.refined_notes.setReadOnly(True)
-        self.refined_notes.setMaximumHeight(80)
+        self.refined_notes.setMinimumHeight(60)
+        self.refined_notes.setPlaceholderText("AI-refined notes will appear here...")
         layout.addRow("Refined Notes:", self.refined_notes)
 
         self.setLayout(layout)
@@ -146,6 +148,7 @@ class CampaignExecutionEdit(QtWidgets.QWidget, ThemedWidget):
             self.execution.raw_session_notes if self.execution else "",
             field_name="raw_session_notes",
             entity_type="CampaignExecution",
+            placeholder="Type your raw session notes here...",
         )
         self.raw_session_notes.setMinimumHeight(100)
         notes_layout.addWidget(self.raw_session_notes)

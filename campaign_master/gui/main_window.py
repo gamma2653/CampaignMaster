@@ -159,20 +159,20 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         layout.addSpacing(40)
 
         # Buttons
+        welcome_btn_style = """
+            QPushButton {
+                font-size: 16px;
+                font-weight: 600;
+            }
+        """
+
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addStretch()
 
         new_btn = QtWidgets.QPushButton("Create New Campaign")
         new_btn.setMinimumWidth(200)
         new_btn.setMinimumHeight(40)
-        new_btn.setStyleSheet(
-            """
-            QPushButton {
-                font-size: 16px;
-                font-weight: 600;
-            }
-        """
-        )
+        new_btn.setStyleSheet(welcome_btn_style)
         new_btn.clicked.connect(self.new_campaign)
         button_layout.addWidget(new_btn)
 
@@ -181,14 +181,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         load_btn = QtWidgets.QPushButton("Load from Database")
         load_btn.setMinimumWidth(200)
         load_btn.setMinimumHeight(40)
-        load_btn.setStyleSheet(
-            """
-            QPushButton {
-                font-size: 16px;
-                font-weight: 600;
-            }
-        """
-        )
+        load_btn.setStyleSheet(welcome_btn_style)
         load_btn.clicked.connect(self.load_campaign)
         button_layout.addWidget(load_btn)
 
@@ -197,19 +190,23 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         import_btn = QtWidgets.QPushButton("Import from JSON")
         import_btn.setMinimumWidth(200)
         import_btn.setMinimumHeight(40)
-        import_btn.setStyleSheet(
-            """
-            QPushButton {
-                font-size: 16px;
-                font-weight: 600;
-            }
-        """
-        )
+        import_btn.setStyleSheet(welcome_btn_style)
         import_btn.clicked.connect(self.import_campaign)
         button_layout.addWidget(import_btn)
 
         button_layout.addStretch()
         layout.addLayout(button_layout)
+
+        layout.addSpacing(20)
+
+        # Keyboard shortcuts hint
+        shortcuts_label = QtWidgets.QLabel(
+            "Ctrl+N  New Campaign  |  Ctrl+O  Load from Database  |  "
+            "Ctrl+I  Import from JSON  |  Ctrl+Space  AI Completion"
+        )
+        shortcuts_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        shortcuts_label.setStyleSheet("color: #888888; font-size: 12px;")
+        layout.addWidget(shortcuts_label)
 
         layout.addStretch()
 

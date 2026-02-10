@@ -10,6 +10,7 @@ from typing import Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from campaign_master.ai import AICompletionService, CompletionResponse
+from campaign_master.gui.themes.dark_theme import DARK_COLORS
 from campaign_master.util import get_basic_logger
 
 logger = get_basic_logger(__name__)
@@ -37,22 +38,32 @@ class CompletionPopup(QtWidgets.QWidget):
         self.completion_text = QtWidgets.QLabel()
         self.completion_text.setWordWrap(True)
         self.completion_text.setStyleSheet(
-            """
-            QLabel {
-                background-color: #2d2d2d;
+            f"""
+            QLabel {{
+                background-color: {DARK_COLORS.tertiary_bg};
                 color: #a0ffa0;
                 padding: 8px;
                 border-radius: 4px;
                 font-family: monospace;
-            }
+            }}
         """
         )
         layout.addWidget(self.completion_text)
 
         # Hint text
         hint = QtWidgets.QLabel("Tab/Enter to accept, Escape to reject")
-        hint.setStyleSheet("color: #888888; font-size: 11px;")
+        hint.setStyleSheet(f"color: {DARK_COLORS.text_disabled}; font-size: 11px;")
         layout.addWidget(hint)
+
+        self.setStyleSheet(
+            f"""
+            CompletionPopup {{
+                background-color: {DARK_COLORS.primary_bg};
+                border: 1px solid {DARK_COLORS.border_default};
+                border-radius: 4px;
+            }}
+        """
+        )
 
         self._completion = ""
 
@@ -109,6 +120,7 @@ class AILineEdit(QtWidgets.QLineEdit):
         field_name: str = "",
         entity_type: str = "",
         entity_context_func=None,
+        placeholder: str = "",
         parent=None,
     ):
         """
@@ -119,6 +131,7 @@ class AILineEdit(QtWidgets.QLineEdit):
             field_name: Name of the field (for AI context)
             entity_type: Type of entity being edited (for AI context)
             entity_context_func: Callable that returns entity data dict
+            placeholder: Placeholder text shown when field is empty
             parent: Parent widget
         """
         super().__init__(text, parent)
@@ -127,6 +140,9 @@ class AILineEdit(QtWidgets.QLineEdit):
         self._entity_context_func = entity_context_func
         self._popup: CompletionPopup | None = None
         self._loading = False
+
+        if placeholder:
+            self.setPlaceholderText(placeholder)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         """Handle Ctrl+Space for completion trigger."""
@@ -235,6 +251,7 @@ class AITextEdit(QtWidgets.QTextEdit):
         field_name: str = "",
         entity_type: str = "",
         entity_context_func=None,
+        placeholder: str = "",
         parent=None,
     ):
         """
@@ -245,6 +262,7 @@ class AITextEdit(QtWidgets.QTextEdit):
             field_name: Name of the field (for AI context)
             entity_type: Type of entity being edited (for AI context)
             entity_context_func: Callable that returns entity data dict
+            placeholder: Placeholder text shown when field is empty
             parent: Parent widget
         """
         super().__init__(text, parent)
@@ -253,6 +271,16 @@ class AITextEdit(QtWidgets.QTextEdit):
         self._entity_context_func = entity_context_func
         self._popup: CompletionPopup | None = None
         self._loading = False
+
+        # Ensure text areas start at a usable height and can grow
+        self.setMinimumHeight(80)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+
+        if placeholder:
+            self.setPlaceholderText(placeholder)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         """Handle Ctrl+Space for completion trigger."""

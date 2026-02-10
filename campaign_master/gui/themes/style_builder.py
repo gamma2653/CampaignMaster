@@ -313,6 +313,24 @@ QProgressBar::chunk {{
 }}
 """
 
+    def build_forms(self) -> str:
+        """Build form, dialog, and label styles."""
+        return f"""
+QLabel {{
+    color: {self.colors.text_primary};
+}}
+QDialog {{
+    background-color: {self.colors.primary_bg};
+}}
+QDialogButtonBox QPushButton {{
+    min-width: 80px;
+    padding: 6px 16px;
+}}
+QGroupBox {{
+    color: {self.colors.text_primary};
+}}
+"""
+
     def build_all(self) -> str:
         """Build complete stylesheet by combining all style sections.
 
@@ -328,5 +346,6 @@ QProgressBar::chunk {{
             self.build_tabs(),
             self.build_controls(),
             self.build_misc(),
+            self.build_forms(),
         ]
         return "\n".join(sections)
