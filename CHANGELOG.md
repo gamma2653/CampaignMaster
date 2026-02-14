@@ -1,0 +1,165 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.0.0] - 2026-02-14
+
+### Other
+
+- Add version bump script for cross-file version synchronization
+- Fix CI venv cache invalidation on Python patch upgrades
+- Update CLAUDE.md with comprehensive project documentation
+- Add CI release packaging and cross-platform build support
+- Improve GUI form layouts, theming, and UX polish
+- Fix build tests to use platform-aware executable extension
+- Fix spec parser bracket handling and simplify build tests
+- Track PyInstaller spec file in version control
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add tests for PyInstaller packaging and build process
+- Add detailed build instructions to README
+- Auto-format code with black and isort
+- Add PyInstaller packaging support for standalone executables
+- Skip GUI tests gracefully when QApplication cannot start
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Set QT_QPA_PLATFORM to offscreen in headless CI environments
+- Set QT_QPA_PLATFORM to offscreen in headless CI environments
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Fix deprecated datetime.utcnow and patch missing mock in execution tests
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add tests and test utilities for campaign execution feature
+- Auto-format code with black and isort
+- Add campaign execute to navbar
+- Add campaign execution tracking with AI-powered note refinement
+- Remove unused UserCircleIcon import in nav.tsx
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Use _default_prefix for AgentConfig ID and fix Nav test mocks
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Serve uploaded files through authenticated endpoint instead of public static route
+- Add user profile page with picture upload, profile editing, and password change
+- Auto-format code with black and isort
+- Fix stale campaign data shown after switching accounts
+- Add default admin user seeding on application startup
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Update frontend tests for token-based authentication
+- Auto-format code with black and isort
+- Add token-based authentication system for web mode
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add mocks for AI components in frontend tests
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add campaign context to AI completions for contextual awareness
+- Add AI integration feature with settings and refactor frontend
+- Auto-format code with black and isort
+- Fix duplicate ObjectID generation in from_pydantic methods
+- Fix sequential ID generation with atomic transactions
+- Auto-format code with black and isort
+- Add update_from_pydantic methods and fix test database configuration
+- Fix eslint warnings across React frontend
+- Add npm tests to workflow
+- Add save_object API, fix ID resolution, and improve campaign updates
+- Add campaign plans listing, edit form, and testing infrastructure
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Swap Generator for Iterator
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add complete CRUD API and React Query integration for all entity types
+- Auto-format code with black and isort
+- Merge origin/main, keeping local versions for conflicts
+- Merge
+- Add Claude Code temp files to gitignore
+- Add test database isolation and expand AI context in GUI
+- Auto-format code with black and isort
+- Update black formatter settings
+- Standardize button container height in list/map widgets
+- Add caching to lint job in GitHub Actions
+- Add double-click editing to ListEdit widget
+- Add ID cleanup and improve segment/arc editing in GUI
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Improve CampaignPlanEdit UI with resizable text areas and AI assistance
+- Auto-format code with black and isort
+- Centralize ID generation in Object base class
+- Fix PySide6 import error on Ubuntu CI
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Refactor theme system to programmatic stylesheet generation
+- Improve GUI widgets with splitter resizing and type safety
+- Make Object.obj_id non-nullable via property pattern
+- Fix AI completion threading crash and improve type safety
+- Add AI completion infrastructure (WIP - not functional)
+- Simplify Object base class and remove GUI toolbar
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Enhance themed widget styling for better visual contrast
+- Fix File->Save to Database menu and add CampaignPlan update method
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add delete functionality to campaign load dialog
+- Auto-format code with black and isort
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Add database load functionality and complete CampaignPlan relationships
+- Add dark theme system and collapsible sections to GUI
+- Add comprehensive save functionality to GUI with session management
+- Auto-format code with black and isort
+- Push security update
+- Add object creation dialogs for GUI ListEdit widgets
+- Separate story points from story arcs in campaign model
+- Narrow Python version requirement to 3.12-3.13
+- Fix Poetry installation on Windows with Python 3.13
+- Remove deprecated db.py file, consolidate to models.py
+- Auto-format code with black and isort
+- Add auto-formatting to GitHub Actions lint job
+- Set up pytest and fix all test failures
+- Fix pydantic-sqlalchemy issues;
+- Massive DB changes, working through cyclic references
+- Start on db layer of content api
+- Not using sqlmodel, sqlalchemy + pydantic all the way.
+- Fix spacing and bg color for select field.
+- Fix styling and incorporate dropdowns for ease of viewing.
+- Structure to be conducive to flow layout
+- Tanstack seems to not like the Record type, let's just do an object
+- Refactored points to be more useful
+- Replace ObjectIDGroup w/ readonly IDDisplayField.
+- Now more in-line w/ GUI impl.
+- Merge pull request #6 from gamma2653/update_web
+- Bring web up to similar standards as GUI.
+- Find correct way to nest objects.
+- Try adding incrementally
+- Nesting in tanstack is hard.
+- tanstack formgroups seem to not like deep nesting.
+- Fix tanstack form errors, and fix structure to...
+- Validator fixes
+- Tailwind is now properly installed
+- Casing fixed
+- Darn casing
+- Proper plural forms
+- I <3 functional programming
+- It seems tanstack is not playing nicely with zod:(
+- Established common API between Python & React.
+- Structure more of the framework for React app
+- Move to using tanstack react-router.
+- Tie together ObjectCreateWidget and ObjectForm.
+- Use retriever (aka strategy) pattern for field handling.
+- Still a lot to work out, however PySide app is now a lot more solid.
+- Perks of NewType, seemless transition to str, int pairs.
+- Business logic for planning.py complete.
+- Oh hi Kurt.
+- Move ids into planning.py, and correct some typing.
+- Nvm, best to cut out the middle
+- Correct semantic justification for BaseModelView.
+- Some common sense reorganization.
+- Hotfix docs (pt 2)
+- Hotfix React app
+- Improve readme
+- Initialize React web application and connect py.
+- Start web app implementation, and init React app.
+- Refactor ids.py from planning.py, sure up typing.
+- README edits
+- Clarity hotfix
+- from_existing typing hotfix
+- Readme patch
+- Add progress to readme, add factory.py, integrate.
+- Adjust StringConstraints for consistency
+- Improve typing and get GUI started.
+- Init commit
