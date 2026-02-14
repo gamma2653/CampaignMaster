@@ -3,9 +3,9 @@ name: Tests
 on:
   push:
     branches: [main, develop]
-    tags: ['v*']
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -148,26 +148,48 @@ jobs:
         run: npm run lint
 
   create-release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [test, lint, frontend-test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.extract.outputs.version }}
+      should_release: ${{ steps.check.outputs.should_release }}
     steps:
-      - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
+      - uses: actions/checkout@v4
+
+      - name: Extract version from pyproject.toml
+        id: extract
+        run: |
+          VERSION=$(grep -m1 '^version\s*=' pyproject.toml | sed 's/version\s*=\s*"\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Check if release already exists
+        id: check
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: CampaignMaster ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "v${{ steps.extract.outputs.version }}" > /dev/null 2>&1; then
+            echo "Release v${{ steps.extract.outputs.version }} already exists, skipping."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release v${{ steps.extract.outputs.version }} does not exist, creating."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        if: steps.check.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.extract.outputs.version }}" \
+            --title "CampaignMaster v${{ steps.extract.outputs.version }}" \
+            --generate-notes
 
   package:
+    if: needs.create-release.outputs.should_release == 'true'
     needs: [create-release]
     runs-on: ${{ matrix.os }}
     permissions:
@@ -236,31 +258,19 @@ jobs:
       - name: Zip executables (Windows)
         if: runner.os == 'Windows'
         run: |
-          Compress-Archive -Path executables/CampaignMasterGUI/* -DestinationPath executables/CampaignMasterGUI-${{ matrix.platform }}.zip
-          Compress-Archive -Path executables/CampaignMasterWeb/* -DestinationPath executables/CampaignMasterWeb-${{ matrix.platform }}.zip
+          Compress-Archive -Path executables/CampaignMasterGUI/* -DestinationPath executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip
+          Compress-Archive -Path executables/CampaignMasterWeb/* -DestinationPath executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip
 
       - name: Zip executables (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          cd executables/CampaignMasterGUI && zip -r ../CampaignMasterGUI-${{ matrix.platform }}.zip . && cd ../..
-          cd executables/CampaignMasterWeb && zip -r ../CampaignMasterWeb-${{ matrix.platform }}.zip . && cd ../..
+          cd executables/CampaignMasterGUI && zip -r ../CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip . && cd ../..
+          cd executables/CampaignMasterWeb && zip -r ../CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip . && cd ../..
 
-      - name: Upload GUI release asset
-        uses: actions/upload-release-asset@v1
+      - name: Upload release assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: executables/CampaignMasterGUI-${{ matrix.platform }}.zip
-          asset_name: CampaignMasterGUI-${{ github.ref_name }}-${{ matrix.platform }}.zip
-          asset_content_type: application/zip
-
-      - name: Upload Web release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: executables/CampaignMasterWeb-${{ matrix.platform }}.zip
-          asset_name: CampaignMasterWeb-${{ github.ref_name }}-${{ matrix.platform }}.zip
-          asset_content_type: application/zip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ needs.create-release.outputs.version }}" \
+            executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip \
+            executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip

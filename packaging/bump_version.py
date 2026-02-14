@@ -2,7 +2,9 @@
 Version bump script for CampaignMaster.
 
 Synchronizes versions across pyproject.toml, package.json, and package-lock.json,
-generates changelogs from conventional commits, and creates git tags.
+and generates changelogs from conventional commits.
+
+Tags and releases are created by CI when version changes are pushed to main.
 
 Usage:
     python packaging/bump_version.py <major|minor|patch> [OPTIONS]
@@ -13,7 +15,6 @@ Options:
     --pre TEXT       Pre-release label (alpha, beta, rc)
     --finalize       Remove pre-release suffix and finalize version
     --dry-run        Preview changes without writing
-    --no-tag         Skip git tag creation
     --no-changelog   Skip changelog generation
 """
 
@@ -296,10 +297,9 @@ def bump(
     pre: str | None = typer.Option(None, help="Pre-release label (alpha, beta, rc)"),
     finalize: bool = typer.Option(False, "--finalize", help="Remove pre-release suffix"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview changes without writing"),
-    no_tag: bool = typer.Option(False, "--no-tag", help="Skip git tag creation"),
     no_changelog: bool = typer.Option(False, "--no-changelog", help="Skip changelog generation"),
 ) -> None:
-    """Bump the project version, update all files, and optionally tag + changelog."""
+    """Bump the project version, update all files, and optionally generate changelog."""
     if set_version and (bump_type or pre or finalize):
         typer.echo("Error: --set cannot be combined with bump_type, --pre, or --finalize", err=True)
         raise typer.Exit(1)
@@ -358,28 +358,12 @@ def bump(
     run_git("commit", "-m", f"Bump version to {new_version}")
     typer.echo(f"\n  Committed: Bump version to {new_version}")
 
-    # Git tag
-    tag_name = f"v{new_version}"
-    if not no_tag:
-        run_git("tag", "-a", tag_name, "-m", f"Release {new_version}")
-        typer.echo(f"  Created tag: {tag_name}")
-
     # Prompt to push
     typer.echo("")
-    original_branch = run_git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-    if typer.confirm(f"Create branch '{tag_name}' and push to remote?", default=False):
-        run_git("checkout", "-b", tag_name)
-        try:
-            run_git("push", "-u", "origin", f"refs/heads/{tag_name}")
-            if not no_tag:
-                run_git("push", "origin", f"refs/tags/{tag_name}")
-            typer.echo(f"  Pushed branch and tag '{tag_name}' to remote.")
-        finally:
-            run_git("checkout", original_branch)
-            typer.echo(f"  Switched back to branch '{original_branch}'.")
-    elif not no_tag and typer.confirm("Push tag to remote?", default=False):
-        run_git("push", "origin", f"refs/tags/{tag_name}")
-        typer.echo(f"  Pushed tag '{tag_name}' to remote.")
+    current_branch = run_git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    if typer.confirm(f"Push commit to remote (branch '{current_branch}')?", default=False):
+        run_git("push", "origin", current_branch)
+        typer.echo(f"  Pushed to remote branch '{current_branch}'.")
 
     typer.echo(f"\nDone! Version bumped to {new_version}")
 
