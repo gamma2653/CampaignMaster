@@ -3,6 +3,7 @@ name: Tests
 on:
   push:
     branches: [main, develop]
+    tags: ['v*']
   pull_request:
     branches: [main, develop]
 
@@ -143,3 +144,120 @@ jobs:
 
       - name: Run linting
         run: npm run lint
+
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, lint, frontend-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: CampaignMaster ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+  package:
+    needs: [create-release]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install pipx
+        run: python -m pip install --user pipx
+
+      - name: Install Poetry via pipx
+        run: python -m pipx install poetry
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Install project
+        run: poetry install --no-interaction
+
+      - name: Install Qt dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-randr0 libxcb-render-util0 libxcb-image0
+
+      - name: Build executables
+        run: poetry run python packaging/build.py --clean
+
+      - name: Zip executables (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path executables/CampaignMasterGUI/* -DestinationPath executables/CampaignMasterGUI-${{ matrix.platform }}.zip
+          Compress-Archive -Path executables/CampaignMasterWeb/* -DestinationPath executables/CampaignMasterWeb-${{ matrix.platform }}.zip
+
+      - name: Zip executables (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd executables/CampaignMasterGUI && zip -r ../CampaignMasterGUI-${{ matrix.platform }}.zip . && cd ../..
+          cd executables/CampaignMasterWeb && zip -r ../CampaignMasterWeb-${{ matrix.platform }}.zip . && cd ../..
+
+      - name: Upload GUI release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: executables/CampaignMasterGUI-${{ matrix.platform }}.zip
+          asset_name: CampaignMasterGUI-${{ github.ref_name }}-${{ matrix.platform }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Web release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: executables/CampaignMasterWeb-${{ matrix.platform }}.zip
+          asset_name: CampaignMasterWeb-${{ github.ref_name }}-${{ matrix.platform }}.zip
+          asset_content_type: application/zip

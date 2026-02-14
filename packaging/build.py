@@ -3,8 +3,8 @@
 Build orchestration script for CampaignMaster executable packaging.
 
 This script creates TWO separate executables:
-1. CampaignMasterGUI.exe - Desktop GUI application (PySide6)
-2. CampaignMasterWeb.exe - Web server application (FastAPI + React)
+1. CampaignMasterGUI(.exe on Windows) - Desktop GUI application (PySide6)
+2. CampaignMasterWeb(.exe on Windows) - Web server application (FastAPI + React)
 
 Usage:
     python packaging/build.py              # Build both executables
@@ -19,6 +19,8 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+EXE_EXT = ".exe" if sys.platform == "win32" else ""
 
 
 def get_project_root() -> Path:
@@ -239,10 +241,11 @@ def build_executables(
         success = True
 
         if build_gui:
+            gui_name = f"CampaignMasterGUI{EXE_EXT}"
             if onefile:
-                gui_path = project_root / "executables" / "CampaignMasterGUI.exe"
+                gui_path = project_root / "executables" / gui_name
             else:
-                gui_path = project_root / "executables" / "CampaignMasterGUI" / "CampaignMasterGUI.exe"
+                gui_path = project_root / "executables" / "CampaignMasterGUI" / gui_name
 
             if gui_path.exists():
                 print(f"\nGUI executable created: {gui_path}")
@@ -252,10 +255,11 @@ def build_executables(
                 success = False
 
         if build_web:
+            web_name = f"CampaignMasterWeb{EXE_EXT}"
             if onefile:
-                web_path = project_root / "executables" / "CampaignMasterWeb.exe"
+                web_path = project_root / "executables" / web_name
             else:
-                web_path = project_root / "executables" / "CampaignMasterWeb" / "CampaignMasterWeb.exe"
+                web_path = project_root / "executables" / "CampaignMasterWeb" / web_name
 
             if web_path.exists():
                 print(f"\nWeb executable created: {web_path}")
@@ -285,8 +289,8 @@ def clean_build_artifacts(project_root: Path):
     ]
 
     files_to_clean = [
-        project_root / "executables" / "CampaignMasterGUI.exe",
-        project_root / "executables" / "CampaignMasterWeb.exe",
+        project_root / "executables" / f"CampaignMasterGUI{EXE_EXT}",
+        project_root / "executables" / f"CampaignMasterWeb{EXE_EXT}",
     ]
 
     # Add temporary spec files
@@ -320,12 +324,12 @@ Examples:
 
 Output:
     Onefolder mode:
-        executables/CampaignMasterGUI/CampaignMasterGUI.exe
-        executables/CampaignMasterWeb/CampaignMasterWeb.exe
+        executables/CampaignMasterGUI/CampaignMasterGUI[.exe]
+        executables/CampaignMasterWeb/CampaignMasterWeb[.exe]
 
     Onefile mode:
-        executables/CampaignMasterGUI.exe
-        executables/CampaignMasterWeb.exe
+        executables/CampaignMasterGUI[.exe]
+        executables/CampaignMasterWeb[.exe]
         """,
     )
 
@@ -404,28 +408,32 @@ Output:
     print("BUILD COMPLETE!")
     print("=" * 60)
 
+    gui_name = f"CampaignMasterGUI{EXE_EXT}"
+    web_name = f"CampaignMasterWeb{EXE_EXT}"
+    sep = "\\" if sys.platform == "win32" else "/"
+
     if onefile:
         if build_gui:
-            print(f"\nGUI: executables/CampaignMasterGUI.exe")
+            print(f"\nGUI: executables{sep}{gui_name}")
         if build_web:
-            print(f"Web: executables/CampaignMasterWeb.exe")
+            print(f"Web: executables{sep}{web_name}")
     else:
         if build_gui:
-            print(f"\nGUI: executables/CampaignMasterGUI/CampaignMasterGUI.exe")
+            print(f"\nGUI: executables{sep}CampaignMasterGUI{sep}{gui_name}")
         if build_web:
-            print(f"Web: executables/CampaignMasterWeb/CampaignMasterWeb.exe")
+            print(f"Web: executables{sep}CampaignMasterWeb{sep}{web_name}")
 
     print("\nUsage:")
     if build_gui:
         if onefile:
-            print("  GUI: .\\executables\\CampaignMasterGUI.exe")
+            print(f"  GUI: .{sep}executables{sep}{gui_name}")
         else:
-            print("  GUI: .\\executables\\CampaignMasterGUI\\CampaignMasterGUI.exe")
+            print(f"  GUI: .{sep}executables{sep}CampaignMasterGUI{sep}{gui_name}")
     if build_web:
         if onefile:
-            print("  Web: .\\executables\\CampaignMasterWeb.exe --port 8000")
+            print(f"  Web: .{sep}executables{sep}{web_name} --port 8000")
         else:
-            print("  Web: .\\executables\\CampaignMasterWeb\\CampaignMasterWeb.exe --port 8000")
+            print(f"  Web: .{sep}executables{sep}CampaignMasterWeb{sep}{web_name} --port 8000")
 
 
 if __name__ == "__main__":
