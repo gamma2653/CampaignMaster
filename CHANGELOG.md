@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.1] - 2026-02-14
+
+### Other
+
+- Add missing hidden imports for GUI executable packaging
+- Switch release packaging to single-file executables
+- Fix release upload failing on Windows by using bash shell
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Decouple version bumping from tag-based releases
+- Auto-format code with black and isort
+- Set the web entrypoint to open web even if debug is not defined as an
+- Add --set flag, fix ambiguous refspec, and auto-switch branch back
+
 All notable changes to this project will be documented in this file.
 
 ## [1.0.0] - 2026-02-14
