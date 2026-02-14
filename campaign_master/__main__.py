@@ -26,10 +26,9 @@ if __name__ == "__main__":
         from campaign_master.web import util
 
         util.build()
-        if input("Would you like to run the web server now? (y/n): ").strip().lower() not in ("y", "yes", "1"):
+        if input("Would you like to run the web server in debug mode now? (y/n): ").strip().lower() not in ("y", "yes", "1"):
             sys.exit(0)
-        if known_args.debug:
-            web_app.run_dev(host=known_args.host, port=known_args.port, debug=known_args.debug)
+        web_app.run_dev(host=known_args.host, port=known_args.port, debug=known_args.debug)
         # else:
         # This case should be handled by an external service like nginx in production
         sys.exit(0)
