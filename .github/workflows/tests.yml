@@ -253,19 +253,19 @@ jobs:
           sudo apt-get install -y libegl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-randr0 libxcb-render-util0 libxcb-image0
 
       - name: Build executables
-        run: poetry run python packaging/build.py --clean
+        run: poetry run python packaging/build.py --clean --onefile
 
-      - name: Zip executables (Windows)
-        if: runner.os == 'Windows'
+      - name: Rename executables for release
+        shell: bash
         run: |
-          Compress-Archive -Path executables/CampaignMasterGUI/* -DestinationPath executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip
-          Compress-Archive -Path executables/CampaignMasterWeb/* -DestinationPath executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip
-
-      - name: Zip executables (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          cd executables/CampaignMasterGUI && zip -r ../CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip . && cd ../..
-          cd executables/CampaignMasterWeb && zip -r ../CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip . && cd ../..
+          cd executables
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            mv CampaignMasterGUI.exe "CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.exe"
+            mv CampaignMasterWeb.exe "CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.exe"
+          else
+            mv CampaignMasterGUI "CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}"
+            mv CampaignMasterWeb "CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}"
+          fi
 
       - name: Upload release assets
         env:
@@ -273,5 +273,5 @@ jobs:
         shell: bash
         run: |
           gh release upload "v${{ needs.create-release.outputs.version }}" \
-            executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip \
-            executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip
+            executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}* \
+            executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}*
