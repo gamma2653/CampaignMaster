@@ -99,7 +99,33 @@ gui_hiddenimports = common_hiddenimports + [
     "campaign_master.gui",
     "campaign_master.gui.main_window",
     "campaign_master.gui.themes",
+    "campaign_master.gui.themes.colors",
+    "campaign_master.gui.themes.dark_theme",
+    "campaign_master.gui.themes.style_builder",
     "campaign_master.gui.widgets",
+    "campaign_master.gui.widgets.planning",
+    "campaign_master.gui.widgets.ai_widgets",
+    "campaign_master.gui.widgets.executing",
+    "campaign_master.gui.dialogs",
+    "campaign_master.gui.dialogs.agent_settings",
+    # Campaign execution module
+    "campaign_master.content.executing",
+    # AI provider SDKs
+    "anthropic",
+    "openai",
+    "httpx",
+    "httpx._transports",
+    "httpx._transports.default",
+    # AI modules
+    "campaign_master.ai",
+    "campaign_master.ai.protocol",
+    "campaign_master.ai.service",
+    "campaign_master.ai.refinement",
+    "campaign_master.ai.providers",
+    "campaign_master.ai.providers.base",
+    "campaign_master.ai.providers.anthropic",
+    "campaign_master.ai.providers.openai",
+    "campaign_master.ai.providers.ollama",
 ]
 
 gui_excludes = common_excludes + [
@@ -111,9 +137,6 @@ gui_excludes = common_excludes + [
     "websockets",
     "python_multipart",
     "email_validator",
-    "anthropic",
-    "openai",
-    "httpx",
 ]
 
 # GUI Analysis
