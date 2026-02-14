@@ -125,6 +125,8 @@ All business objects inherit from `planning.Object`:
 - **Character**: NPCs/PCs (attributes, skills, inventory, storylines)
 - **Location**: Places (coordinates, neighboring locations)
 - **CampaignPlan**: Top-level campaign container
+- **AgentConfig** (prefix `AG`): AI provider configuration — provider, model, API key, base URL (`content/planning.py`)
+- **CampaignExecution** (prefix `EX`): Campaign execution state with session entries (`content/executing.py`)
 
 **Reference Pattern:** Objects reference each other by ID (string), not by embedding full objects. This avoids circular dependencies. Database models handle actual relationships via SQLAlchemy `relationship()` definitions.
 
@@ -142,6 +144,28 @@ All business objects inherit from `planning.Object`:
 - Web mode associates objects with specific users
 - Required parameter when calling most `content/api.py` functions
 
+### AI Provider Architecture
+
+- **Protocol**: `ai/protocol.py` defines `AIProvider` (runtime-checkable protocol)
+- **Providers**: `ai/providers/` contains `AnthropicProvider`, `OpenAIProvider`, `OllamaProvider` (all extend `BaseProvider`)
+- **GUI Service**: `AICompletionService` in `ai/service.py` — singleton, lazy-imported to avoid PySide6 dependency in web mode
+- **Web Endpoints**: `web/ai_api.py` exposes AI completion endpoints for the web frontend
+- **Configuration**: `AgentConfig` objects stored in DB provide per-user provider settings
+
+### Web Authentication
+
+- UUID token-based auth with bcrypt password hashing (`web/auth.py`)
+- Endpoints: `/api/auth` — login, register, logout, profile
+- Default admin user auto-created on startup (username: `admin`, password: `admin`, proto_user_id=0)
+- Protected routes require Bearer token in Authorization header
+
+### File Upload / Storage
+
+- `web/storage.py` provides `LocalStorage` and `S3Storage` backends
+- Factory function `get_storage()` selects backend based on config
+- Profile pictures stored in `uploads/profile_pictures/`
+- S3 configurable via `CM_s3_*` environment variables
+
 ## Frontend Architecture (Web Mode)
 
 ### Tech Stack
@@ -154,7 +178,24 @@ All business objects inherit from `planning.Object`:
 - **Styling**: Tailwind CSS 4
 - **Validation**: Zod
 
-### Frontend Build Process
+### Route Structure
+
+File-based routing in `web/react/routes/`:
+
+- `__root.tsx` — Root layout
+- `index.tsx` — Home page
+- `login.tsx` — Login page
+- `profile.tsx` — User profile
+- `campaign/` — Campaign planning routes (nested: `plan/$camp_id/...`)
+- `settings/` — Settings routes
+
+### AI Integration
+
+- `features/ai/` — AIContext provider, completion hooks, AI-enhanced form components
+- `features/shared/components/fields.tsx` — Reusable field components
+- `query.tsx` — Query hook factory pattern for TanStack Query
+
+### Frontend Build & Test
 
 ```bash
 # Development server (separate from Python backend)
@@ -162,15 +203,29 @@ npm run dev
 
 # Production build (creates static files)
 npm run build
+
+# Run frontend tests (Vitest)
+npm run test:run
 ```
 
-## Database Configuration
+## Configuration / Environment Variables
 
-- Default: In-memory SQLite (`:memory:`) - data lost on restart
+### Database
+
+- Default: `sqlite:///campaignmaster.db` (file-based, persistent)
 - Override via environment variable: `DB_db_scheme`
 - Connection args via: `DB_db_connect_args`
 - Settings defined in `content/settings.py` using Pydantic Settings
-- Prefix: `CM_` for general settings, `DB_` for database settings
+- Prefix: `DB_` for database settings
+
+### Web & General Settings
+
+- Prefix: `CM_` for general settings
+- `CM_web_host`, `CM_web_port`: Web server bind address (default `127.0.0.1:8000`)
+- `CM_debug_mode`: Enable debug logging/features
+- `CM_upload_dir`: Local upload directory (default `uploads/`)
+- `CM_s3_bucket`, `CM_s3_region`, `CM_s3_access_key`, `CM_s3_secret_key`: S3 storage config
+- `CM_LOG_LEVEL`: Control log verbosity
 
 ## Adding a New Entity Type
 
@@ -206,6 +261,8 @@ class Character(Object):
 class Character(Object):
     inventory: list[Item]  # Don't do this!
 ```
+
+**Exception:** `Arc.segments` embeds `Segment` objects directly (`list[Segment]`). This is the only intentional deviation from the ID-reference pattern.
 
 ### Session Management
 
@@ -309,8 +366,24 @@ The codebase recently migrated from SQLModel to separate SQLAlchemy + Pydantic m
 
 - `content/database.py` (NEW): Database initialization and session management
 - `content/models.py` (NEW): SQLAlchemy ORM models
-- `content/db.py`: May be deprecated/duplicate - check before modifying
 - `content/planning.py`: Pydantic business logic models
+
+## Build & Packaging
+
+- Two separate executables: `CampaignMasterGUI` (no console window) and `CampaignMasterWeb` (console)
+- Build script: `packaging/build.py`
+  - Flags: `--gui-only`, `--web-only`, `--onefile`, `--onefolder`, `--clean`, `--debug`, `--skip-frontend`
+- PyInstaller spec: `packaging/CampaignMaster.spec`
+- Entry points: `packaging/entry_gui.py`, `packaging/entry_web.py`
+
+## CI/CD
+
+- `.github/workflows/tests.yml` with 5 jobs:
+  - **test**: Multi-platform Python tests (Ubuntu/Windows/macOS, Python 3.12 + 3.13)
+  - **lint**: Auto-formatting with black + isort (commits fixes automatically)
+  - **frontend-test**: Frontend tests and linting
+  - **create-release**: GitHub release creation (triggered by `v*` tags)
+  - **package**: Cross-platform executable packaging (triggered by `v*` tags)
 
 ## Logging
 
@@ -332,6 +405,8 @@ Control log level via `CM_LOG_LEVEL` environment variable.
 - **SQLAlchemy**: Database ORM
 - **PySide6**: Desktop GUI framework
 - **uvicorn**: Development web server
+- **bcrypt**: Password hashing
+- **PyInstaller**: Executable packaging
 
 ### Frontend
 
@@ -339,3 +414,4 @@ Control log level via `CM_LOG_LEVEL` environment variable.
 - **TypeScript**: Type-safe React
 - **TanStack**: Router, Query, Form libraries
 - **Tailwind CSS**: Utility-first styling
+- **Vitest**: Test framework
