@@ -270,6 +270,7 @@ jobs:
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           gh release upload "v${{ needs.create-release.outputs.version }}" \
             executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.zip \
