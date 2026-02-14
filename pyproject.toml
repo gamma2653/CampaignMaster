@@ -33,6 +33,7 @@ isort="^5.13.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.2"
+typer = ">=0.15.0"
 
 [tool.poetry.group.build.dependencies]
 pyinstaller = "^6.0"
