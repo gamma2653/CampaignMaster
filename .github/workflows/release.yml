@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [Test, Lint]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  create-release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      should_release: ${{ steps.check_all.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that both Test and Lint workflows succeeded
+        id: check_workflows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+
+          # Get the other workflow's status (the one that didn't trigger this run)
+          TRIGGERING_WORKFLOW="${{ github.event.workflow_run.name }}"
+          if [ "$TRIGGERING_WORKFLOW" = "Test" ]; then
+            OTHER_WORKFLOW="Lint"
+          else
+            OTHER_WORKFLOW="Test"
+          fi
+
+          # Check if the other workflow also succeeded for this commit
+          OTHER_STATUS=$(gh run list --workflow="$OTHER_WORKFLOW" --commit="$COMMIT_SHA" --json conclusion --jq '.[0].conclusion // "none"')
+
+          if [ "$OTHER_STATUS" != "success" ]; then
+            echo "Other workflow ($OTHER_WORKFLOW) has not succeeded yet (status: $OTHER_STATUS). Skipping."
+            echo "both_succeeded=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Both workflows succeeded."
+            echo "both_succeeded=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extract version from pyproject.toml
+        if: steps.check_workflows.outputs.both_succeeded == 'true'
+        id: extract
+        run: |
+          VERSION=$(grep -m1 '^version\s*=' pyproject.toml | sed 's/version\s*=\s*"\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Check if release already exists
+        if: steps.check_workflows.outputs.both_succeeded == 'true'
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "v${{ steps.extract.outputs.version }}" > /dev/null 2>&1; then
+            echo "Release v${{ steps.extract.outputs.version }} already exists, skipping."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release v${{ steps.extract.outputs.version }} does not exist, creating."
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Combine checks
+        id: check_all
+        run: |
+          if [ "${{ steps.check_workflows.outputs.both_succeeded }}" = "true" ] && [ "${{ steps.check.outputs.should_release }}" = "true" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        if: steps.check_all.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.extract.outputs.version }}" \
+            --title "CampaignMaster v${{ steps.extract.outputs.version }}" \
+            --generate-notes
+
+  package:
+    if: needs.create-release.outputs.should_release == 'true'
+    needs: [create-release]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install pipx
+        run: python -m pip install --user pipx
+
+      - name: Install Poetry via pipx
+        run: python -m pipx install poetry
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Install project
+        run: poetry install --no-interaction
+
+      - name: Install Qt dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-randr0 libxcb-render-util0 libxcb-image0
+
+      - name: Build executables
+        run: poetry run python packaging/build.py --clean --onefile
+
+      - name: Rename executables for release
+        shell: bash
+        run: |
+          cd executables
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            mv CampaignMasterGUI.exe "CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.exe"
+            mv CampaignMasterWeb.exe "CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.exe"
+          else
+            mv CampaignMasterGUI "CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}"
+            mv CampaignMasterWeb "CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}"
+          fi
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "v${{ needs.create-release.outputs.version }}" \
+            executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}* \
+            executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}*

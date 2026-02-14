@@ -378,12 +378,9 @@ The codebase recently migrated from SQLModel to separate SQLAlchemy + Pydantic m
 
 ## CI/CD
 
-- `.github/workflows/tests.yml` with 5 jobs:
-  - **test**: Multi-platform Python tests (Ubuntu/Windows/macOS, Python 3.12 + 3.13)
-  - **lint**: Auto-formatting with black + isort (commits fixes automatically)
-  - **frontend-test**: Frontend tests and linting
-  - **create-release**: GitHub release creation (triggered by `v*` tags)
-  - **package**: Cross-platform executable packaging (triggered by `v*` tags)
+- `.github/workflows/test.yml`: **test** (multi-platform Python tests: Ubuntu/Windows/macOS, Python 3.12 + 3.13) and **frontend-test** (frontend tests and linting)
+- `.github/workflows/lint.yml`: **lint** (auto-formatting with black + isort, commits fixes automatically)
+- `.github/workflows/release.yml`: **create-release** (GitHub release creation, triggered after both Test and Lint succeed on main) and **package** (cross-platform executable packaging)
 
 ## Logging
 
