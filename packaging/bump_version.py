@@ -26,6 +26,7 @@ import sys
 from datetime import date, timezone
 from enum import Enum
 from pathlib import Path
+
 import typer
 
 app = typer.Typer(help="Bump CampaignMaster version across all project files.")
@@ -61,7 +62,9 @@ def parse_version(version_str: str) -> tuple[int, int, int, str | None, int | No
     return major, minor, patch, pre_label, pre_number
 
 
-def format_version(major: int, minor: int, patch: int, pre_label: str | None = None, pre_number: int | None = None) -> str:
+def format_version(
+    major: int, minor: int, patch: int, pre_label: str | None = None, pre_number: int | None = None
+) -> str:
     """Format version components into a semver string."""
     version = f"{major}.{minor}.{patch}"
     if pre_label is not None:
@@ -280,7 +283,9 @@ def update_changelog(version: str, categories: dict[str, list[str]], dry_run: bo
         else:
             updated = new_section + "\n" + existing
     else:
-        updated = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n" + new_section
+        updated = (
+            "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n" + new_section
+        )
 
     CHANGELOG_PATH.write_text(updated, encoding="utf-8")
     typer.echo("  Updated CHANGELOG.md")
