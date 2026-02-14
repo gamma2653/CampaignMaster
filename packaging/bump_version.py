@@ -6,8 +6,10 @@ generates changelogs from conventional commits, and creates git tags.
 
 Usage:
     python packaging/bump_version.py <major|minor|patch> [OPTIONS]
+    python packaging/bump_version.py --set <VERSION> [OPTIONS]
 
 Options:
+    --set TEXT       Set an exact version (e.g., 2.0.0, 1.5.0-beta.1)
     --pre TEXT       Pre-release label (alpha, beta, rc)
     --finalize       Remove pre-release suffix and finalize version
     --dry-run        Preview changes without writing
@@ -289,7 +291,8 @@ def update_changelog(version: str, categories: dict[str, list[str]], dry_run: bo
 
 @app.command()
 def bump(
-    bump_type: BumpType = typer.Argument(help="Version component to bump: major, minor, or patch"),
+    bump_type: BumpType | None = typer.Argument(None, help="Version component to bump: major, minor, or patch"),
+    set_version: str | None = typer.Option(None, "--set", help="Set an exact version (e.g., 2.0.0, 1.5.0-beta.1)"),
     pre: str | None = typer.Option(None, help="Pre-release label (alpha, beta, rc)"),
     finalize: bool = typer.Option(False, "--finalize", help="Remove pre-release suffix"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview changes without writing"),
@@ -297,12 +300,26 @@ def bump(
     no_changelog: bool = typer.Option(False, "--no-changelog", help="Skip changelog generation"),
 ) -> None:
     """Bump the project version, update all files, and optionally tag + changelog."""
+    if set_version and (bump_type or pre or finalize):
+        typer.echo("Error: --set cannot be combined with bump_type, --pre, or --finalize", err=True)
+        raise typer.Exit(1)
+
+    if not set_version and not bump_type and not finalize:
+        typer.echo("Error: Must provide either a bump type (major/minor/patch) or --set VERSION", err=True)
+        raise typer.Exit(1)
+
     if pre and pre not in ("alpha", "beta", "rc"):
         typer.echo("Error: --pre must be one of: alpha, beta, rc", err=True)
         raise typer.Exit(1)
 
     current_version = read_current_version()
-    new_version = compute_new_version(current_version, bump_type, pre, finalize)
+
+    if set_version:
+        # Validate the provided version string by parsing it
+        parse_version(set_version)
+        new_version = set_version
+    else:
+        new_version = compute_new_version(current_version, bump_type, pre, finalize)
 
     typer.echo(f"\nVersion: {current_version} -> {new_version}")
 
@@ -349,12 +366,17 @@ def bump(
 
     # Prompt to push
     typer.echo("")
+    original_branch = run_git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     if typer.confirm(f"Create branch '{tag_name}' and push to remote?", default=False):
         run_git("checkout", "-b", tag_name)
-        run_git("push", "-u", "origin", tag_name)
-        if not no_tag:
-            run_git("push", "origin", f"refs/tags/{tag_name}")
-        typer.echo(f"  Pushed branch and tag '{tag_name}' to remote.")
+        try:
+            run_git("push", "-u", "origin", f"refs/heads/{tag_name}")
+            if not no_tag:
+                run_git("push", "origin", f"refs/tags/{tag_name}")
+            typer.echo(f"  Pushed branch and tag '{tag_name}' to remote.")
+        finally:
+            run_git("checkout", original_branch)
+            typer.echo(f"  Switched back to branch '{original_branch}'.")
     elif not no_tag and typer.confirm("Push tag to remote?", default=False):
         run_git("push", "origin", f"refs/tags/{tag_name}")
         typer.echo(f"  Pushed tag '{tag_name}' to remote.")
