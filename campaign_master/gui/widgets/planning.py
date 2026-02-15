@@ -261,6 +261,8 @@ class IDSelectWithCreate(QtWidgets.QWidget):
     Allows selecting an existing object or creating a new one.
     """
 
+    object_created = QtCore.Signal(object)
+
     def __init__(
         self,
         model_type: type[planning.Object],
@@ -331,6 +333,9 @@ class IDSelectWithCreate(QtWidgets.QWidget):
             # Refresh the dropdown and select the new ID
             self.id_select.populate()
             self.id_select.set_selected_id(form_data.obj_id)
+
+            # Notify listeners that a new object was created
+            self.object_created.emit(form_data)
         else:
             # Dialog was cancelled - release the unused ID
             content_api.release_id(edit_widget.obj_id.get_id(), proto_user_id=0)
@@ -655,6 +660,11 @@ class ListEdit(QtWidgets.QWidget, Generic[T]):
             # Update the list item display
             item.setText(str(form_data.obj_id))
 
+    def add_existing_object(self, obj: T):
+        """Add an already-created object to the list without opening a dialog."""
+        self.list_widget.addItem(str(obj.obj_id))
+        self.objects.append(obj)
+
     def get_objects(self) -> list[T]:
         """Return the list of objects."""
         return self.objects
@@ -950,10 +960,37 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
             selected_id=self.segment.end if self.segment else None,
         )
 
+        # Connect signals to propagate new points to the campaign's storypoints
+        self.start.object_created.connect(self._on_point_created)
+        self.end.object_created.connect(self._on_point_created)
+
+        # View buttons for inspecting selected start/end points
+        self.view_start_button = QtWidgets.QPushButton("View")
+        self.view_start_button.setMaximumWidth(60)
+        self.view_start_button.clicked.connect(lambda: self._view_point(self.start))
+        self.view_end_button = QtWidgets.QPushButton("View")
+        self.view_end_button.setMaximumWidth(60)
+        self.view_end_button.clicked.connect(lambda: self._view_point(self.end))
+
+        # Wrap start/end selectors with their View buttons
+        start_row = QtWidgets.QHBoxLayout()
+        start_row.setContentsMargins(0, 0, 0, 0)
+        start_row.addWidget(self.start, 1)
+        start_row.addWidget(self.view_start_button)
+        start_container = QtWidgets.QWidget()
+        start_container.setLayout(start_row)
+
+        end_row = QtWidgets.QHBoxLayout()
+        end_row.setContentsMargins(0, 0, 0, 0)
+        end_row.addWidget(self.end, 1)
+        end_row.addWidget(self.view_end_button)
+        end_container = QtWidgets.QWidget()
+        end_container.setLayout(end_row)
+
         form_layout.addRow("ID:", self.obj_id)
         form_layout.addRow("Name:", self.name)
-        form_layout.addRow("Start Point:", self.start)
-        form_layout.addRow("End Point:", self.end)
+        form_layout.addRow("Start Point:", start_container)
+        form_layout.addRow("End Point:", end_container)
         container_layout.addLayout(form_layout)
 
         # Description text area with label
@@ -971,6 +1008,40 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
         container.setLayout(container_layout)
         main_layout.addWidget(container)
         self.setLayout(main_layout)
+
+    def _on_point_created(self, point: planning.Point):
+        """Propagate a newly created point to the parent campaign's storypoints list."""
+        parent = self.parent()
+        while parent is not None:
+            if isinstance(parent, CampaignPlanEdit):
+                parent.storypoints.add_existing_object(point)
+                return
+            parent = parent.parent()
+
+    def _view_point(self, id_select_widget: IDSelectWithCreate):
+        """Open a read-only dialog to view the selected point."""
+        selected_id = id_select_widget.get_selected_id()
+        if not selected_id:
+            return
+
+        point = content_api.retrieve_object(selected_id)
+        if not point or not isinstance(point, planning.Point):
+            QtWidgets.QMessageBox.warning(
+                self, "Not Found", f"Could not find Point {selected_id}."
+            )
+            return
+
+        edit_widget = PointEdit(point)
+        dialog = _create_edit_dialog(self, f"View Point {selected_id}", edit_widget)
+
+        # Replace OK/Cancel with just Close for view-only
+        button_box = dialog.findChild(QtWidgets.QDialogButtonBox)
+        if button_box:
+            button_box.clear()
+            button_box.addButton(QtWidgets.QDialogButtonBox.StandardButton.Close)
+            button_box.rejected.connect(dialog.reject)
+
+        dialog.exec()
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
