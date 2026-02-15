@@ -1026,9 +1026,7 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
 
         point = content_api.retrieve_object(selected_id)
         if not point or not isinstance(point, planning.Point):
-            QtWidgets.QMessageBox.warning(
-                self, "Not Found", f"Could not find Point {selected_id}."
-            )
+            QtWidgets.QMessageBox.warning(self, "Not Found", f"Could not find Point {selected_id}.")
             return
 
         edit_widget = PointEdit(point)
