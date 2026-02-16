@@ -50,6 +50,7 @@ export const CampaignPlanGroup = withFieldGroup({
       const values = group.state.values;
       return {
         title: values.title,
+        version: values.version,
         setting: values.setting,
         summary: values.summary,
         storyline: values.storyline,
@@ -61,6 +62,11 @@ export const CampaignPlanGroup = withFieldGroup({
         objectives: values.objectives,
       };
     }, [group.state.values]);
+
+    const getEntityId = useCallback(
+      () => group.state.values.obj_id,
+      [group.state.values.obj_id],
+    );
 
     return (
       <div id="campaign-plan-group">
@@ -99,7 +105,7 @@ export const CampaignPlanGroup = withFieldGroup({
                       <field.AITextField
                         label="Campaign Plan Setting"
                         fieldName="setting"
-                        entityType="CampaignPlan"
+                        getEntityId={getEntityId}
                         getCampaignContext={getCampaignContext}
                       />
                     )}
@@ -111,7 +117,7 @@ export const CampaignPlanGroup = withFieldGroup({
                       <field.AITextAreaField
                         label="Campaign Plan Summary"
                         fieldName="summary"
-                        entityType="CampaignPlan"
+                        getEntityId={getEntityId}
                         getCampaignContext={getCampaignContext}
                       />
                     )}

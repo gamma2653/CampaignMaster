@@ -17,10 +17,8 @@ interface AITextFieldProps {
   label: string;
   /** The name of this field (used in AI context) */
   fieldName?: string;
-  /** The entity type being edited (used in AI context) */
-  entityType?: string;
-  /** Function to get additional entity context data */
-  getEntityData?: () => Record<string, unknown>;
+  /** Function to get the entity's obj_id */
+  getEntityId?: () => { prefix: string; numeric: number };
   /** Function to get the full campaign context for AI completions */
   getCampaignContext?: () => CampaignContext;
 }
@@ -28,8 +26,7 @@ interface AITextFieldProps {
 export function AITextField({
   label,
   fieldName,
-  entityType,
-  getEntityData,
+  getEntityId,
   getCampaignContext,
 }: AITextFieldProps) {
   const field = useFieldContext<string>();
@@ -53,11 +50,12 @@ export function AITextField({
         e.preventDefault();
 
         const context: CompletionContext = {
-          field_name: fieldName || label,
-          entity_type: entityType || 'unknown',
-          current_text: field.state.value,
-          entity_data: getEntityData?.(),
-          campaign_context: getCampaignContext?.(),
+          campaign: getCampaignContext?.() ?? {},
+          entity: {
+            obj_id: getEntityId?.() ?? { prefix: '', numeric: 0 },
+            field: fieldName || label,
+            current_value: field.state.value,
+          },
         };
 
         // Show loading popup
@@ -100,8 +98,7 @@ export function AITextField({
       defaultAgent,
       field.state.value,
       fieldName,
-      entityType,
-      getEntityData,
+      getEntityId,
       getCampaignContext,
       label,
       completion,

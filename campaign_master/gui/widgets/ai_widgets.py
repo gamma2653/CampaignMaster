@@ -166,19 +166,22 @@ class AILineEdit(QtWidgets.QLineEdit):
         self._loading = True
         self.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-        # Build context
-        context: dict[str, Any] = {
-            "field_name": self.field_name,
-            "entity_type": self.entity_type,
-            "current_text": self.text(),
-        }
-
+        # Build structured context
+        entity_ctx = {}
         if self._entity_context_func:
             try:
-                context["entity_data"] = self._entity_context_func()
+                entity_ctx = self._entity_context_func()
             except Exception:
                 logger.exception("Error obtaining entity context")
-                pass
+
+        context: dict[str, Any] = {
+            "campaign": entity_ctx.get("campaign", {}),
+            "entity": {
+                "obj_id": entity_ctx.get("obj_id", {}),
+                "field": self.field_name,
+                "current_value": self.text(),
+            },
+        }
 
         self.completionRequested.emit()
 
@@ -303,19 +306,22 @@ class AITextEdit(QtWidgets.QTextEdit):
         self._loading = True
         self.viewport().setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-        # Build context
-        context: dict[str, Any] = {
-            "field_name": self.field_name,
-            "entity_type": self.entity_type,
-            "current_text": self.toPlainText(),
-        }
-
+        # Build structured context
+        entity_ctx = {}
         if self._entity_context_func:
             try:
-                context["entity_data"] = self._entity_context_func()
+                entity_ctx = self._entity_context_func()
             except Exception:
                 logger.exception("Error obtaining entity context")
-                pass
+
+        context: dict[str, Any] = {
+            "campaign": entity_ctx.get("campaign", {}),
+            "entity": {
+                "obj_id": entity_ctx.get("obj_id", {}),
+                "field": self.field_name,
+                "current_value": self.toPlainText(),
+            },
+        }
 
         self.completionRequested.emit()
 

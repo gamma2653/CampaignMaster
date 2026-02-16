@@ -31,6 +31,7 @@ export interface CompletionRequest {
  */
 export interface CampaignContext {
   title?: string;
+  version?: string;
   setting?: string;
   summary?: string;
   storyline?: Arc[];
@@ -42,13 +43,15 @@ export interface CampaignContext {
   objectives?: Objective[];
 }
 
+export interface EntityContext {
+  obj_id: { prefix: string; numeric: number };
+  field: string;
+  current_value: string;
+}
+
 export interface CompletionContext {
-  field_name: string;
-  entity_type: string;
-  current_text: string;
-  entity_data?: Record<string, unknown>;
-  /** Full campaign context for AI to use when generating completions */
-  campaign_context?: CampaignContext;
+  campaign: CampaignContext;
+  entity: EntityContext;
 }
 
 export interface CompletionResponse {

@@ -9,7 +9,11 @@ from .ai_widgets import AILineEdit, AITextEdit
 
 
 def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
-    """Walk up the widget tree to find CampaignPlanEdit and extract context."""
+    """Walk up the widget tree to find CampaignPlanEdit and extract campaign context.
+
+    Returns a dict matching the 'campaign' section of the context schema:
+    {title, version, setting, summary, storypoints, storyline, characters, ...}
+    """
     parent = widget.parent()
     while parent is not None:
         # Check if this is CampaignPlanEdit by looking for its attributes
@@ -17,17 +21,17 @@ def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
             parent = cast(CampaignPlanEdit, parent)
             try:
                 return {
-                    "campaign_title": parent.title.text(),
-                    "campaign_version": parent.version.text(),
-                    "campaign_setting": parent.setting.toPlainText(),
-                    "campaign_summary": parent.summary.toPlainText(),
-                    "campaign_storypoints": [obj.model_dump() for obj in parent.storypoints.get_objects()],
-                    "campaign_storyline": [obj.model_dump() for obj in parent.storyline.get_objects()],
-                    "campaign_characters": [obj.model_dump() for obj in parent.characters.get_objects()],
-                    "campaign_locations": [obj.model_dump() for obj in parent.locations.get_objects()],
-                    "campaign_items": [obj.model_dump() for obj in parent.items.get_objects()],
-                    "campaign_rules": [obj.model_dump() for obj in parent.rules.get_objects()],
-                    "campaign_objectives": [obj.model_dump() for obj in parent.objectives.get_objects()],
+                    "title": parent.title.text(),
+                    "version": parent.version.text(),
+                    "setting": parent.setting.toPlainText(),
+                    "summary": parent.summary.toPlainText(),
+                    "storypoints": [obj.model_dump() for obj in parent.storypoints.get_objects()],
+                    "storyline": [obj.model_dump() for obj in parent.storyline.get_objects()],
+                    "characters": [obj.model_dump() for obj in parent.characters.get_objects()],
+                    "locations": [obj.model_dump() for obj in parent.locations.get_objects()],
+                    "items": [obj.model_dump() for obj in parent.items.get_objects()],
+                    "rules": [obj.model_dump() for obj in parent.rules.get_objects()],
+                    "objectives": [obj.model_dump() for obj in parent.objectives.get_objects()],
                 }
             except Exception:
                 pass
@@ -751,13 +755,10 @@ class RuleEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "description": self.description.toPlainText(),
-            "effect": self.effect.toPlainText(),
-            "components": self.components.get_items(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
     def export_content(self) -> planning.Rule:
         """Export the form data as a Rule object."""
@@ -825,12 +826,10 @@ class ObjectiveEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "description": self.description.toPlainText(),
-            "components": self.components.get_items(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
     def export_content(self) -> planning.Objective:
         """Export the form data as an Objective object."""
@@ -897,12 +896,10 @@ class PointEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "name": self.name.text(),
-            "description": self.description.toPlainText(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
     def export_content(self) -> planning.Point:
         """Export the form data as a Point object."""
@@ -1026,9 +1023,7 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
 
         point = content_api.retrieve_object(selected_id)
         if not point or not isinstance(point, planning.Point):
-            QtWidgets.QMessageBox.warning(
-                self, "Not Found", f"Could not find Point {selected_id}."
-            )
+            QtWidgets.QMessageBox.warning(self, "Not Found", f"Could not find Point {selected_id}.")
             return
 
         edit_widget = PointEdit(point)
@@ -1045,12 +1040,10 @@ class SegmentEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "name": self.name.text(),
-            "description": self.description.toPlainText(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
     def export_content(self) -> planning.Segment:
         """Export the form data as a Segment object."""
@@ -1131,12 +1124,10 @@ class ArcEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "name": self.name.text(),
-            "description": self.description.toPlainText(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
     def export_content(self) -> planning.Arc:
         """Export the form data as an Arc object."""
@@ -1313,13 +1304,10 @@ class ItemEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "name": self.name.text(),
-            "type": self.type_.text(),
-            "description": self.description.toPlainText(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
 
 class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
@@ -1424,13 +1412,10 @@ class CharacterEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "name": self.name.text(),
-            "role": self.role.text(),
-            "backstory": self.backstory.toPlainText(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
 
 class LocationEdit(QtWidgets.QWidget, ThemedWidget):
@@ -1547,12 +1532,10 @@ class LocationEdit(QtWidgets.QWidget, ThemedWidget):
 
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
-        context = {
-            "name": self.name.text(),
-            "description": self.description.toPlainText(),
+        return {
+            "campaign": _find_campaign_context(self),
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
-        context.update(_find_campaign_context(self))
-        return context
 
 
 class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
@@ -1742,10 +1725,20 @@ class CampaignPlanEdit(QtWidgets.QWidget, ThemedWidget):
     def _get_entity_context(self) -> dict[str, Any]:
         """Get current entity data for AI context."""
         return {
-            "title": self.title.text(),
-            "version": self.version.text(),
-            "setting": self.setting.toPlainText(),
-            "summary": self.summary.toPlainText(),
+            "campaign": {
+                "title": self.title.text(),
+                "version": self.version.text(),
+                "setting": self.setting.toPlainText(),
+                "summary": self.summary.toPlainText(),
+                "storypoints": [obj.model_dump() for obj in self.storypoints.get_objects()],
+                "storyline": [obj.model_dump() for obj in self.storyline.get_objects()],
+                "characters": [obj.model_dump() for obj in self.characters.get_objects()],
+                "locations": [obj.model_dump() for obj in self.locations.get_objects()],
+                "items": [obj.model_dump() for obj in self.items.get_objects()],
+                "rules": [obj.model_dump() for obj in self.rules.get_objects()],
+                "objectives": [obj.model_dump() for obj in self.objectives.get_objects()],
+            },
+            "obj_id": self.obj_id.get_id().model_dump(),
         }
 
     def export_content(self) -> planning.CampaignPlan:

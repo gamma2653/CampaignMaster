@@ -32,6 +32,7 @@ export const LocationGroup = withFieldGroup({
       const values = group.state.values as Record<string, unknown>;
       return {
         title: values.title as string | undefined,
+        version: values.version as string | undefined,
         setting: values.setting as string | undefined,
         summary: values.summary as string | undefined,
         storyline: values.storyline as CampaignContext['storyline'],
@@ -43,6 +44,11 @@ export const LocationGroup = withFieldGroup({
         objectives: values.objectives as CampaignContext['objectives'],
       };
     }, [group.state.values]);
+
+    const getEntityId = useCallback(
+      () => group.state.values.obj_id,
+      [group.state.values.obj_id],
+    );
 
     let altitude = null;
     // Populate altitude field if coords has length 3
@@ -66,7 +72,7 @@ export const LocationGroup = withFieldGroup({
               <field.AITextField
                 label="Location Name"
                 fieldName="name"
-                entityType="Location"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}
@@ -78,7 +84,7 @@ export const LocationGroup = withFieldGroup({
               <field.AITextAreaField
                 label="Location Description"
                 fieldName="description"
-                entityType="Location"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}

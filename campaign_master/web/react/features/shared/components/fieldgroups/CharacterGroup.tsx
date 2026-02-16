@@ -42,6 +42,7 @@ export const CharacterGroup = withFieldGroup({
       const values = group.state.values as Record<string, unknown>;
       return {
         title: values.title as string | undefined,
+        version: values.version as string | undefined,
         setting: values.setting as string | undefined,
         summary: values.summary as string | undefined,
         storyline: values.storyline as CampaignContext['storyline'],
@@ -53,6 +54,11 @@ export const CharacterGroup = withFieldGroup({
         objectives: values.objectives as CampaignContext['objectives'],
       };
     }, [group.state.values]);
+
+    const getEntityId = useCallback(
+      () => group.state.values.obj_id,
+      [group.state.values.obj_id],
+    );
 
     return (
       <div className="flex flex-col relative">
@@ -67,7 +73,7 @@ export const CharacterGroup = withFieldGroup({
               <field.AITextField
                 label="Character Name"
                 fieldName="name"
-                entityType="Character"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}
@@ -84,7 +90,7 @@ export const CharacterGroup = withFieldGroup({
               <field.AITextAreaField
                 label="Character Backstory"
                 fieldName="backstory"
-                entityType="Character"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}

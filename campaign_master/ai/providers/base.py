@@ -5,8 +5,9 @@ Provides shared implementation for building prompts and handling
 TTRPG-specific context in AI completions.
 """
 
+import json
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Any, Iterator
 
 from ...util import get_basic_logger
 from ..protocol import CompletionRequest, CompletionResponse
@@ -80,26 +81,64 @@ class BaseProvider(ABC):
         """
         base_prompt = """You are an AI assistant helping a Game Master create content for a tabletop RPG campaign.
 
+You will receive a structured JSON context with two sections:
+- "campaign": The full campaign data including all entities (characters, locations, items, etc.)
+- "entity": The specific entity and field you need to complete
+
 Your role:
 - Provide creative, evocative completions that fit fantasy/RPG settings
 - Be concise but descriptive - aim for quality over quantity
 - Match the tone and style of any existing content
-- Consider the context of the entity type being edited
-- Use the provided campaign context to maintain consistency with existing characters, locations, and story elements
+- Use the campaign context to maintain consistency with existing characters, locations, and story elements
+- Reference existing campaign entities when appropriate
 
-When completing text:
-- Continue naturally from where the user left off
-- Maintain consistency with any provided entity data and campaign context
-- Reference existing characters, locations, or story elements when appropriate
-- Use appropriate vocabulary for the field type (e.g., dramatic for backstories, precise for rules)"""
+Respond with ONLY the completion text for the specified field. No explanations, no prefixes, no formatting."""
 
         if request.system_prompt:
             return f"{base_prompt}\n\nAdditional instructions:\n{request.system_prompt}"
         return base_prompt
 
+    def _format_campaign_summary(self, campaign: dict[str, Any]) -> str:
+        """Build a human-readable campaign summary from the campaign context dict."""
+        parts = []
+
+        if campaign.get("title"):
+            parts.append(f"Campaign: {campaign['title']}")
+        if campaign.get("version"):
+            parts.append(f"Version: {campaign['version']}")
+        if campaign.get("setting"):
+            parts.append(f"Setting: {campaign['setting']}")
+        if campaign.get("summary"):
+            parts.append(f"Summary: {campaign['summary']}")
+
+        for key, label in [
+            ("characters", "Characters"),
+            ("locations", "Locations"),
+            ("storypoints", "Story Points"),
+            ("storyline", "Story Arcs"),
+            ("items", "Items"),
+            ("rules", "Rules"),
+            ("objectives", "Objectives"),
+        ]:
+            items = campaign.get(key)
+            if items:
+                names = [
+                    i.get("name") or i.get("description", "") for i in items if i.get("name") or i.get("description")
+                ]
+                if names:
+                    parts.append(f"{label}: {', '.join(names)}")
+
+        return "\n".join(parts)
+
     def build_user_prompt(self, request: CompletionRequest) -> str:
         """
-        Build the user prompt with context information.
+        Build the user prompt with structured campaign and entity context.
+
+        Expects request.context to have the structure:
+        {
+            "campaign": { ... full campaign data ... },
+            "entity": { "obj_id": ..., "field": "...", "current_value": "..." }
+        }
 
         Args:
             request: The completion request
@@ -107,97 +146,28 @@ When completing text:
         Returns:
             User prompt string with context
         """
-        parts = []
         context = request.context
+        campaign = context.get("campaign", {})
+        entity = context.get("entity", {})
 
-        # Add field context
-        if "field_name" in context:
-            parts.append(f"Field: {context['field_name']}")
+        parts = []
 
-        if "entity_type" in context:
-            parts.append(f"Entity Type: {context['entity_type']}")
+        # Include full campaign context as JSON
+        if campaign:
+            parts.append(f"Campaign context:\n{json.dumps(campaign, indent=2, default=str)}")
 
-        # Add entity data if available
-        if "entity_data" in context and context["entity_data"]:
-            entity_info = []
-            for key, value in context["entity_data"].items():
-                if value:  # Only include non-empty values
-                    entity_info.append(f"  {key}: {value}")
-            if entity_info:
-                parts.append("Current Entity Data:\n" + "\n".join(entity_info))
+        # Entity completion instruction
+        field = entity.get("field", "unknown")
+        obj_id = entity.get("obj_id", "unknown")
+        current_value = entity.get("current_value", "")
 
-        # Add campaign context if available
-        if "campaign_context" in context and context["campaign_context"]:
-            campaign = context["campaign_context"]
-            campaign_parts = []
+        parts.append(f"Complete the '{field}' field for entity {obj_id}.")
 
-            # Campaign metadata
-            if campaign.get("title"):
-                campaign_parts.append(f"Campaign: {campaign['title']}")
-            if campaign.get("setting"):
-                campaign_parts.append(f"Setting: {campaign['setting']}")
-            if campaign.get("summary"):
-                campaign_parts.append(f"Summary: {campaign['summary']}")
+        if current_value:
+            parts.append(f"Current value: {current_value}")
 
-            # Characters (names and roles only for brevity)
-            if campaign.get("characters"):
-                chars = [
-                    f"{c.get('name', 'Unknown')} ({c.get('role', 'unknown role')})"
-                    for c in campaign["characters"]
-                    if c.get("name")
-                ]
-                if chars:
-                    campaign_parts.append(f"Characters: {', '.join(chars)}")
-
-            # Locations
-            if campaign.get("locations"):
-                locs = [loc.get("name") for loc in campaign["locations"] if loc.get("name")]
-                if locs:
-                    campaign_parts.append(f"Locations: {', '.join(locs)}")
-
-            # Story points
-            if campaign.get("storypoints"):
-                points = [p.get("name") for p in campaign["storypoints"] if p.get("name")]
-                if points:
-                    campaign_parts.append(f"Story Points: {', '.join(points)}")
-
-            # Arcs
-            if campaign.get("storyline"):
-                arcs = [a.get("name") for a in campaign["storyline"] if a.get("name")]
-                if arcs:
-                    campaign_parts.append(f"Story Arcs: {', '.join(arcs)}")
-
-            # Items
-            if campaign.get("items"):
-                items = [i.get("name") for i in campaign["items"] if i.get("name")]
-                if items:
-                    campaign_parts.append(f"Items: {', '.join(items)}")
-
-            # Rules
-            if campaign.get("rules"):
-                rules = [r.get("name") for r in campaign["rules"] if r.get("name")]
-                if rules:
-                    campaign_parts.append(f"Rules: {', '.join(rules)}")
-
-            # Objectives
-            if campaign.get("objectives"):
-                objectives = [o.get("name") for o in campaign["objectives"] if o.get("name")]
-                if objectives:
-                    campaign_parts.append(f"Objectives: {', '.join(objectives)}")
-
-            if campaign_parts:
-                parts.append("Campaign Context:\n" + "\n".join(campaign_parts))
-
-        # Add the actual prompt/text to complete
-        if request.prompt:
-            if parts:
-                parts.append(f"\nText to complete:\n{request.prompt}")
-            else:
-                parts.append(request.prompt)
-
-        # Add instruction
         parts.append(
-            "\nProvide a natural continuation or completion. " "Respond with only the completion text, no explanations."
+            "Provide a natural continuation or completion. " "Respond with only the completion text, no explanations."
         )
 
-        return "\n".join(parts)
+        return "\n\n".join(parts)

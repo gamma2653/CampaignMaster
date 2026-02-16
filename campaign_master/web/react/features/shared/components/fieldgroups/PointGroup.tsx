@@ -36,6 +36,7 @@ export const PointGroup = withFieldGroup({
       const values = group.state.values as Record<string, unknown>;
       return {
         title: values.title as string | undefined,
+        version: values.version as string | undefined,
         setting: values.setting as string | undefined,
         summary: values.summary as string | undefined,
         storyline: values.storyline as CampaignContext['storyline'],
@@ -47,6 +48,11 @@ export const PointGroup = withFieldGroup({
         objectives: values.objectives as CampaignContext['objectives'],
       };
     }, [group.state.values]);
+
+    const getEntityId = useCallback(
+      () => group.state.values.obj_id,
+      [group.state.values.obj_id],
+    );
 
     return (
       <div className="flex flex-col gap-2">
@@ -61,7 +67,7 @@ export const PointGroup = withFieldGroup({
               <field.AITextField
                 label="Point Name"
                 fieldName="name"
-                entityType="Point"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}
@@ -73,7 +79,7 @@ export const PointGroup = withFieldGroup({
               <field.AITextAreaField
                 label="Point Description"
                 fieldName="description"
-                entityType="Point"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}

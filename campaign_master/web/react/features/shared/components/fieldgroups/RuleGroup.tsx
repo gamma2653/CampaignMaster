@@ -32,6 +32,7 @@ export const RuleGroup = withFieldGroup({
       const values = group.state.values as Record<string, unknown>;
       return {
         title: values.title as string | undefined,
+        version: values.version as string | undefined,
         setting: values.setting as string | undefined,
         summary: values.summary as string | undefined,
         storyline: values.storyline as CampaignContext['storyline'],
@@ -43,6 +44,11 @@ export const RuleGroup = withFieldGroup({
         objectives: values.objectives as CampaignContext['objectives'],
       };
     }, [group.state.values]);
+
+    const getEntityId = useCallback(
+      () => group.state.values.obj_id,
+      [group.state.values.obj_id],
+    );
 
     return (
       <div className="flex flex-col gap-2 relative">
@@ -57,7 +63,7 @@ export const RuleGroup = withFieldGroup({
               <field.AITextAreaField
                 label="Rule Description"
                 fieldName="description"
-                entityType="Rule"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}
@@ -69,7 +75,7 @@ export const RuleGroup = withFieldGroup({
               <field.AITextField
                 label="Rule Effect"
                 fieldName="effect"
-                entityType="Rule"
+                getEntityId={getEntityId}
                 getCampaignContext={getCampaignContext}
               />
             )}
