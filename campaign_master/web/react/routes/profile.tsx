@@ -104,12 +104,7 @@ function ProfilePage() {
   const handleFileUpload = useCallback(
     (file: File) => {
       setPictureMsg(null);
-      const allowed = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-      ];
+      const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (!allowed.includes(file.type)) {
         setPictureMsg({
           type: 'error',
@@ -157,9 +152,7 @@ function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-semibold text-white mb-8">
-          Your Profile
-        </h1>
+        <h1 className="text-2xl font-semibold text-white mb-8">Your Profile</h1>
 
         {/* Profile Picture Section */}
         <section className="bg-gray-800 rounded-lg p-6 mb-6 border border-white/10">
@@ -347,9 +340,7 @@ function ProfilePage() {
                 }
                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {changePassword.isPending
-                  ? 'Changing...'
-                  : 'Change Password'}
+                {changePassword.isPending ? 'Changing...' : 'Change Password'}
               </button>
             </div>
           </form>

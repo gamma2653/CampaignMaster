@@ -4,6 +4,8 @@ Main window for the Campaign Master GUI application.
 Provides navigation, menu system, and manages the overall application structure.
 """
 
+import sys
+from pathlib import Path
 from typing import cast
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -23,6 +25,15 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.setWindowTitle("Campaign Master")
         self.setGeometry(100, 100, 1024, 768)
+
+        # Set window/taskbar icon
+        if getattr(sys, "frozen", False):
+            base_path = Path(sys._MEIPASS)
+        else:
+            base_path = Path(__file__).resolve().parent.parent
+        icon_path = base_path / "assets" / "images" / "icons" / "book2.ico"
+        if icon_path.exists():
+            self.setWindowIcon(QtGui.QIcon(str(icon_path)))
 
         # Central widget - stacked widget for switching views
         self.central_widget = QtWidgets.QStackedWidget()

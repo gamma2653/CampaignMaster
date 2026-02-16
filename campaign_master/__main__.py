@@ -37,6 +37,11 @@ if __name__ == "__main__":
         # This case should be handled by an external service like nginx in production
         sys.exit(0)
     if known_args.gui:
+        if sys.platform == "win32":
+            import ctypes
+
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("CampaignMaster.GUI")
+
         from PySide6 import QtWidgets
 
         from campaign_master.content.database import create_db_and_tables, create_example_data

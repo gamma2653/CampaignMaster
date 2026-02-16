@@ -12,12 +12,12 @@ To fit this theme, the "installation" and "usage" instructions are outlined belo
 
 ### Prerequisites
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| Python | 3.12 - 3.13 | Required for all modes |
-| Poetry | Latest | Python dependency management |
-| Node.js | Latest LTS | Required only for web mode |
-| npm | Included with Node.js | Required only for web mode |
+| Requirement | Version               | Notes                        |
+| ----------- | --------------------- | ---------------------------- |
+| Python      | 3.12 - 3.13           | Required for all modes       |
+| Poetry      | Latest                | Python dependency management |
+| Node.js     | Latest LTS            | Required only for web mode   |
+| npm         | Included with Node.js | Required only for web mode   |
 
 ### Python Environment Setup
 
@@ -25,6 +25,7 @@ To fit this theme, the "installation" and "usage" instructions are outlined belo
    - Configure your preferred virtualenv defaults before proceeding.
 
 2. **Install Python dependencies:**
+
    ```bash
    poetry install
    ```
@@ -45,11 +46,13 @@ To fit this theme, the "installation" and "usage" instructions are outlined belo
    - **Linux:** Use your distribution's package manager or [NodeSource](https://github.com/nodesource/distributions)
 
 2. **Install frontend dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Build the frontend (production):**
+
    ```bash
    npm run build
    ```
@@ -77,6 +80,7 @@ python -m campaign_master --gui [--debug]
 This launches a Qt desktop application where you can interface with your local file system to load relevant configuration files.
 
 **Options:**
+
 - `--debug`: Enable verbose logging
 
 ### Web Mode
@@ -88,6 +92,7 @@ python -m campaign_master --web [--debug] [--host 127.0.0.1] [--port 8000]
 This builds the frontend (if needed) and starts the FastAPI server with uvicorn.
 
 **Options:**
+
 - `--debug`: Enable verbose logging and development server mode
 - `--host`: Server host address (default: `127.0.0.1`)
 - `--port`: Server port (default: `8000`)
@@ -151,12 +156,14 @@ npm run lint
 ## Building Standalone Executables
 
 CampaignMaster can be packaged as standalone executables using PyInstaller. Two separate executables are created:
+
 - **CampaignMasterGUI.exe** - Desktop GUI application (PySide6)
 - **CampaignMasterWeb.exe** - Web server application (FastAPI + React)
 
 ### Prerequisites
 
 Ensure PyInstaller is installed (included in the `build` dependency group):
+
 ```bash
 poetry install --with build
 ```
@@ -189,12 +196,14 @@ python packaging/build.py --clean
 ### Build Output
 
 **Onefolder mode** (default, faster startup):
+
 ```
 executables/CampaignMasterGUI/CampaignMasterGUI.exe
 executables/CampaignMasterWeb/CampaignMasterWeb.exe
 ```
 
 **Onefile mode** (single self-contained executable):
+
 ```
 executables/CampaignMasterGUI.exe
 executables/CampaignMasterWeb.exe
@@ -219,6 +228,7 @@ executables/CampaignMasterWeb.exe
 ### Advanced: Direct PyInstaller Usage
 
 You can also run PyInstaller directly with the spec file:
+
 ```bash
 pyinstaller packaging/CampaignMaster.spec
 ```
@@ -227,47 +237,47 @@ pyinstaller packaging/CampaignMaster.spec
 
 Configuration is managed via environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CM_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
-| `DB_db_scheme` | `:memory:` | Database connection string |
-| `DB_db_connect_args` | - | Additional database connection arguments |
+| Variable             | Default    | Description                                 |
+| -------------------- | ---------- | ------------------------------------------- |
+| `CM_LOG_LEVEL`       | `INFO`     | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `DB_db_scheme`       | `:memory:` | Database connection string                  |
+| `DB_db_connect_args` | -          | Additional database connection arguments    |
 
 ## Technologies Used
 
 ### Backend (Python)
 
-| Technology | Purpose |
-|------------|---------|
+| Technology                                    | Purpose                            |
+| --------------------------------------------- | ---------------------------------- |
 | [Pydantic](https://docs.pydantic.dev/latest/) | Data validation and business logic |
-| [SQLAlchemy](https://www.sqlalchemy.org/) | Database ORM |
-| [FastAPI](https://fastapi.tiangolo.com/) | Web API framework |
-| [uvicorn](https://uvicorn.dev/) | ASGI development server |
-| [PySide6](https://doc.qt.io/qtforpython-6/) | Desktop GUI framework (Qt) |
-| [PyInstaller](https://pyinstaller.org/) | Executable packaging |
-| [pytest](https://pytest.org/) | Testing framework |
-| [Black](https://black.readthedocs.io/) | Code formatting |
-| [isort](https://pycqa.github.io/isort/) | Import sorting |
+| [SQLAlchemy](https://www.sqlalchemy.org/)     | Database ORM                       |
+| [FastAPI](https://fastapi.tiangolo.com/)      | Web API framework                  |
+| [uvicorn](https://uvicorn.dev/)               | ASGI development server            |
+| [PySide6](https://doc.qt.io/qtforpython-6/)   | Desktop GUI framework (Qt)         |
+| [PyInstaller](https://pyinstaller.org/)       | Executable packaging               |
+| [pytest](https://pytest.org/)                 | Testing framework                  |
+| [Black](https://black.readthedocs.io/)        | Code formatting                    |
+| [isort](https://pycqa.github.io/isort/)       | Import sorting                     |
 
 ### Frontend (React/TypeScript)
 
-| Technology | Purpose |
-|------------|---------|
-| [Rsbuild](https://rsbuild.rs/) | Build tooling (Rspack-based) |
-| [TypeScript](https://www.typescriptlang.org/) | Type-safe JavaScript |
-| [React 19](https://react.dev/) | UI framework |
-| [TanStack Router](https://tanstack.com/router) | File-based routing |
-| [TanStack Query](https://tanstack.com/query) | Data fetching and caching |
-| [TanStack Form](https://tanstack.com/form) | Form management |
-| [Tailwind CSS 4](https://tailwindcss.com/) | Utility-first CSS |
-| [Zod](https://zod.dev/) | Schema validation |
-| [Vitest](https://vitest.dev/) | Testing framework |
-| [Prettier](https://prettier.io/) | Code formatting |
-| [ESLint](https://eslint.org/) | Code linting |
+| Technology                                     | Purpose                      |
+| ---------------------------------------------- | ---------------------------- |
+| [Rsbuild](https://rsbuild.rs/)                 | Build tooling (Rspack-based) |
+| [TypeScript](https://www.typescriptlang.org/)  | Type-safe JavaScript         |
+| [React 19](https://react.dev/)                 | UI framework                 |
+| [TanStack Router](https://tanstack.com/router) | File-based routing           |
+| [TanStack Query](https://tanstack.com/query)   | Data fetching and caching    |
+| [TanStack Form](https://tanstack.com/form)     | Form management              |
+| [Tailwind CSS 4](https://tailwindcss.com/)     | Utility-first CSS            |
+| [Zod](https://zod.dev/)                        | Schema validation            |
+| [Vitest](https://vitest.dev/)                  | Testing framework            |
+| [Prettier](https://prettier.io/)               | Code formatting              |
+| [ESLint](https://eslint.org/)                  | Code linting                 |
 
 ### Infrastructure
 
-| Technology | Purpose |
-|------------|---------|
-| [nginx](https://nginx.org/) | Production server (WIP) |
+| Technology                           | Purpose                      |
+| ------------------------------------ | ---------------------------- |
+| [nginx](https://nginx.org/)          | Production server (WIP)      |
 | [Poetry](https://python-poetry.org/) | Python dependency management |

@@ -162,8 +162,10 @@ const [useAgentConfig, useAgentConfigByID] = generateShallowQueries<
   AgentConfigID,
   AgentConfig
 >([PREFIXES.AGENT_CONFIG]);
-const [useCampaignExecution, useCampaignExecutionByID] =
-  generateShallowQueries<ExecutionID, CampaignExecution>([PREFIXES.EXECUTION]);
+const [useCampaignExecution, useCampaignExecutionByID] = generateShallowQueries<
+  ExecutionID,
+  CampaignExecution
+>([PREFIXES.EXECUTION]);
 const usePointByCampaignAndID = generateNestedQuery<CampaignID, Point, PointID>(
   'campaign_points',
 ); // endpoint: /api/campaign/campaign_points/campplan/{campaign_numeric}/p/{point_numeric}

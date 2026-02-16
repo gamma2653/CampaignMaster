@@ -8,6 +8,7 @@ TTRPG-specific context in AI completions.
 import json
 from abc import ABC, abstractmethod
 from typing import Any, Iterator
+from pprint import pformat
 
 from ...util import get_basic_logger
 from ..protocol import CompletionRequest, CompletionResponse
@@ -150,6 +151,12 @@ Respond with ONLY the completion text for the specified field. No explanations, 
         campaign = context.get("campaign", {})
         entity = context.get("entity", {})
 
+        # logger.debug(
+        #     "Building LLM context for entity:\n%s\n with campaign:\n%s",
+        #     pformat(entity),
+        #     pformat(campaign),
+        # )
+
         parts = []
 
         # Include full campaign context as JSON
@@ -164,10 +171,14 @@ Respond with ONLY the completion text for the specified field. No explanations, 
         parts.append(f"Complete the '{field}' field for entity {obj_id}.")
 
         if current_value:
-            parts.append(f"Current value: {current_value}")
+            parts.append(f"Current value: `{current_value}`")
 
         parts.append(
             "Provide a natural continuation or completion. " "Respond with only the completion text, no explanations."
         )
 
-        return "\n\n".join(parts)
+        parts_str = "\n\n".join(parts)
+
+        logger.debug("Built user prompt:\n%s", parts_str)
+
+        return parts_str

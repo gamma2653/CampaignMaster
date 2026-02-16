@@ -15,7 +15,9 @@ export function clearAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-export function useAuthenticatedImage(url: string | null | undefined): string | null {
+export function useAuthenticatedImage(
+  url: string | null | undefined,
+): string | null {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {

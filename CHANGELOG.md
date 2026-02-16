@@ -77,7 +77,7 @@ All notable changes to this project will be documented in this file.
 - Add campaign execution tracking with AI-powered note refinement
 - Remove unused UserCircleIcon import in nav.tsx
 - Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Use _default_prefix for AgentConfig ID and fix Nav test mocks
+- Use \_default_prefix for AgentConfig ID and fix Nav test mocks
 - Auto-format code with black and isort
 - Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
 - Serve uploaded files through authenticated endpoint instead of public static route

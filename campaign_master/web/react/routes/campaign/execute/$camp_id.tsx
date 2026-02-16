@@ -331,9 +331,7 @@ function RouteComponent() {
             <select
               value={refinementMode}
               onChange={(e) =>
-                setRefinementMode(
-                  e.target.value as 'narrative' | 'structured',
-                )
+                setRefinementMode(e.target.value as 'narrative' | 'structured')
               }
               className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm"
             >
@@ -347,9 +345,7 @@ function RouteComponent() {
             disabled={refineNotesMutation.isPending || !rawSessionNotes}
             className="bg-purple-700 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
           >
-            {refineNotesMutation.isPending
-              ? 'Refining...'
-              : 'Refine with AI'}
+            {refineNotesMutation.isPending ? 'Refining...' : 'Refine with AI'}
           </button>
         </div>
         {refinedSessionNotes && (
@@ -410,8 +406,7 @@ function RouteComponent() {
                   <span className="bg-gray-700 text-xs px-2 py-1 rounded">
                     {entry.entity_type ||
                       PREFIX_TO_NAME[
-                        entry.entity_id
-                          .prefix as keyof typeof PREFIX_TO_NAME
+                        entry.entity_id.prefix as keyof typeof PREFIX_TO_NAME
                       ] ||
                       entry.entity_id.prefix}
                   </span>

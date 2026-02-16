@@ -14,6 +14,11 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Enable debug mode with verbose logging")
     args = parser.parse_args()
 
+    if sys.platform == "win32":
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("CampaignMaster.GUI")
+
     from PySide6 import QtWidgets
 
     from campaign_master.content.database import create_db_and_tables, create_example_data

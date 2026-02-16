@@ -57,7 +57,10 @@ function TestExecuteList() {
     );
   };
 
-  const handleDelete = (id: { prefix: string; numeric: number }, e: React.MouseEvent) => {
+  const handleDelete = (
+    id: { prefix: string; numeric: number },
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
     deleteMutation.mutate(id);
   };
@@ -218,8 +221,14 @@ describe('ExecuteList Route', () => {
 
     it('should render execution items with titles', () => {
       const executions = [
-        createMockExecution({ obj_id: { prefix: 'EX', numeric: 1 }, title: 'Session One' }),
-        createMockExecution({ obj_id: { prefix: 'EX', numeric: 2 }, title: 'Session Two' }),
+        createMockExecution({
+          obj_id: { prefix: 'EX', numeric: 1 },
+          title: 'Session One',
+        }),
+        createMockExecution({
+          obj_id: { prefix: 'EX', numeric: 2 },
+          title: 'Session Two',
+        }),
       ];
       mockUseCampaignExecution.mockReturnValue({
         data: executions,
@@ -428,9 +437,7 @@ describe('ExecuteList Route', () => {
 
     it('should call delete mutation when Delete is clicked', () => {
       mockUseCampaignExecution.mockReturnValue({
-        data: [
-          createMockExecution({ obj_id: { prefix: 'EX', numeric: 7 } }),
-        ],
+        data: [createMockExecution({ obj_id: { prefix: 'EX', numeric: 7 } })],
         isLoading: false,
         error: null,
       });

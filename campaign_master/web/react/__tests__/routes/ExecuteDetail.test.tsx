@@ -124,7 +124,8 @@ function TestExecuteDetail() {
 
   const handleRefineNotes = () => {
     const configs = (agentConfigs ?? []) as AgentConfig[];
-    const agent = configs.find((c) => c.is_default && c.is_enabled) ?? configs[0];
+    const agent =
+      configs.find((c) => c.is_default && c.is_enabled) ?? configs[0];
     if (!agent) {
       alert('No AI agent configured. Configure one in Agent settings.');
       return;
@@ -163,7 +164,10 @@ function TestExecuteDetail() {
     }
 
     const newEntries: ExecutionEntry[] = [];
-    const addEntries = (items: { obj_id: { prefix: string; numeric: number } }[], typeName: string) => {
+    const addEntries = (
+      items: { obj_id: { prefix: string; numeric: number } }[],
+      typeName: string,
+    ) => {
       for (const item of items) {
         const exists = entries.some(
           (e) =>
@@ -393,9 +397,7 @@ function createMockExecution(
   };
 }
 
-function createMockPlan(
-  overrides: Partial<CampaignPlan> = {},
-): CampaignPlan {
+function createMockPlan(overrides: Partial<CampaignPlan> = {}): CampaignPlan {
   return {
     obj_id: { prefix: PREFIXES.CAMPAIGN_PLAN, numeric: 1 },
     title: 'Test Campaign',
@@ -592,9 +594,7 @@ describe('ExecuteDetail Route', () => {
       });
 
       render(<TestExecuteDetail />);
-      expect(
-        screen.getByRole('button', { name: 'Saving...' }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
     });
 
     it('should show success message after save', () => {
@@ -638,9 +638,7 @@ describe('ExecuteDetail Route', () => {
   describe('entity tracking', () => {
     it('should display empty message when no entries exist', () => {
       render(<TestExecuteDetail />);
-      expect(
-        screen.getByText(/No entities tracked/),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/No entities tracked/)).toBeInTheDocument();
     });
 
     it('should render entries from execution data', () => {
@@ -774,9 +772,7 @@ describe('ExecuteDetail Route', () => {
       mockUseAgentConfig.mockReturnValue({ data: [] });
 
       render(<TestExecuteDetail />);
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Refine with AI' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Refine with AI' }));
 
       expect(alertSpy).toHaveBeenCalledWith(
         'No AI agent configured. Configure one in Agent settings.',
@@ -789,9 +785,7 @@ describe('ExecuteDetail Route', () => {
       mockUseAgentConfig.mockReturnValue({ data: [agent] });
 
       render(<TestExecuteDetail />);
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Refine with AI' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Refine with AI' }));
 
       expect(mockRefineNotesMutate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -822,9 +816,7 @@ describe('ExecuteDetail Route', () => {
       mockUseAgentConfig.mockReturnValue({ data: [agent] });
 
       render(<TestExecuteDetail />);
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Refine with AI' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Refine with AI' }));
 
       const callbacks = mockRefineNotesMutate.mock.calls[0][1];
       act(() => {
@@ -844,9 +836,7 @@ describe('ExecuteDetail Route', () => {
       mockUseAgentConfig.mockReturnValue({ data: [agent] });
 
       render(<TestExecuteDetail />);
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Refine with AI' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Refine with AI' }));
 
       const callbacks = mockRefineNotesMutate.mock.calls[0][1];
       callbacks.onSuccess({
@@ -873,7 +863,9 @@ describe('ExecuteDetail Route', () => {
   describe('refinement mode', () => {
     it('should default to narrative mode', () => {
       render(<TestExecuteDetail />);
-      const modeSelect = screen.getByLabelText('Refinement Mode') as HTMLSelectElement;
+      const modeSelect = screen.getByLabelText(
+        'Refinement Mode',
+      ) as HTMLSelectElement;
       expect(modeSelect.value).toBe('narrative');
     });
 

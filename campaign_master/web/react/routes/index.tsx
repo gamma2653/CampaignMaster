@@ -25,8 +25,7 @@ const features = [
   {
     icon: SparklesIcon,
     title: 'AI-Powered',
-    description:
-      'Get AI-assisted completions to speed up your worldbuilding',
+    description: 'Get AI-assisted completions to speed up your worldbuilding',
     to: '/campaign/plans',
   },
 ] as const;
@@ -72,9 +71,7 @@ const HomeComponent = () => {
           src={book_closed}
           className="h-56 w-auto mx-auto mb-6 opacity-80 p-0"
         />
-        <h1 className="text-5xl font-bold text-white mb-4">
-          Campaign Master
-        </h1>
+        <h1 className="text-5xl font-bold text-white mb-4">Campaign Master</h1>
         <p className="text-lg text-gray-400 mb-4 max-w-md mx-auto">
           Your companion for tabletop RPG campaign planning
         </p>
