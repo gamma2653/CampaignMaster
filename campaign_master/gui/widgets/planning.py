@@ -8,6 +8,14 @@ from ..themes import ThemedWidget
 from .ai_widgets import AILineEdit, AITextEdit
 
 
+def _dump_with_id(obj: planning.Object) -> dict[str, Any]:
+    """Dump a planning object to dict, including its obj_id."""
+    data = obj.model_dump()
+    if obj.has_id():
+        data["obj_id"] = obj.obj_id.model_dump()
+    return data
+
+
 def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
     """Walk up the widget tree to find CampaignPlanEdit and extract campaign context.
 
@@ -25,13 +33,13 @@ def _find_campaign_context(widget: QtWidgets.QWidget) -> dict[str, Any]:
                     "version": parent.version.text(),
                     "setting": parent.setting.toPlainText(),
                     "summary": parent.summary.toPlainText(),
-                    "storypoints": [obj.model_dump() for obj in parent.storypoints.get_objects()],
-                    "storyline": [obj.model_dump() for obj in parent.storyline.get_objects()],
-                    "characters": [obj.model_dump() for obj in parent.characters.get_objects()],
-                    "locations": [obj.model_dump() for obj in parent.locations.get_objects()],
-                    "items": [obj.model_dump() for obj in parent.items.get_objects()],
-                    "rules": [obj.model_dump() for obj in parent.rules.get_objects()],
-                    "objectives": [obj.model_dump() for obj in parent.objectives.get_objects()],
+                    "storypoints": [_dump_with_id(obj) for obj in parent.storypoints.get_objects()],
+                    "storyline": [_dump_with_id(obj) for obj in parent.storyline.get_objects()],
+                    "characters": [_dump_with_id(obj) for obj in parent.characters.get_objects()],
+                    "locations": [_dump_with_id(obj) for obj in parent.locations.get_objects()],
+                    "items": [_dump_with_id(obj) for obj in parent.items.get_objects()],
+                    "rules": [_dump_with_id(obj) for obj in parent.rules.get_objects()],
+                    "objectives": [_dump_with_id(obj) for obj in parent.objectives.get_objects()],
                 }
             except Exception:
                 pass
