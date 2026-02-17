@@ -96,14 +96,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
         include:
           - os: windows-latest
-            platform: windows
+            platform: windows-x86_64
+          - os: windows-11-arm
+            platform: windows-aarch64
           - os: macos-latest
-            platform: macos
+            platform: macos-arm64
+          - os: macos-13
+            platform: macos-x86_64
           - os: ubuntu-latest
-            platform: linux
+            platform: linux-x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
 
     steps:
       - uses: actions/checkout@v4
@@ -136,7 +141,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ matrix.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
