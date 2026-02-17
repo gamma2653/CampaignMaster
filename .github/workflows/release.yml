@@ -103,8 +103,6 @@ jobs:
             platform: windows-aarch64
           - os: macos-latest
             platform: macos-arm64
-          - os: macos-13
-            platform: macos-x86_64
           - os: ubuntu-latest
             platform: linux-x86_64
           - os: ubuntu-24.04-arm
@@ -143,11 +141,20 @@ jobs:
           path: .venv
           key: venv-${{ matrix.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Install dependencies (with GUI)
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && matrix.os != 'windows-11-arm'
+        run: poetry install --no-interaction --no-root -E gui
+
+      - name: Install dependencies (without GUI)
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true' && matrix.os == 'windows-11-arm'
         run: poetry install --no-interaction --no-root
 
-      - name: Install project
+      - name: Install project (with GUI)
+        if: matrix.os != 'windows-11-arm'
+        run: poetry install --no-interaction -E gui
+
+      - name: Install project (without GUI)
+        if: matrix.os == 'windows-11-arm'
         run: poetry install --no-interaction
 
       - name: Install Qt dependencies (Linux)

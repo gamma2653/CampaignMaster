@@ -13,9 +13,9 @@ description = "A campaign management tool for tabletop RPGs."
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
 tqdm = {version = "^4.67.1"}
-PySide6 = {version = "~=6.8.1.1"}
-PySide6-Essentials = {version = "~=6.8.1.1"}
-PySide6-Addons = {version = "~=6.8.1.1"}
+PySide6 = {version = "~=6.8.1.1", optional = true}
+PySide6-Essentials = {version = "~=6.8.1.1", optional = true}
+PySide6-Addons = {version = "~=6.8.1.1", optional = true}
 fastapi = {extras = ["all"], version = "^0.125.0"}
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.45"}
 aiosqlite = "^0.22.0"
@@ -24,6 +24,9 @@ openai = "^1.59.0"
 httpx = "^0.28.0"
 bcrypt = "^5.0.0"
 
+
+[tool.poetry.extras]
+gui = ["PySide6", "PySide6-Essentials", "PySide6-Addons"]
 
 [tool.poetry.group.formatting.dependencies]
 black="^24.10.0"
