@@ -67,8 +67,12 @@ jobs:
         run: xvfb-run --auto-servernum poetry run pytest -v
 
       - name: Run tests (non-Linux)
-        if: runner.os != 'Linux'
+        if: runner.os != 'Linux' && matrix.os != 'windows-11-arm'
         run: poetry run pytest -v
+
+      - name: Run tests (Windows ARM - web only)
+        if: matrix.os == 'windows-11-arm'
+        run: poetry run pytest -v --ignore=test/test_gui.py --ignore=test/test_gui_executing.py
 
   frontend-test:
     runs-on: ubuntu-latest

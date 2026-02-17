@@ -367,7 +367,17 @@ def bump(
     typer.echo("")
     current_branch = run_git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
     if typer.confirm(f"Push commit to remote (branch '{current_branch}')?", default=False):
-        run_git("push", "origin", current_branch)
+        push_result = run_git("push", "origin", current_branch, check=False)
+        if push_result.returncode != 0:
+            typer.echo(
+                f"\n  Push failed. This may be due to a merge conflict or out-of-date branch.\n"
+                f"  Please pull/merge manually and then push:\n\n"
+                f"    git pull --rebase origin {current_branch}\n"
+                f"    git push origin {current_branch}\n",
+                err=True,
+            )
+            typer.echo(f"  Git output: {push_result.stderr.strip()}", err=True)
+            raise typer.Exit(1)
         typer.echo(f"  Pushed to remote branch '{current_branch}'.")
 
     typer.echo(f"\nDone! Version bumped to {new_version}")

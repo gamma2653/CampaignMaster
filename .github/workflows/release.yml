@@ -157,9 +157,15 @@ jobs:
           sudo apt-get install -y libegl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xinerama0 libxcb-randr0 libxcb-render-util0 libxcb-image0
 
       - name: Build executables
+        if: matrix.os != 'windows-11-arm'
         run: poetry run python packaging/build.py --clean --onefile
 
+      - name: Build web executable only (Windows ARM)
+        if: matrix.os == 'windows-11-arm'
+        run: poetry run python packaging/build.py --clean --onefile --web-only
+
       - name: Rename executables for release
+        if: matrix.os != 'windows-11-arm'
         shell: bash
         run: |
           cd executables
@@ -171,11 +177,28 @@ jobs:
             mv CampaignMasterWeb "CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}"
           fi
 
+      - name: Rename web executable for release (Windows ARM)
+        if: matrix.os == 'windows-11-arm'
+        shell: bash
+        run: |
+          cd executables
+          mv CampaignMasterWeb.exe "CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}.exe"
+
       - name: Upload release assets
+        if: matrix.os != 'windows-11-arm'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           gh release upload "v${{ needs.create-release.outputs.version }}" \
             executables/CampaignMasterGUI-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}* \
+            executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}*
+
+      - name: Upload release assets (Windows ARM - web only)
+        if: matrix.os == 'windows-11-arm'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "v${{ needs.create-release.outputs.version }}" \
             executables/CampaignMasterWeb-v${{ needs.create-release.outputs.version }}-${{ matrix.platform }}*
