@@ -178,18 +178,43 @@ def run_git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     )
 
 
-def get_last_tag() -> str | None:
-    """Get the most recent version tag, or None if no tags exist."""
-    result = run_git("tag", "--list", "v*", "--sort=-v:refname", check=False)
-    if result.returncode != 0 or not result.stdout.strip():
-        return None
-    return result.stdout.strip().splitlines()[0]
+def get_last_version_boundary() -> str | None:
+    """Get a git ref for the last version boundary (tag or bump commit).
+
+    Checks for version tags first, then falls back to the most recent
+    'Bump version to ...' commit. This prevents changelog duplication
+    when tags are created asynchronously by CI.
+    """
+    # First, try to find the most recent version tag
+    tag_result = run_git("tag", "--list", "v*", "--sort=-v:refname", check=False)
+    last_tag = None
+    if tag_result.returncode == 0 and tag_result.stdout.strip():
+        last_tag = tag_result.stdout.strip().splitlines()[0]
+
+    # Also find the most recent "Bump version" commit
+    bump_result = run_git(
+        "log", "--grep=^Bump version to ", "--pretty=format:%H", "-1", check=False
+    )
+    last_bump_commit = None
+    if bump_result.returncode == 0 and bump_result.stdout.strip():
+        last_bump_commit = bump_result.stdout.strip()
+
+    if last_tag and last_bump_commit:
+        # Use whichever is more recent (closer to HEAD)
+        merge_base = run_git("merge-base", "--is-ancestor", last_tag, last_bump_commit, check=False)
+        if merge_base.returncode == 0:
+            # bump commit is at or after the tag -> use bump commit
+            return last_bump_commit
+        else:
+            # tag is after the bump commit -> use tag
+            return last_tag
+    return last_tag or last_bump_commit
 
 
-def get_commits_since(tag: str | None) -> list[str]:
-    """Get commit messages since the given tag (or all commits if None)."""
-    if tag:
-        result = run_git("log", f"{tag}..HEAD", "--pretty=format:%s", check=False)
+def get_commits_since(ref: str | None) -> list[str]:
+    """Get commit messages since the given ref (or all commits if None)."""
+    if ref:
+        result = run_git("log", f"{ref}..HEAD", "--pretty=format:%s", check=False)
     else:
         result = run_git("log", "--pretty=format:%s", check=False)
     if result.returncode != 0 or not result.stdout.strip():
@@ -336,8 +361,8 @@ def bump(
 
     # Generate changelog
     if not no_changelog:
-        last_tag = get_last_tag()
-        commits = get_commits_since(last_tag)
+        last_ref = get_last_version_boundary()
+        commits = get_commits_since(last_ref)
         if commits:
             categories = categorize_commits(commits)
             update_changelog(new_version, categories, dry_run)
