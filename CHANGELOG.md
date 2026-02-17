@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.4] - 2026-02-17
+
+### Other
+
+- Increase npm timeout in build test for slower CI runners
+- Bump version to 1.2.3
+- Make PySide6 an optional dependency behind a gui extra
+- Bump version to 1.2.2
+- Add Windows ARM support to CI and improve push error handling
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Bump version to 1.2.1
+- Add architecture to release executable names and extend CI to all platforms
+
 ## [1.2.3] - 2026-02-17
 
 ### Other
