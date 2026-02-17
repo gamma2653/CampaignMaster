@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.1] - 2026-02-17
+
+### Other
+
+- Add architecture to release executable names and extend CI to all platforms
+- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
+- Bump version to 1.2.0
+- Add GUI window/taskbar icon, improve AI prompt logging, and auto-format code
+- Include obj_id in GUI campaign context sent to AI provider
+- Restructure AI completion context to use {campaign, entity} schema
+
 ## [1.2.0] - 2026-02-16
 
 ### Other
