@@ -225,8 +225,8 @@ class TestActualBuild:
         dist_dir = PROJECT_ROOT / "dist"
         if not dist_dir.exists():
             npm_cmd = "npm.cmd" if sys.platform == "win32" else "npm"
-            subprocess.run([npm_cmd, "install"], cwd=PROJECT_ROOT, check=True, timeout=120)
-            subprocess.run([npm_cmd, "run", "build"], cwd=PROJECT_ROOT, check=True, timeout=120)
+            subprocess.run([npm_cmd, "install"], cwd=PROJECT_ROOT, check=True, timeout=300)
+            subprocess.run([npm_cmd, "run", "build"], cwd=PROJECT_ROOT, check=True, timeout=300)
 
         # Run PyInstaller directly with the preexisting spec file
         result = subprocess.run(
