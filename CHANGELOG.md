@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5] - 2026-02-17
+
+### Other
+
+- Increase npm timeout in build test for ARM CI runners
+- Fix changelog duplication by detecting bump commits as version boundaries
+
 ## [1.2.4] - 2026-02-17
 
 ### Other

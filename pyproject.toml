@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "campaign_master"
-version = "1.2.4"
+version = "1.2.5"
 authors = [
     "Chris De Jesus <christopher2653@gmail.com>"
 ]
