@@ -12,24 +12,12 @@
 ### Other
 
 - Increase npm timeout in build test for slower CI runners
-- Bump version to 1.2.3
-- Make PySide6 an optional dependency behind a gui extra
-- Bump version to 1.2.2
-- Add Windows ARM support to CI and improve push error handling
-- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Bump version to 1.2.1
-- Add architecture to release executable names and extend CI to all platforms
 
 ## [1.2.3] - 2026-02-17
 
 ### Other
 
 - Make PySide6 an optional dependency behind a gui extra
-- Bump version to 1.2.2
-- Add Windows ARM support to CI and improve push error handling
-- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Bump version to 1.2.1
-- Add architecture to release executable names and extend CI to all platforms
 
 ## [1.2.2] - 2026-02-17
 
@@ -37,8 +25,6 @@
 
 - Add Windows ARM support to CI and improve push error handling
 - Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Bump version to 1.2.1
-- Add architecture to release executable names and extend CI to all platforms
 
 ## [1.2.1] - 2026-02-17
 
@@ -46,10 +32,6 @@
 
 - Add architecture to release executable names and extend CI to all platforms
 - Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Bump version to 1.2.0
-- Add GUI window/taskbar icon, improve AI prompt logging, and auto-format code
-- Include obj_id in GUI campaign context sent to AI provider
-- Restructure AI completion context to use {campaign, entity} schema
 
 ## [1.2.0] - 2026-02-16
 
@@ -58,19 +40,6 @@
 - Add GUI window/taskbar icon, improve AI prompt logging, and auto-format code
 - Include obj_id in GUI campaign context sent to AI provider
 - Restructure AI completion context to use {campaign, entity} schema
-- Bump version to 1.1.0
-- Sync segment point creation with campaign storypoints and add view buttons
-- Split tests.yml into separate test, lint, and release workflows
-- Bump version to 1.0.2
-- Bump version to 1.0.1
-- Add missing hidden imports for GUI executable packaging
-- Switch release packaging to single-file executables
-- Fix release upload failing on Windows by using bash shell
-- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Decouple version bumping from tag-based releases
-- Auto-format code with black and isort
-- Set the web entrypoint to open web even if debug is not defined as an
-- Add --set flag, fix ambiguous refspec, and auto-switch branch back
 
 ## [1.1.0] - 2026-02-14
 
@@ -78,30 +47,12 @@
 
 - Sync segment point creation with campaign storypoints and add view buttons
 - Split tests.yml into separate test, lint, and release workflows
-- Bump version to 1.0.2
-- Bump version to 1.0.1
-- Add missing hidden imports for GUI executable packaging
-- Switch release packaging to single-file executables
-- Fix release upload failing on Windows by using bash shell
-- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Decouple version bumping from tag-based releases
-- Auto-format code with black and isort
-- Set the web entrypoint to open web even if debug is not defined as an
-- Add --set flag, fix ambiguous refspec, and auto-switch branch back
 
 ## [1.0.2] - 2026-02-14
 
 ### Other
 
-- Bump version to 1.0.1
-- Add missing hidden imports for GUI executable packaging
-- Switch release packaging to single-file executables
-- Fix release upload failing on Windows by using bash shell
-- Merge branch 'main' of https://github.com/gamma2653/CampaignMaster
-- Decouple version bumping from tag-based releases
-- Auto-format code with black and isort
-- Set the web entrypoint to open web even if debug is not defined as an
-- Add --set flag, fix ambiguous refspec, and auto-switch branch back
+- Misc
 
 ## [1.0.1] - 2026-02-14
 
