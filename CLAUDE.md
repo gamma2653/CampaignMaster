@@ -111,6 +111,7 @@ All domain objects use a custom ID format: `PREFIX-NUMERIC` (e.g., "R-000001", "
 - `proto_user_id` scopes IDs to users (0 = global, used by GUI)
 - ID generation is centralized in `content/api.py` via `generate_id()`
 - Each object type has a `_default_prefix` class variable (e.g., "R" for Rule, "C" for Character)
+- `PREFIX_TO_OBJECT_TYPE` dict in `planning.py` enables prefix-based dispatch — `retrieve_object(id)` uses this to resolve the correct type without any `isinstance` checks
 
 ### Domain Model Hierarchy
 
@@ -130,11 +131,15 @@ All business objects inherit from `planning.Object`:
 
 **Reference Pattern:** Objects reference each other by ID (string), not by embedding full objects. This avoids circular dependencies. Database models handle actual relationships via SQLAlchemy `relationship()` definitions.
 
+**Exception:** `Arc.segments` embeds `Segment` objects directly (`list[Segment]`). This is the only intentional deviation from the ID-reference pattern.
+
+**`ExecutionEntry`** is a plain `BaseModel` (not `Object`, no ID) stored within `CampaignExecution.entries`. It holds an `entity_id: ID`, `entity_type`, `status: ExecutionStatus` enum, and raw/refined notes.
+
 ### Session Management
 
 - Database sessions are passed explicitly as parameters (not scoped sessions)
 - `@perform_w_session` decorator in `api.py` provides automatic session handling
-- Functions work with or without explicit `_session` parameter
+- Functions work with or without an explicit `session` parameter
 - Always use `SessionLocal()` from `database.py` to create sessions
 
 ### ProtoUser System
@@ -148,8 +153,9 @@ All business objects inherit from `planning.Object`:
 
 - **Protocol**: `ai/protocol.py` defines `AIProvider` (runtime-checkable protocol)
 - **Providers**: `ai/providers/` contains `AnthropicProvider`, `OpenAIProvider`, `OllamaProvider` (all extend `BaseProvider`)
+- **Registry**: `PROVIDER_REGISTRY` dict and `get_provider(provider_type, api_key, base_url, model)` factory function in `ai/providers/__init__.py`
 - **GUI Service**: `AICompletionService` in `ai/service.py` — singleton, lazy-imported to avoid PySide6 dependency in web mode
-- **Web Endpoints**: `web/ai_api.py` exposes AI completion endpoints for the web frontend
+- **Web Endpoints**: `web/ai_api.py` exposes AI completion endpoints for the web frontend — stateless, provider credentials are passed in every request body
 - **Configuration**: `AgentConfig` objects stored in DB provide per-user provider settings
 
 ### Web Authentication
@@ -182,7 +188,7 @@ All business objects inherit from `planning.Object`:
 
 File-based routing in `web/react/routes/`:
 
-- `__root.tsx` — Root layout
+- `__root.tsx` — Root layout with auth guard (redirects to `/login` if no Bearer token)
 - `index.tsx` — Home page
 - `login.tsx` — Login page
 - `profile.tsx` — User profile
@@ -194,6 +200,14 @@ File-based routing in `web/react/routes/`:
 - `features/ai/` — AIContext provider, completion hooks, AI-enhanced form components
 - `features/shared/components/fields.tsx` — Reusable field components
 - `query.tsx` — Query hook factory pattern for TanStack Query
+
+### Query Factory Pattern
+
+`web/react/query.tsx` uses factory functions to generate all CRUD hooks for every entity type, keeping the code DRY with full TypeScript types:
+
+- `generateShallowQueries<ID, Ret>(prefixes)` → `[useData, useDataByID]` tuple
+- `generateCreateMutation`, `generateUpdateMutation`, `generateDeleteMutation` — typed mutation hooks
+- All 11 entity types have pre-generated hooks exported from this file
 
 ### Frontend Build & Test
 
@@ -263,6 +277,10 @@ class Character(Object):
 ```
 
 **Exception:** `Arc.segments` embeds `Segment` objects directly (`list[Segment]`). This is the only intentional deviation from the ID-reference pattern.
+
+### `from_pydantic` Idempotency
+
+Every SQLAlchemy `from_pydantic` first checks if the object already exists before inserting. This makes it safe to call multiple times and simplifies upsert-style flows. `to_pydantic()` requires an explicit `session` because `obj_id()` on `ObjectBase` performs a manual `select(ObjectID)` query rather than relying on SQLAlchemy lazy-loading.
 
 ### Session Management
 
@@ -350,23 +368,13 @@ def public_function(
     return result
 ```
 
+### Test Database Isolation
+
+`content/database.py` supports an engine registry with `"default"` and `"test"` keys. Use `configure_test_database()` to switch the active engine in tests, ensuring test operations don't touch the production database.
+
 ### GUI Widget Generation
 
 GUI widgets (`gui/widgets/planning.py`) dynamically generate forms from Pydantic models. Field types and validation rules are introspected from the model definitions.
-
-## Recent Major Changes
-
-The codebase recently migrated from SQLModel to separate SQLAlchemy + Pydantic models. Key commits:
-
-- "Not using sqlmodel, sqlalchemy + pydantic all the way" - Architectural decision
-- "Massive DB changes, working through cyclic references" - Complex relationship modeling
-- "Fix pydantic-sqlalchemy issues" - Integration stabilization
-
-**Files affected:**
-
-- `content/database.py` (NEW): Database initialization and session management
-- `content/models.py` (NEW): SQLAlchemy ORM models
-- `content/planning.py`: Pydantic business logic models
 
 ## Build & Packaging
 
@@ -392,23 +400,3 @@ logger = get_basic_logger(__name__)
 ```
 
 Control log level via `CM_LOG_LEVEL` environment variable.
-
-## Technologies Used
-
-### Backend
-
-- **Pydantic**: Business logic validation
-- **FastAPI**: Web API framework
-- **SQLAlchemy**: Database ORM
-- **PySide6**: Desktop GUI framework
-- **uvicorn**: Development web server
-- **bcrypt**: Password hashing
-- **PyInstaller**: Executable packaging
-
-### Frontend
-
-- **Rsbuild**: Build tooling
-- **TypeScript**: Type-safe React
-- **TanStack**: Router, Query, Form libraries
-- **Tailwind CSS**: Utility-first styling
-- **Vitest**: Test framework
