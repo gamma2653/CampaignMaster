@@ -1,8 +1,9 @@
 """
-AI-enabled text input widgets with completion support.
+AI-enabled text input widgets with inline ghost text completion support.
 
-Provides AILineEdit and AITextEdit widgets that support AI-powered
-text completion triggered by Ctrl+Space.
+Provides AILineEdit and AITextEdit widgets that automatically show AI-powered
+ghost text completion 600ms after the user stops typing. Press Enter to accept,
+Escape or any other key to dismiss.
 """
 
 from typing import Any
@@ -10,105 +11,17 @@ from typing import Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from campaign_master.ai import AICompletionService, CompletionResponse
-from campaign_master.gui.themes.dark_theme import DARK_COLORS
 from campaign_master.util import get_basic_logger
 
 logger = get_basic_logger(__name__)
 
 
-class CompletionPopup(QtWidgets.QWidget):
-    """
-    Popup widget for displaying AI completion suggestions.
-
-    Shows the suggested completion text with accept/reject options.
-    """
-
-    accepted = QtCore.Signal(str)
-    rejected = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.WindowType.Popup)
-        self.setMinimumWidth(300)
-        self.setMaximumWidth(600)
-
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-
-        # Completion text display
-        self.completion_text = QtWidgets.QLabel()
-        self.completion_text.setWordWrap(True)
-        self.completion_text.setStyleSheet(
-            f"""
-            QLabel {{
-                background-color: {DARK_COLORS.tertiary_bg};
-                color: #a0ffa0;
-                padding: 8px;
-                border-radius: 4px;
-                font-family: monospace;
-            }}
-        """
-        )
-        layout.addWidget(self.completion_text)
-
-        # Hint text
-        hint = QtWidgets.QLabel("Tab/Enter to accept, Escape to reject")
-        hint.setStyleSheet(f"color: {DARK_COLORS.text_disabled}; font-size: 11px;")
-        layout.addWidget(hint)
-
-        self.setStyleSheet(
-            f"""
-            CompletionPopup {{
-                background-color: {DARK_COLORS.primary_bg};
-                border: 1px solid {DARK_COLORS.border_default};
-                border-radius: 4px;
-            }}
-        """
-        )
-
-        self._completion = ""
-
-    def show_completion(self, text: str, parent_widget: QtWidgets.QWidget):
-        """Show the popup with the given completion text."""
-        self._completion = text
-
-        # Truncate if too long
-        display_text = text
-        if len(text) > 500:
-            display_text = text[:500] + "..."
-
-        self.completion_text.setText(display_text)
-        self.adjustSize()
-
-        # Position below the parent widget
-        pos = parent_widget.mapToGlobal(QtCore.QPoint(0, parent_widget.height()))
-        self.move(pos)
-        self.show()
-        self.setFocus()
-
-    def keyPressEvent(self, event: QtGui.QKeyEvent):
-        """Handle keyboard input for accept/reject."""
-        if event.key() in (QtCore.Qt.Key.Key_Tab, QtCore.Qt.Key.Key_Return):
-            self.accepted.emit(self._completion)
-            self.hide()
-        elif event.key() == QtCore.Qt.Key.Key_Escape:
-            self.rejected.emit()
-            self.hide()
-        else:
-            super().keyPressEvent(event)
-
-    def focusOutEvent(self, event: QtGui.QFocusEvent):
-        """Hide popup when focus is lost."""
-        self.rejected.emit()
-        self.hide()
-        super().focusOutEvent(event)
-
-
 class AILineEdit(QtWidgets.QLineEdit):
     """
-    QLineEdit with AI completion support.
+    QLineEdit with inline AI ghost text completion.
 
-    Trigger completion with Ctrl+Space. The widget will show a popup
-    with the AI suggestion that can be accepted or rejected.
+    After 600ms of inactivity, an AI completion appears as faint ghost text
+    after the cursor. Press Enter to accept, Escape or any other key to dismiss.
     """
 
     completionRequested = QtCore.Signal()
@@ -138,19 +51,51 @@ class AILineEdit(QtWidgets.QLineEdit):
         self.field_name = field_name
         self.entity_type = entity_type
         self._entity_context_func = entity_context_func
-        self._popup: CompletionPopup | None = None
         self._loading = False
+
+        self._ghost_text: str = ""
+        self._ghost_full_text: str = ""
+        self._modifying_ghost: bool = False
+
+        self._debounce_timer = QtCore.QTimer(self)
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(600)
+        self._debounce_timer.timeout.connect(self.trigger_completion)
+
+        self.textChanged.connect(self._on_text_changed)
 
         if placeholder:
             self.setPlaceholderText(placeholder)
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
-        """Handle Ctrl+Space for completion trigger."""
-        if event.key() == QtCore.Qt.Key.Key_Space and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
-            logger.debug("Ctrl+Space detected, triggering AI completion")
-            self.trigger_completion()
-            return
+        """Handle ghost text acceptance/dismissal and normal key input."""
+        if self._ghost_text:
+            if event.key() in (QtCore.Qt.Key.Key_Return, QtCore.Qt.Key.Key_Enter, QtCore.Qt.Key.Key_Tab):
+                self._accept_ghost()
+                return
+            elif event.key() == QtCore.Qt.Key.Key_Escape:
+                self._clear_ghost()
+                return
+            else:
+                self._clear_ghost()
         super().keyPressEvent(event)
+
+    def focusOutEvent(self, event: QtGui.QFocusEvent):
+        """Clear ghost text and stop debounce timer when focus is lost."""
+        self._clear_ghost()
+        self._debounce_timer.stop()
+        super().focusOutEvent(event)
+
+    def _on_text_changed(self):
+        """Restart debounce timer on text change; clear any existing ghost."""
+        if self._modifying_ghost or not self.hasFocus():
+            return
+        self._ghost_text = ""
+        self._ghost_full_text = ""
+        self.update()
+        self._debounce_timer.stop()
+        if len(self.text()) >= 3:
+            self._debounce_timer.start()
 
     def trigger_completion(self):
         """Request AI completion for current text."""
@@ -166,7 +111,6 @@ class AILineEdit(QtWidgets.QLineEdit):
         self._loading = True
         self.setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-        # Build structured context
         entity_ctx = {}
         if self._entity_context_func:
             try:
@@ -185,7 +129,6 @@ class AILineEdit(QtWidgets.QLineEdit):
 
         self.completionRequested.emit()
 
-        # Perform async completion
         logger.debug("Sending completion request to AI service")
         service.complete_async(
             prompt=self.text(),
@@ -194,10 +137,13 @@ class AILineEdit(QtWidgets.QLineEdit):
         )
 
     def _on_completion_received(self, response: CompletionResponse | None):
-        """Handle completion response."""
+        """Handle completion response from AI service."""
         logger.debug("AI completion response received")
         self._loading = False
         self.setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+
+        if not self.hasFocus():
+            return
 
         if not response or response.finish_reason == "error":
             if response and response.error_message:
@@ -208,39 +154,69 @@ class AILineEdit(QtWidgets.QLineEdit):
             return
 
         self.completionReceived.emit(response.text)
-        self._show_completion_popup(response.text)
+        self._show_ghost(response.text)
 
-    def _show_completion_popup(self, text: str):
-        """Show popup with suggested completion."""
-        if not self._popup:
-            self._popup = CompletionPopup()
-            self._popup.accepted.connect(self._accept_completion)
-            self._popup.rejected.connect(self._reject_completion)
-
-        self._popup.show_completion(text, self)
-
-    def _accept_completion(self, text: str):
-        """Accept and insert the completion."""
+    def _show_ghost(self, text: str):
+        """Display ghost text suffix after the current cursor position."""
         current = self.text()
-        # If completion looks like a continuation, append it
-        if not text.startswith(current):
-            new_text = current + " " + text if current else text
+        if text.startswith(current):
+            ghost_suffix = text[len(current):]
         else:
-            new_text = text
-        self.setText(new_text.strip())
-        self.setFocus()
+            ghost_suffix = (" " + text) if current else text
+        self._ghost_full_text = text
+        self._ghost_text = ghost_suffix
+        self.setCursorPosition(len(self.text()))
+        self.update()
 
-    def _reject_completion(self):
-        """Reject the completion and return focus."""
-        self.setFocus()
+    def _clear_ghost(self):
+        """Remove ghost text without affecting real content."""
+        self._ghost_text = ""
+        self._ghost_full_text = ""
+        self.update()
+
+    def _accept_ghost(self):
+        """Accept the ghost text and commit it as real content."""
+        if not self._ghost_full_text:
+            return
+        current = self.text()
+        full = self._ghost_full_text
+        new_text = full if full.startswith(current) else (current + " " + full).strip()
+        self._modifying_ghost = True
+        try:
+            self.setText(new_text.strip())
+            self.setCursorPosition(len(self.text()))
+        finally:
+            self._modifying_ghost = False
+        self._clear_ghost()
+
+    def paintEvent(self, event: QtGui.QPaintEvent):
+        """Paint the widget, then overlay ghost text after the real content."""
+        super().paintEvent(event)
+        if not self._ghost_text:
+            return
+        if self.cursorPosition() != len(self.text()):
+            return
+        painter = QtGui.QPainter(self)
+        painter.setFont(self.font())
+        color = self.palette().color(QtGui.QPalette.ColorRole.Text)
+        color.setAlphaF(0.40)
+        painter.setPen(color)
+        rect = self.cursorRect()
+        fm = QtGui.QFontMetrics(self.font())
+        cr = self.contentsRect()
+        text_y = cr.top() + (cr.height() - fm.height()) // 2 + fm.ascent()
+        painter.drawText(QtCore.QPoint(rect.x(), text_y), self._ghost_text)
+        painter.end()
 
 
 class AITextEdit(QtWidgets.QTextEdit):
     """
-    QTextEdit with AI completion support.
+    QTextEdit with inline AI ghost text completion.
 
-    Trigger completion with Ctrl+Space. The widget will show a popup
-    with the AI suggestion that can be accepted or rejected.
+    After 600ms of inactivity, an AI completion appears as faint ghost text
+    inserted at the end of the document. Press Enter to accept, Escape or any
+    other key to dismiss. toPlainText() always returns text without the ghost
+    suffix so callers always receive clean content.
 
     This widget is sized larger than standard text edits for multi-line content.
     """
@@ -272,8 +248,18 @@ class AITextEdit(QtWidgets.QTextEdit):
         self.field_name = field_name
         self.entity_type = entity_type
         self._entity_context_func = entity_context_func
-        self._popup: CompletionPopup | None = None
         self._loading = False
+
+        self._ghost_text: str = ""
+        self._ghost_start_pos: int = -1
+        self._modifying_ghost: bool = False
+
+        self._debounce_timer = QtCore.QTimer(self)
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(600)
+        self._debounce_timer.timeout.connect(self.trigger_completion)
+
+        self.textChanged.connect(self._on_text_changed)
 
         # Ensure text areas start at a usable height and can grow
         self.setMinimumHeight(80)
@@ -285,13 +271,42 @@ class AITextEdit(QtWidgets.QTextEdit):
         if placeholder:
             self.setPlaceholderText(placeholder)
 
+    def toPlainText(self) -> str:
+        """Return plain text content, stripping any ghost suffix."""
+        full = super().toPlainText()
+        if self._ghost_text and full.endswith(self._ghost_text):
+            return full[: -len(self._ghost_text)]
+        return full
+
     def keyPressEvent(self, event: QtGui.QKeyEvent):
-        """Handle Ctrl+Space for completion trigger."""
-        if event.key() == QtCore.Qt.Key.Key_Space and event.modifiers() == QtCore.Qt.KeyboardModifier.ControlModifier:
-            logger.debug("Ctrl+Space detected, triggering AI completion")
-            self.trigger_completion()
-            return
+        """Handle ghost text acceptance/dismissal and normal key input."""
+        if self._ghost_text:
+            if event.key() in (QtCore.Qt.Key.Key_Return, QtCore.Qt.Key.Key_Enter):
+                self._accept_ghost()
+                return
+            elif event.key() == QtCore.Qt.Key.Key_Escape:
+                self._clear_ghost()
+                return
+            else:
+                self._clear_ghost()
         super().keyPressEvent(event)
+
+    def focusOutEvent(self, event: QtGui.QFocusEvent):
+        """Clear ghost text and stop debounce timer when focus is lost."""
+        self._clear_ghost()
+        self._debounce_timer.stop()
+        self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+        super().focusOutEvent(event)
+
+    def _on_text_changed(self):
+        """Restart debounce timer on text change; clear any existing ghost."""
+        if self._modifying_ghost or not self.hasFocus():
+            return
+        if self._ghost_text:
+            self._clear_ghost()
+        self._debounce_timer.stop()
+        if len(super().toPlainText()) >= 3:
+            self._debounce_timer.start()
 
     def trigger_completion(self):
         """Request AI completion for current text."""
@@ -306,7 +321,6 @@ class AITextEdit(QtWidgets.QTextEdit):
         self._loading = True
         self.viewport().setCursor(QtCore.Qt.CursorShape.WaitCursor)
 
-        # Build structured context
         entity_ctx = {}
         if self._entity_context_func:
             try:
@@ -326,7 +340,6 @@ class AITextEdit(QtWidgets.QTextEdit):
         self.completionRequested.emit()
 
         logger.debug("Sending completion request to AI service")
-        # Perform async completion
         service.complete_async(
             prompt=self.toPlainText(),
             context=context,
@@ -334,10 +347,14 @@ class AITextEdit(QtWidgets.QTextEdit):
         )
 
     def _on_completion_received(self, response: CompletionResponse | None):
-        """Handle completion response."""
+        """Handle completion response from AI service."""
         logger.debug("AI completion response received")
         self._loading = False
         self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+
+        if not self.hasFocus():
+            return
+
         if not response or response.finish_reason == "error":
             if response and response.error_message:
                 logger.warning("Completion error: %s", response.error_message)
@@ -348,33 +365,71 @@ class AITextEdit(QtWidgets.QTextEdit):
             return
 
         self.completionReceived.emit(response.text)
-        logger.debug("Showing completion popup")
-        self._show_completion_popup(response.text)
+        logger.debug("Showing inline ghost text")
+        self._show_ghost(response.text)
 
-    def _show_completion_popup(self, text: str):
-        """Show popup with suggested completion."""
-        if not self._popup:
-            self._popup = CompletionPopup()
-            self._popup.accepted.connect(self._accept_completion)
-            self._popup.rejected.connect(self._reject_completion)
+    def _show_ghost(self, text: str):
+        """Insert ghost text into the document with a dim foreground color."""
+        if self._ghost_text:
+            self._clear_ghost()
+        current = super().toPlainText()
+        ghost_suffix = text[len(current):] if text.startswith(current) else (" " + text if current else text)
+        if not ghost_suffix:
+            return
+        self._modifying_ghost = True
+        try:
+            cursor = self.textCursor()
+            cursor.movePosition(QtGui.QTextCursor.MoveOperation.End)
+            self._ghost_start_pos = cursor.position()
+            fmt = QtGui.QTextCharFormat()
+            color = self.palette().color(QtGui.QPalette.ColorRole.Text)
+            color.setAlphaF(0.40)
+            fmt.setForeground(QtGui.QBrush(color))
+            cursor.insertText(ghost_suffix, fmt)
+            self._ghost_text = ghost_suffix
+            cursor.setPosition(self._ghost_start_pos)
+            self.setTextCursor(cursor)
+        finally:
+            self._modifying_ghost = False
 
-        self._popup.show_completion(text, self)
+    def _clear_ghost(self):
+        """Remove ghost text from the document without affecting real content."""
+        if not self._ghost_text or self._ghost_start_pos < 0:
+            self._ghost_text = ""
+            self._ghost_start_pos = -1
+            return
+        self._modifying_ghost = True
+        try:
+            cursor = QtGui.QTextCursor(self.document())
+            cursor.setPosition(self._ghost_start_pos)
+            cursor.movePosition(
+                QtGui.QTextCursor.MoveOperation.End,
+                QtGui.QTextCursor.MoveMode.KeepAnchor,
+            )
+            cursor.removeSelectedText()
+        finally:
+            self._ghost_text = ""
+            self._ghost_start_pos = -1
+            self._modifying_ghost = False
 
-    def _accept_completion(self, text: str):
-        """Accept and insert the completion."""
-        current = self.toPlainText()
-        # If completion looks like a continuation, append it
-        if not text.startswith(current):
-            new_text = current + " " + text if current else text
-        else:
-            new_text = text
-        self.setPlainText(new_text.strip())
-        # Move cursor to end
-        cursor = self.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.MoveOperation.End)
-        self.setTextCursor(cursor)
-        self.setFocus()
-
-    def _reject_completion(self):
-        """Reject the completion and return focus."""
-        self.setFocus()
+    def _accept_ghost(self):
+        """Accept the ghost text by reformatting it with the default character format."""
+        if not self._ghost_text or self._ghost_start_pos < 0:
+            return
+        self._modifying_ghost = True
+        try:
+            cursor = QtGui.QTextCursor(self.document())
+            cursor.setPosition(self._ghost_start_pos)
+            cursor.movePosition(
+                QtGui.QTextCursor.MoveOperation.End,
+                QtGui.QTextCursor.MoveMode.KeepAnchor,
+            )
+            ghost = self._ghost_text
+            cursor.removeSelectedText()
+            cursor.insertText(ghost, QtGui.QTextCharFormat())
+            cursor.movePosition(QtGui.QTextCursor.MoveOperation.End)
+            self.setTextCursor(cursor)
+        finally:
+            self._ghost_text = ""
+            self._ghost_start_pos = -1
+            self._modifying_ghost = False
