@@ -192,9 +192,7 @@ def get_last_version_boundary() -> str | None:
         last_tag = tag_result.stdout.strip().splitlines()[0]
 
     # Also find the most recent "Bump version" commit
-    bump_result = run_git(
-        "log", "--grep=^Bump version to ", "--pretty=format:%H", "-1", check=False
-    )
+    bump_result = run_git("log", "--grep=^Bump version to ", "--pretty=format:%H", "-1", check=False)
     last_bump_commit = None
     if bump_result.returncode == 0 and bump_result.stdout.strip():
         last_bump_commit = bump_result.stdout.strip()
