@@ -212,8 +212,7 @@ class CampaignMasterWindow(QtWidgets.QMainWindow):
 
         # Keyboard shortcuts hint
         shortcuts_label = QtWidgets.QLabel(
-            "Ctrl+N  New Campaign  |  Ctrl+O  Load from Database  |  "
-            "Ctrl+I  Import from JSON"
+            "Ctrl+N  New Campaign  |  Ctrl+O  Load from Database  |  " "Ctrl+I  Import from JSON"
         )
         shortcuts_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         shortcuts_label.setStyleSheet("color: #888888; font-size: 12px;")

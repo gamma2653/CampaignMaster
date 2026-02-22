@@ -180,7 +180,7 @@ class AILineEdit(QtWidgets.QLineEdit):
         """Display ghost text suffix after the current cursor position."""
         current = self.text()
         if text.startswith(current):
-            ghost_suffix = text[len(current):]
+            ghost_suffix = text[len(current) :]
         else:
             ghost_suffix = (" " + text) if current else text
         self._ghost_full_text = text
@@ -411,7 +411,7 @@ class AITextEdit(QtWidgets.QTextEdit):
         if self._ghost_text:
             self._clear_ghost()
         current = super().toPlainText()
-        ghost_suffix = text[len(current):] if text.startswith(current) else (" " + text if current else text)
+        ghost_suffix = text[len(current) :] if text.startswith(current) else (" " + text if current else text)
         if not ghost_suffix:
             return
         self._modifying_ghost = True
