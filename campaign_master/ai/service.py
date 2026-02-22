@@ -48,6 +48,54 @@ class CompletionWorker(QObject):
             )
 
 
+class StreamingCompletionWorker(QObject):
+    """Worker for streaming AI completions in a background thread."""
+
+    chunk_received = Signal(str)  # accumulated text so far, at word boundaries
+    finished = Signal(object)  # CompletionResponse when done
+
+    def __init__(self, service: "AICompletionService", prompt: str, context: dict):
+        super().__init__()
+        self._service = service
+        self._prompt = prompt
+        self._context = context
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        """Request cancellation of this streaming request."""
+        self._cancelled = True
+
+    def run(self):
+        """Execute the streaming completion request."""
+        iterator = self._service.complete_streaming(self._prompt, self._context)
+        if iterator is None:
+            self.finished.emit(CompletionResponse("", "error", None, "No provider available"))
+            return
+
+        accumulated = ""
+        word_buffer = ""
+        try:
+            for chunk in iterator:
+                if self._cancelled:
+                    break
+                accumulated += chunk
+                word_buffer += chunk
+                # Emit accumulated text at word boundaries (space, newline, tab)
+                if any(c in " \n\t" for c in chunk):
+                    self.chunk_received.emit(accumulated)
+                    word_buffer = ""
+
+            # Emit any trailing non-whitespace-terminated text
+            if not self._cancelled and word_buffer:
+                self.chunk_received.emit(accumulated)
+
+            finish = "cancelled" if self._cancelled else "stop"
+            self.finished.emit(CompletionResponse(text=accumulated, finish_reason=finish, usage=None))
+        except Exception as e:
+            logger.error("Streaming worker error: %s", e)
+            self.finished.emit(CompletionResponse("", "error", None, str(e)))
+
+
 class AICompletionService:
     """
     Singleton service for managing AI text completions.
@@ -351,6 +399,47 @@ class AICompletionService:
         # Start the thread
         logger.debug("Starting AI completion worker thread")
         thread.start()
+
+    def complete_async_streaming(
+        self,
+        prompt: str,
+        context: dict[str, Any] | None = None,
+        chunk_callback: Callable[[str], None] | None = None,
+        finished_callback: Callable[[CompletionResponse], None] | None = None,
+    ) -> "StreamingCompletionWorker":
+        """
+        Perform a streaming async text completion (for GUI use).
+
+        Returns the worker so the caller can cancel it if needed.
+        """
+        worker = StreamingCompletionWorker(self, prompt, context or {})
+        thread = QThread()
+        worker.moveToThread(thread)
+
+        worker_entry = {"worker": worker, "thread": thread}
+        self._active_workers.append(worker_entry)
+
+        def cleanup():
+            logger.debug("Cleaning up streaming AI completion worker")
+            try:
+                self._active_workers.remove(worker_entry)
+            except ValueError:
+                pass
+
+        if chunk_callback:
+            worker.chunk_received.connect(chunk_callback, Qt.ConnectionType.QueuedConnection)
+        if finished_callback:
+            worker.finished.connect(finished_callback, Qt.ConnectionType.QueuedConnection)
+
+        thread.started.connect(worker.run)
+        worker.finished.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(cleanup)
+        thread.finished.connect(thread.deleteLater)
+
+        logger.debug("Starting AI streaming completion worker thread")
+        thread.start()
+        return worker
 
     def test_connection(self, provider_type: str, api_key: str, base_url: str, model: str) -> tuple[bool, str]:
         """

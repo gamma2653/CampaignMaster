@@ -11,6 +11,7 @@ from typing import Any
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from campaign_master.ai import AICompletionService, CompletionResponse
+from campaign_master.ai.service import StreamingCompletionWorker
 from campaign_master.util import get_basic_logger
 
 logger = get_basic_logger(__name__)
@@ -52,6 +53,7 @@ class AILineEdit(QtWidgets.QLineEdit):
         self.entity_type = entity_type
         self._entity_context_func = entity_context_func
         self._loading = False
+        self._active_worker: StreamingCompletionWorker | None = None
 
         self._ghost_text: str = ""
         self._ghost_full_text: str = ""
@@ -84,12 +86,18 @@ class AILineEdit(QtWidgets.QLineEdit):
         """Clear ghost text and stop debounce timer when focus is lost."""
         self._clear_ghost()
         self._debounce_timer.stop()
+        if self._active_worker is not None:
+            self._active_worker.cancel()
+            self._active_worker = None
         super().focusOutEvent(event)
 
     def _on_text_changed(self):
         """Restart debounce timer on text change; clear any existing ghost."""
         if self._modifying_ghost or not self.hasFocus():
             return
+        if self._active_worker is not None:
+            self._active_worker.cancel()
+            self._active_worker = None
         self._ghost_text = ""
         self._ghost_full_text = ""
         self.update()
@@ -130,31 +138,43 @@ class AILineEdit(QtWidgets.QLineEdit):
         self.completionRequested.emit()
 
         logger.debug("Sending completion request to AI service")
-        service.complete_async(
+        self._active_worker = service.complete_async_streaming(
             prompt=self.text(),
             context=context,
-            callback=self._on_completion_received,
+            chunk_callback=self._on_chunk_received,
+            finished_callback=self._on_completion_received,
         )
+
+    def _on_chunk_received(self, accumulated_text: str):
+        """Update ghost text incrementally at word boundaries."""
+        if not self.hasFocus():
+            return
+        # Reset wait cursor on first arriving chunk
+        if self._loading:
+            self._loading = False
+            self.setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+        self._show_ghost(accumulated_text)
 
     def _on_completion_received(self, response: CompletionResponse | None):
         """Handle completion response from AI service."""
         logger.debug("AI completion response received")
-        self._loading = False
-        self.setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+        self._active_worker = None
+        # Always reset loading state (may already be reset by first chunk)
+        if self._loading:
+            self._loading = False
+            self.setCursor(QtCore.Qt.CursorShape.IBeamCursor)
 
         if not self.hasFocus():
             return
 
-        if not response or response.finish_reason == "error":
-            if response and response.error_message:
+        if not response or response.finish_reason in ("error", "cancelled"):
+            if response and response.finish_reason == "error" and response.error_message:
                 logger.warning("Completion error: %s", response.error_message)
             return
 
-        if not response.text.strip():
-            return
-
-        self.completionReceived.emit(response.text)
-        self._show_ghost(response.text)
+        # Streaming already populated ghost text; emit signal with full text
+        if response.text.strip():
+            self.completionReceived.emit(response.text)
 
     def _show_ghost(self, text: str):
         """Display ghost text suffix after the current cursor position."""
@@ -249,6 +269,7 @@ class AITextEdit(QtWidgets.QTextEdit):
         self.entity_type = entity_type
         self._entity_context_func = entity_context_func
         self._loading = False
+        self._active_worker: StreamingCompletionWorker | None = None
 
         self._ghost_text: str = ""
         self._ghost_start_pos: int = -1
@@ -295,6 +316,9 @@ class AITextEdit(QtWidgets.QTextEdit):
         """Clear ghost text and stop debounce timer when focus is lost."""
         self._clear_ghost()
         self._debounce_timer.stop()
+        if self._active_worker is not None:
+            self._active_worker.cancel()
+            self._active_worker = None
         self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
         super().focusOutEvent(event)
 
@@ -302,6 +326,9 @@ class AITextEdit(QtWidgets.QTextEdit):
         """Restart debounce timer on text change; clear any existing ghost."""
         if self._modifying_ghost or not self.hasFocus():
             return
+        if self._active_worker is not None:
+            self._active_worker.cancel()
+            self._active_worker = None
         if self._ghost_text:
             self._clear_ghost()
         self._debounce_timer.stop()
@@ -340,33 +367,44 @@ class AITextEdit(QtWidgets.QTextEdit):
         self.completionRequested.emit()
 
         logger.debug("Sending completion request to AI service")
-        service.complete_async(
+        self._active_worker = service.complete_async_streaming(
             prompt=self.toPlainText(),
             context=context,
-            callback=self._on_completion_received,
+            chunk_callback=self._on_chunk_received,
+            finished_callback=self._on_completion_received,
         )
+
+    def _on_chunk_received(self, accumulated_text: str):
+        """Update ghost text incrementally at word boundaries."""
+        if not self.hasFocus():
+            return
+        # Reset wait cursor on first arriving chunk
+        if self._loading:
+            self._loading = False
+            self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+        self._show_ghost(accumulated_text)
 
     def _on_completion_received(self, response: CompletionResponse | None):
         """Handle completion response from AI service."""
         logger.debug("AI completion response received")
-        self._loading = False
-        self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
+        self._active_worker = None
+        # Always reset loading state (may already be reset by first chunk)
+        if self._loading:
+            self._loading = False
+            self.viewport().setCursor(QtCore.Qt.CursorShape.IBeamCursor)
 
         if not self.hasFocus():
             return
 
-        if not response or response.finish_reason == "error":
-            if response and response.error_message:
+        if not response or response.finish_reason in ("error", "cancelled"):
+            if response and response.finish_reason == "error" and response.error_message:
                 logger.warning("Completion error: %s", response.error_message)
             return
         logger.debug("AI completion finished with reason: %s", response.finish_reason)
 
-        if not response.text.strip():
-            return
-
-        self.completionReceived.emit(response.text)
-        logger.debug("Showing inline ghost text")
-        self._show_ghost(response.text)
+        # Streaming already populated ghost text; emit signal with full text
+        if response.text.strip():
+            self.completionReceived.emit(response.text)
 
     def _show_ghost(self, text: str):
         """Insert ghost text into the document with a dim foreground color."""
