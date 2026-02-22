@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0] - 2026-02-22
+
+### Other
+
+- Stream AI ghost text word-by-word instead of waiting for full response
+- Replace AI completion popup with inline ghost text
+- Update CLAUDE.md with architectural clarifications and new patterns
+- Deduplicate changelog entries. (Cleanup)
+
 ## [1.2.5] - 2026-02-17
 
 ### Other
